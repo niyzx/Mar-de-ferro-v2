@@ -273,7 +273,6 @@ body:not(.touch) .help .only-touch { display: none; }
       <button class="btn ghost" id="btnAlt" type="button" hidden>Recomeçar</button>
       <button class="btn ghost" id="btnMenu" type="button" hidden>Menu principal</button>
       <div class="mgrp"><span class="mlbl">Multijogador</span><div class="mgrid">
-        <button class="btn ghost" id="btnAmg" type="button" hidden>Amigos</button>
         <button class="btn ghost" id="btnMp" type="button" hidden>Esquadra</button>
       </div></div>
       <div class="mgrp"><span class="mlbl">Progresso</span><div class="mgrid g3">
@@ -285,6 +284,7 @@ body:not(.touch) .help .only-touch { display: none; }
     </div>
   </div>
 </div>
+<div id="mate" hidden style="position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);z-index:5;pointer-events:none;width:min(170px,34vw);font-size:11px;letter-spacing:.14em;color:var(--steel);text-align:center"><span id="mateN"></span><div class="bar" style="margin-top:3px"><i id="mateF" style="background:var(--good)"></i></div></div>
 <div class="overlay" id="mpEl" hidden><div class="panel">
   <h1 class="title sm">Esquadra</h1>
   <p class="note" id="mpMsg">Um cria a sala e manda o código; o outro entra com ele. Os dois enfrentam as mesmas ondas.</p>
@@ -292,6 +292,7 @@ body:not(.touch) .help .only-touch { display: none; }
   <input id="mpCode" maxlength="4" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters" style="user-select:text;-webkit-user-select:text;width:100%;box-sizing:border-box;padding:10px;background:rgba(212,232,234,.08);border:1px solid var(--line);color:var(--ink);font:inherit;text-transform:uppercase;letter-spacing:.3em;text-align:center">
   <div class="actions">
     <button class="btn" id="mpGo" type="button" hidden>Zarpar</button>
+    <button class="btn ghost" id="mpShare" type="button" hidden>Copiar código</button>
     <button class="btn ghost" id="mpCreate" type="button">Criar sala</button>
     <button class="btn ghost" id="mpJoin" type="button">Entrar na sala</button>
     <button class="btn ghost" id="mpBack" type="button">Voltar</button>
@@ -323,9 +324,6 @@ body:not(.touch) .help .only-touch { display: none; }
   <div class="actions"><button class="btn ghost" id="pMine" type="button" hidden>Meu perfil</button><button class="btn ghost" id="rankBack" type="button">Voltar</button></div>
 </div></div>
 <button class="ibtn" id="btnCfg" type="button" aria-label="Configurações" title="Configurações" style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;z-index:20"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-<button class="ibtn" id="btnInb" type="button" aria-label="Caixa de entrada" title="Caixa de entrada" style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:62px;z-index:20"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg><span id="inbN" hidden style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:var(--brass);color:#0d1a22;font:700 11px/18px sans-serif;text-align:center"></span></button>
-<style>body[data-state="playing"] #btnCfg, body[data-state="playing"] #btnInb { display: none; } #btnInb { position: fixed; }</style>
-<div id="inv" hidden style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 56px);left:50%;transform:translateX(-50%);z-index:40;width:min(360px,92vw);box-sizing:border-box;padding:12px;background:#0d1a22;border:1px solid var(--brass);color:var(--ink);display:flex;flex-direction:column;gap:8px"><span id="invTxt"></span><div style="display:flex;gap:8px"><button class="btn ghost" id="invOk" type="button" style="flex:1">Aceitar</button><button class="btn ghost" id="invNo" type="button" style="flex:1">Recusar</button></div></div>
 <div class="overlay" id="cfg" hidden style="z-index:30"><div class="panel">
   <h1 class="title sm">Configurações</h1>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0;border-top:1px solid var(--line)"><span>Som</span><button class="btn ghost" id="cfgSound" type="button" style="min-width:130px"></button></div>
@@ -333,24 +331,11 @@ body:not(.touch) .help .only-touch { display: none; }
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0;border-top:1px solid var(--line)"><span>Conta</span><button class="btn ghost" id="cfgAcct" type="button" style="min-width:130px"></button></div>
   <div class="actions"><button class="btn ghost" id="cfgBack" type="button">Voltar</button></div>
 </div></div>
-<div class="overlay" id="amg" hidden><div class="panel">
-  <h1 class="title sm">Amigos</h1>
-  <div style="display:flex;gap:6px"><input id="fName" maxlength="16" placeholder="Nome do jogador" autocomplete="off" autocapitalize="none" style="user-select:text;-webkit-user-select:text;flex:1;min-width:0;box-sizing:border-box;padding:10px;background:rgba(212,232,234,.08);border:1px solid var(--line);color:var(--ink);font:inherit"><button class="btn ghost" id="fAdd" type="button" style="padding:6px 16px;font-size:16px">Adicionar</button></div>
-  <p class="note" id="fMsg">Duelo só entre amigos: os dois tocam em "Duelo" ao lado do nome do outro.</p>
-  <div id="fBody" style="font-size:13px;line-height:1.5;max-height:50vh;overflow-y:auto"></div>
-  <div class="actions"><button class="btn ghost" id="fBack" type="button">Voltar</button></div>
-</div></div>
-<div class="overlay" id="inb" hidden><div class="panel">
-  <h1 class="title sm">Caixa de entrada</h1>
-  <p class="note">Pedidos de amizade e convites de duelo.</p>
-  <div id="inbBody" style="font-size:13px;line-height:1.5;max-height:55vh;overflow-y:auto"></div>
-  <div class="actions"><button class="btn ghost" id="inbBack" type="button">Voltar</button></div>
-</div></div>
 <div class="overlay" id="prof" hidden><div class="panel">
   <div class="kicker">Perfil</div>
   <h1 class="title sm" id="profName"></h1>
   <div id="profBody" style="font-size:13px;line-height:1.5;max-height:60vh;overflow-y:auto"></div>
-  <div class="actions"><button class="btn ghost" id="profAdd" type="button" hidden>Adicionar amigo</button><button class="btn ghost" id="profBack" type="button">Voltar</button></div>
+  <div class="actions"><button class="btn ghost" id="profBack" type="button">Voltar</button></div>
 </div></div>
 
 <div class="overlay" id="shop" hidden><div class="panel">
@@ -596,7 +581,7 @@ function newGame() {
   const st = playerStats();
   G = {
     t: 0, wave: 0, score: 0, kills: 0, coins: 0, queue: [], spawnT: 0, waveClearing: true, interlude: 1.3,
-    enemies: [], planes: [], balls: [], parts: [], wrecks: [], crates: [], texts: [],
+    enemies: [], planes: [], balls: [], parts: [], wrecks: [], crates: [], buoys: [], texts: [],
     shake: 0, flash: 0, deadT: 0, hpMul: 1, fireScale: 1, aimActive: false,
     camera: { x: 0, y: 0 },
     player: {
@@ -821,7 +806,6 @@ function playerFire() {
   const p = G.player, a = p.aim + rand(-.012, .012);
   const tx = p.x + Math.cos(p.heading) * p.spec.len * .2, ty = p.y + Math.sin(p.heading) * p.spec.len * .2;
   const mx = tx + Math.cos(a) * 28, my = ty + Math.sin(a) * 28;
-  if (MP.role === 'vs') mpSend({ t: 'f', x: Math.round(mx), y: Math.round(my), a: +a.toFixed(3), d: p.dmg });
   if (MP.role === 'guest') mpSend({ t: 'f', x: Math.round(mx), y: Math.round(my), a: +a.toFixed(3) });
   else G.balls.push({ own: 'p', x: mx, y: my, vx: Math.cos(a) * BALL_V, vy: Math.sin(a) * BALL_V, life: RANGE / BALL_V, dmg: p.dmg, trail: 0 });
   p.reload = p.rel * (p.rapid > 0 ? .47 : 1);
@@ -839,6 +823,25 @@ function hurtPlayer(dmg, x, y) {
   sfx.hurt();
   if (p.hp <= 0) killPlayer();
 }
+const BUOY_R = 110, BUOY_LIFE = 25, BUOY_T = 3;
+function dropBuoy(who, x, y) { if (!G.buoys.some(b => b.who === who)) G.buoys.push({ who, x, y, life: BUOY_LIFE, prog: 0, t: 0 }); }
+function stepBuoys(dt) {
+  const p = G.player, q = G.p2;
+  for (let i = G.buoys.length - 1; i >= 0; i--) {
+    const b = G.buoys[i], vic = b.who === 'p' ? p : q, res = b.who === 'p' ? q : p;
+    b.t += dt; b.life -= dt;
+    if (!vic.dead || b.life <= 0 || MP.peerGone) { G.buoys.splice(i, 1); continue; }
+    if (!res.dead && Math.hypot(res.x - b.x, res.y - b.y) < BUOY_R) { b.prog = res.hflash > 0 ? 0 : b.prog + dt; }
+    else b.prog = Math.max(0, b.prog - dt * 1.5);
+    if (b.prog >= BUOY_T) {
+      vic.dead = false; vic.hp = vic.max * .4; vic.x = b.x; vic.y = b.y; vic.speed = 0; vic.vx = vic.vy = 0; vic.cloak = 0;
+      if (b.who === 'q') evp(['r', Math.round(b.x), Math.round(b.y)]); else G.deadT = 0;
+      MP.mute = 1; banner(b.who === 'p' ? 'De volta ao mar' : (q.nome || 'Aliado') + ' voltou', b.who === 'p' ? 'Seu aliado te resgatou' : 'Resgate concluído'); MP.mute = 0;
+      sfx.pick(); explosion(b.x, b.y, .8);
+      G.buoys.splice(i, 1);
+    }
+  }
+}
 function hurtP2(dmg, x, y) {
   const q = G.p2;
   q.hp -= dmg; q.hflash = .15; sparks(x, y, 8, 220);
@@ -846,12 +849,13 @@ function hurtP2(dmg, x, y) {
 }
 function killP2() {
   const q = G.p2;
+  if (!MP.peerGone) dropBuoy('q', q.x, q.y);
   q.dead = true; q.hp = 0; q.speed = 0; q.vx = q.vy = 0; G.deadT = 0;
   explosion(q.x, q.y, 2.6);
   G.wrecks.push({ x: q.x, y: q.y, heading: q.heading, spec: q.spec, aim: q.aim, t: 0, vx: 0, vy: 0 });
   sfx.boom();
   if (G.player.dead) return;
-  MP.mute = 1; banner((q.nome || 'Seu amigo') + ' foi afundado', 'Termine a onda para resgatá-lo'); MP.mute = 0;
+  MP.mute = 1; banner((q.nome || 'Seu amigo') + ' foi afundado', 'Vá até a boia e fique nela para resgatá-lo'); MP.mute = 0;
 }
 function stepP2(dt) {
   const q = G.p2;
@@ -867,8 +871,8 @@ function stepP2(dt) {
 }
 function killPlayer() {
   const p = G.player;
-  if (MP.role === 'host' && G.p2 && !G.p2.dead) { MP.mute = 1; banner('Você foi afundado', 'Seu amigo segue; termine a onda para voltar'); MP.mute = 0; }
-  if (MP.role === 'guest' && G.p2 && !G.p2.dead) banner('Você foi afundado', 'Seu amigo segue; termine a onda para voltar');
+  if (MP.role === 'host' && G.p2 && !G.p2.dead) { MP.mute = 1; banner('Você foi afundado', 'Aguarde o resgate na boia (' + BUOY_LIFE + ' s)'); MP.mute = 0; if (!MP.peerGone) dropBuoy('p', p.x, p.y); }
+  if (MP.role === 'guest' && G.p2 && !G.p2.dead) banner('Você foi afundado', 'Aguarde o resgate na boia');
   p.dead = true; p.hp = 0; p.speed = 0; p.vx = p.vy = 0; G.deadT = 0;
   explosion(p.x, p.y, 2.6);
   G.wrecks.push({ x: p.x, y: p.y, heading: p.heading, spec: p.spec, aim: p.aim, t: 0, vx: 0, vy: 0 });
@@ -948,7 +952,6 @@ function drawPlane(pl) {
   ctx.restore();
 }
 function useCloak() {
-  if (MP.role === 'vs') return;
   if (state !== 'playing' || !G) return;
   const p = G.player;
   if (!(p.cloakAb || p.airAb) || p.dead || p.cloak > 0 || p.cloakCd > 0) return;
@@ -1124,7 +1127,6 @@ function updateParts(dt) {
 let playAcc = 0;
 function step(dt) {
   if (state === 'playing') { save.play = (save.play || 0) + dt; playAcc += dt; if (playAcc > 30) { playAcc = 0; persist(); } }
-  if (MP.role === 'vs') { stepVs(dt); return; }
   if (MP.role === 'guest') { stepGuest(dt); return; }
   G.t += dt;
   const p = G.player;
@@ -1139,7 +1141,7 @@ function step(dt) {
     for (let i = G.enemies.length - 1; i >= 0; i--) updateEnemy(G.enemies[i], dt);
     separate();
   }
-  if (MP.role === 'host' && G.p2) stepP2(dt);
+  if (MP.role === 'host' && G.p2) { stepP2(dt); if (state === 'playing') stepBuoys(dt); }
   updatePlanes(dt); updateBalls(dt); updateCrates(dt); updateParts(dt);
   if (MP.role === 'host') mpHostTick(dt);
   if (p.dead && state === 'playing' && !(MP.role === 'host' && G.p2 && !G.p2.dead)) { G.deadT += dt; if (G.deadT > 1.6) gameOver(); }
@@ -1211,6 +1213,18 @@ function drawShip(x, y, heading, spec, aim, o) {
   }
   if (o.flash > 0) { hullPath(L, Wd); ctx.fillStyle = 'rgba(255,255,255,' + Math.min(.6, o.flash * 4) + ')'; ctx.fill(); }
   if (o.dark > 0) { hullPath(L, Wd); ctx.fillStyle = 'rgba(0,0,0,' + o.dark + ')'; ctx.fill(); }
+  ctx.restore();
+}
+function drawBuoy(b) {
+  const mine = b.mine !== undefined ? b.mine : b.who === 'p', t = b.t || 0, blink = b.life < 6 && Math.sin(t * 12) < 0, f = clamp(b.prog / BUOY_T, 0, 1);
+  ctx.save(); ctx.translate(b.x, b.y); ctx.globalAlpha = blink ? .4 : 1;
+  ctx.setLineDash([8, 8]); ctx.lineDashOffset = -t * 14; ctx.beginPath(); ctx.arc(0, 0, BUOY_R, 0, TAU);
+  ctx.strokeStyle = 'rgba(224,169,60,.7)'; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+  if (f > 0) { ctx.beginPath(); ctx.arc(0, 0, BUOY_R - 8, -Math.PI / 2, -Math.PI / 2 + TAU * f); ctx.strokeStyle = '#4fd1a5'; ctx.lineWidth = 6; ctx.stroke(); }
+  const bob = Math.sin(t * 3) * 2;
+  ctx.beginPath(); ctx.arc(0, bob, 11, 0, TAU); ctx.fillStyle = '#e2552f'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#e9f2f3'; ctx.stroke();
+  ctx.fillStyle = '#e9f2f3'; ctx.font = '600 13px ' + getComputedStyle(document.body).fontFamily; ctx.textAlign = 'center';
+  ctx.fillText((mine ? 'RESGATE ' : 'SALVAR ') + Math.max(0, Math.ceil(b.life)) + 's', 0, -BUOY_R - 8);
   ctx.restore();
 }
 function drawCrate(c) {
@@ -1328,6 +1342,22 @@ function drawArrows() {
       ctx.strokeText(tx, lx, ly); ctx.fillText(tx, lx, ly);
     }
   }
+  for (const b of G.buoys) {
+    if ((b.mine !== undefined ? b.mine : b.who === 'p') || state !== 'playing') continue;
+    const sx = W / 2 + (b.x - c.x) * zoom, sy = H / 2 + (b.y - c.y) * zoom;
+    if (sx > -8 && sx < W + 8 && sy > -8 && sy < H + 8) continue;
+    const dx = sx - cx, dy = sy - cy, t = Math.min(hw / (Math.abs(dx) || 1e-6), hh / (Math.abs(dy) || 1e-6));
+    const px = cx + dx * t, py = cy + dy * t, ang = Math.atan2(dy, dx), sz = 13;
+    ctx.save(); ctx.translate(px, py); ctx.rotate(ang);
+    ctx.beginPath(); ctx.moveTo(sz, 0); ctx.lineTo(-sz * .7, -sz * .8); ctx.lineTo(-sz * .7, sz * .8); ctx.closePath();
+    ctx.fillStyle = '#e0a93c'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(10,31,44,.9)'; ctx.stroke();
+    ctx.restore();
+    const dm = Math.round(Math.hypot(b.x - G.camera.x, b.y - G.camera.y) / 10);
+    ctx.font = '600 11px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const lx = clamp(px - Math.cos(ang) * 30, 40, W - 40), ly = clamp(py - Math.sin(ang) * 22, mt - 10, H - mb - 10), tx = 'RESGATAR · ' + dm + ' m · ' + Math.max(0, Math.ceil(b.life)) + 's';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(10,31,44,.9)'; ctx.fillStyle = '#e0a93c';
+    ctx.strokeText(tx, lx, ly); ctx.fillText(tx, lx, ly);
+  }
   const bo = G.enemies.find(e => e.type === 'boss');
   if (bo && state === 'playing') {
     const w = Math.min(300, W - 40), x = (W - w) / 2, y = 150;
@@ -1372,6 +1402,7 @@ function render() {
     drawShip(w.x, w.y, w.heading + k * .12, w.spec, w.aim, { alpha: Math.max(0, 1 - k * k), dark: Math.min(.8, k * .9) });
   }
   for (const cr of G.crates) drawCrate(cr);
+  for (const b of G.buoys) drawBuoy(b);
   for (const e of G.enemies) drawShip(e.x, e.y, e.heading, e.spec, e.aim, { flash: e.flash, recoil: e.recoil });
   for (const e of G.enemies) {
     if (e.hp < e.max) {
@@ -1440,6 +1471,9 @@ const el = {
 const cache = {};
 function setText(k, v) { if (cache[k] !== v) { cache[k] = v; el[k].textContent = v; } }
 function hud() {
+  const mt = $('mate'), q = G && G.p2, showM = !!q && state !== 'menu';
+  if (mt.hidden === showM) mt.hidden = !showM;
+  if (showM) { const t = (q.nome || 'Aliado') + (q.dead ? ' · afundado' : ''); if ($('mateN').textContent !== t) $('mateN').textContent = t; $('mateF').style.transform = 'scaleX(' + clamp(q.hp / q.max, 0, 1).toFixed(3) + ')'; }
   if (!G || state === 'menu') return;
   const p = G.player;
   const hp = Math.max(0, Math.ceil(p.hp));
@@ -1477,7 +1511,6 @@ function showOverlay(mode) {
   $('btnRank').hidden = !RANK_ON || mode === 'paused';
   $('btnAcct').hidden = mode === 'paused';
   $('btnAch').hidden = mode === 'paused';
-  $('btnAmg').hidden = mode === 'paused';
   $('btnMp').hidden = mode === 'paused';
   refreshAcct();
   $('sendMsg').textContent = '';
@@ -1573,7 +1606,6 @@ async function authCall(path, body) {
 function setSess(d, nome) {
   sess = { at: d.access_token, rt: d.refresh_token, exp: Date.now() + (d.expires_in || 3600) * 1000 - 60000, id: d.user.id, nome };
   try { localStorage.setItem(SESS_KEY, JSON.stringify(sess)); } catch (e) {}
-  try { inboxStart(); } catch (e) {}
 }
 async function token() {
   if (!sess) return null;
@@ -1627,7 +1659,6 @@ async function pullCloud() {
 document.addEventListener('visibilitychange', () => { if (document.hidden) pushCloud(); });
 window.addEventListener('pagehide', () => { pushCloud(); });
 function logout() {
-  try { inboxStop(); } catch (e) {}
   sess = null;
   try { localStorage.removeItem(SESS_KEY); localStorage.removeItem(KEY_SAVE); localStorage.removeItem(KEY_BEST); localStorage.removeItem('mf_dono'); } catch (e) {}
   Object.assign(save, { coins: 0, ship: 'corveta', owned: ['corveta'], up: { hull: 0, gun: 0, rel: 0, eng: 0 }, ach: {}, kills: 0, bosses: 0, ts: 0, play: 0 });
@@ -1711,12 +1742,12 @@ const dia = v => { const t = Date.parse(v); return t ? new Date(t).toLocaleDateS
 async function openProfile(nome) {
   rankEl.hidden = true; profEl.hidden = false;
   $('profName').textContent = nome;
-  const b = $('profBody'); b.textContent = 'Carregando…'; $('profAdd').hidden = true; $('profAdd').textContent = 'Adicionar amigo';
+  const b = $('profBody'); b.textContent = 'Carregando…';
   try {
     const r = await api('rpc/perfil_publico', { method: 'POST', body: JSON.stringify({ p_nome: nome }) });
     const d = await r.json();
     if (!d || !d.nome) { b.textContent = 'Jogador não encontrado.'; return; }
-    $('profName').textContent = d.nome; curProf = d.nome; $('profAdd').hidden = !sess || sess.nome === d.nome;
+    $('profName').textContent = d.nome; curProf = d.nome;
     const sv = d.save || {}, up = sv.up || {}, rk = d.ranking;
     const owned = (Array.isArray(sv.owned) ? sv.owned : ['corveta']).map(id => SHIPS.find(s => s.id === id)).filter(Boolean);
     const ship = SHIPS.find(s => s.id === sv.ship) || SHIPS[0];
@@ -1769,7 +1800,6 @@ function loadSb() {
   });
 }
 function mpLeave() {
-  try { if (MP.role === 'vs' && MP.vsFriend) rpc('duelo_cancelar', { p_id: MP.vsFriend.id }).catch(() => {}); } catch (e) {}
   try { if (MP.ch && MP.role) mpSend({ t: 'bye' }); } catch (e) {}
   try { if (MP.ch && MP.sb) MP.sb.removeChannel(MP.ch); } catch (e) {}
   clearInterval(MP.joinI); clearTimeout(MP.joinT);
@@ -1794,7 +1824,7 @@ async function mpConnect(code, role) {
 }
 function mpBusy(b) { for (const id of ['mpCreate', 'mpJoin']) $(id).disabled = b; }
 $('btnMp').addEventListener('click', () => {
-  mpLeave(); $('mpBig').textContent = ''; $('mpGo').hidden = true; $('mpCode').hidden = false; mpBusy(false);
+  mpLeave(); $('mpBig').textContent = ''; $('mpShare').hidden = true; $('mpGo').hidden = true; $('mpCode').hidden = false; mpBusy(false);
   mpSay('Um cria a sala e manda o código; o outro entra com ele. Os dois enfrentam as mesmas ondas.');
   mpEl.hidden = false;
 });
@@ -1805,7 +1835,7 @@ $('mpCreate').addEventListener('click', async () => {
   mpBusy(true); mpSay('Criando sala…');
   try {
     await mpConnect(code, 'host');
-    $('mpBig').textContent = code; $('mpCode').hidden = true;
+    $('mpBig').textContent = code; $('mpCode').hidden = true; $('mpShare').hidden = false;
     mpSay('Mande o código ao amigo e espere ele entrar.');
   } catch (e) { mpLeave(); mpSay('Não foi possível conectar. Verifique a internet e tente de novo.'); }
   mpBusy(false);
@@ -1817,13 +1847,22 @@ $('mpJoin').addEventListener('click', async () => {
   try {
     await mpConnect(code, 'guest');
     const st = playerStats();
-    const info = { t: 'join', n: sess ? sess.nome : 'amigo', id: save.ship, hp: st.hp, dmg: st.dmg, rel: st.rel, speed: st.spec.speed, au: st.auto ? 1 : 0 };
+    MP.uid = Math.random().toString(36).slice(2, 8);
+    const info = { t: 'join', u: MP.uid, n: sess ? sess.nome : 'amigo', id: save.ship, hp: st.hp, dmg: st.dmg, rel: st.rel, speed: st.spec.speed, au: st.auto ? 1 : 0 };
     MP.acked = false;
     const send = () => mpSend(info);
     send(); MP.joinI = setInterval(send, 1200);
     MP.joinT = setTimeout(() => { if (!MP.acked) { mpLeave(); mpBusy(false); mpSay('Sala não encontrada. Confira o código.'); } }, 7000);
   } catch (e) { mpLeave(); mpBusy(false); mpSay('Não foi possível conectar. Verifique a internet e tente de novo.'); }
 });
+$('mpShare').addEventListener('click', async () => {
+  const c = MP.code, txt = 'Entre na minha esquadra no Mar de Ferro! Código: ' + c;
+  try { if (navigator.share) { await navigator.share({ text: txt }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(txt); mpSay('Código copiado! Cole numa conversa com o aliado.'); } catch (e) { mpSay('Copie manualmente: ' + c); }
+});
+$('mpCode').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('mpJoin').click(); });
+$('mpCode').addEventListener('keyup', e => e.stopPropagation());
+$('mpCode').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ''); });
 $('mpGo').addEventListener('click', () => { if (MP.role === 'host' && MP.guest) mpStartHost(); });
 function mkOther(id, speed) {
   const sh = SHIPS.find(s => s.id === id) || SHIPS[0];
@@ -1857,11 +1896,12 @@ function mpStartGuest(m) {
 function mpOnMsg(m) {
   if (!m || !MP.role) return;
   if (MP.role === 'host') {
-    if (m.t === 'join' && !(MP.guest && state === 'playing')) {
+    if (m.t === 'join' && MP.guest && MP.guest.u !== String(m.u)) { mpSend({ t: 'full', u: String(m.u) }); }
+    else if (m.t === 'join' && !(MP.guest && state === 'playing')) {
       const first = !MP.guest;
-      MP.guest = { au: m.au ? 1 : 0, n: String(m.n || 'amigo').slice(0, 16), id: m.id, hp: clamp(+m.hp || 100, 1, 2000), dmg: clamp(+m.dmg || 20, 1, 500), rel: clamp(+m.rel || .6, .1, 3), speed: clamp(+m.speed || 190, 50, 600) };
-      mpSend({ t: 'ack', n: sess ? sess.nome : 'anfitrião' });
-      if (first) { $('mpGo').hidden = false; mpSay(MP.guest.n + ' entrou! Toque em Zarpar.'); }
+      MP.guest = { u: String(m.u), au: m.au ? 1 : 0, n: String(m.n || 'amigo').slice(0, 16), id: m.id, hp: clamp(+m.hp || 100, 1, 2000), dmg: clamp(+m.dmg || 20, 1, 500), rel: clamp(+m.rel || .6, .1, 3), speed: clamp(+m.speed || 190, 50, 600) };
+      mpSend({ t: 'ack', u: String(m.u), n: sess ? sess.nome : 'anfitrião' });
+      if (first) { const sh = SHIPS.find(x => x.id === MP.guest.id); $('mpGo').hidden = false; mpSay(MP.guest.n + ' entrou' + (sh ? ' com ' + sh.name : '') + '! Toque em Zarpar.'); }
     } else if (m.t === 'c' && G.p2 && !G.p2.dead && state === 'playing') {
       const q = G.p2;
       if (!(q.cloak > 0 || q.cloakCd > 0)) { q.cloak = 9; q.cloakCd = 25; MP.mute = 1; floatText(q.x, q.y - 30, 'submerso', '#8aa3ab'); MP.mute = 0; }
@@ -1870,7 +1910,7 @@ function mpOnMsg(m) {
       if (!(q.cloakCd > 0)) { q.cloakCd = 45; summonPlanes(q); tone(180, 520, .7, .35, 'sawtooth'); }
     } else if (m.t === 'g' && G.p2 && !G.p2.dead && state === 'playing') {
       const q = G.p2; MP.lastIn = performance.now(); q.autoAim = +m.u || 0;
-      q.x = +m.x; q.y = +m.y; q.heading = +m.h; q.aim = +m.a; q.speed = +m.s;
+      { const nx = +m.x, ny = +m.y, k = Math.hypot(nx - q.x, ny - q.y) < 160 ? .6 : 1; q.x += (nx - q.x) * k; q.y += (ny - q.y) * k; } q.heading = +m.h; q.aim = +m.a; q.speed = +m.s;
       q.vx = Math.cos(q.heading) * q.speed; q.vy = Math.sin(q.heading) * q.speed;
     } else if (m.t === 'f' && G.p2 && !G.p2.dead && state === 'playing') {
       const q = G.p2, a = +m.a;
@@ -1881,7 +1921,8 @@ function mpOnMsg(m) {
       else if (state !== 'playing') { MP.guest = null; $('mpGo').hidden = true; mpSay('O amigo saiu. Mande o código de novo.'); }
     }
   } else {
-    if (m.t === 'ack') {
+    if (m.t === 'full' && m.u === MP.uid && !MP.acked) { mpLeave(); mpBusy(false); mpSay('Sala cheia: já tem um aliado nela.'); }
+    else if (m.t === 'ack' && m.u === MP.uid) {
       if (!MP.acked) { MP.acked = true; MP.hostName = String(m.n || 'anfitrião').slice(0, 16); clearInterval(MP.joinI); clearTimeout(MP.joinT); mpSay('Conectado à sala de ' + MP.hostName + '. Aguardando ele zarpar…'); }
     } else if (m.t === 'go') { mpStartGuest(m); }
     else if (m.t === 's' && G && G.p2 && state === 'playing') mpApply(m);
@@ -1901,6 +1942,7 @@ function mpHostTick(dt) {
     b: G.balls.map(b => [b.own === 'p' ? 0 : 1, r1(b.x), r1(b.y), Math.round(b.vx), Math.round(b.vy), r3(b.life)]),
     cr: G.crates.map(c => [c.type === 'repair' ? 0 : 1, r1(c.x), r1(c.y), r1(c.t), r1(c.life)]),
     pl: G.planes.map(a => [r1(a.x), r1(a.y), r3(a.h), r1(a.life)]),
+    bu: G.buoys.map(b => [b.who === 'q' ? 1 : 0, r1(b.x), r1(b.y), r1(b.life), r3(b.prog / BUOY_T)]),
     ev: MP.ev });
   MP.ev = [];
 }
@@ -1908,7 +1950,7 @@ function mpApply(m) {
   MP.lastIn = performance.now();
   G.wave = m.w; G.score = m.sc; G.kills = m.k; G.coins = m.c;
   const o = G.p2, h = m.h, p = G.player, y = m.y;
-  o.x = h[0]; o.y = h[1]; o.heading = h[2]; o.aim = h[3]; o.speed = h[4];
+  { const dx = h[0] - o.x, dy = h[1] - o.y, k = Math.hypot(dx, dy) < 160 ? .55 : 1; o.x += dx * k; o.y += dy * k; } o.heading = h[2]; o.aim = h[3]; o.speed = h[4];
   o.vx = Math.cos(o.heading) * o.speed; o.vy = Math.sin(o.heading) * o.speed;
   if (h[6] < o.hp && !h[5]) o.hflash = .15;
   o.dead = !!h[5]; o.hp = h[6]; o.max = h[7]; o.cloak = h[8] ? 1 : 0; o.auto = !!h[10]; o.autoAim = h[11] || 0;
@@ -1922,12 +1964,13 @@ function mpApply(m) {
     let e = old.get(a[0]);
     if (!e) e = { id: a[0], type: a[1], spec: SPEC[a[1]], flash: 0, recoil: 0, wakeT: 0, smokeT: 0, speed: 0, hp: a[6] };
     else if (a[6] < e.hp) e.flash = .12;
-    e.x = a[2]; e.y = a[3]; e.heading = a[4]; e.aim = a[5]; e.hp = a[6]; e.max = a[7]; e.vx = a[8]; e.vy = a[9]; e.speed = Math.hypot(a[8], a[9]);
+    { const dx = a[2] - e.x, dy = a[3] - e.y, k = (e.x !== undefined && Math.hypot(dx, dy) < 120) ? .55 : 1; e.x = k < 1 ? e.x + dx * k : a[2]; e.y = k < 1 ? e.y + dy * k : a[3]; } e.heading = a[4]; e.aim = a[5]; e.hp = a[6]; e.max = a[7]; e.vx = a[8]; e.vy = a[9]; e.speed = Math.hypot(a[8], a[9]);
     if (e.spec) list.push(e);
   }
   G.enemies = list;
   G.balls = m.b.map(a => ({ own: a[0] ? 'e' : 'p', x: a[1], y: a[2], vx: a[3], vy: a[4], life: a[5], trail: 0 }));
   G.planes = (m.pl || []).map(a => ({ x: a[0], y: a[1], h: a[2], v: 480, life: a[3], trail: 0 }));
+  G.buoys = (m.bu || []).map(a => ({ mine: !!a[0], x: a[1], y: a[2], life: a[3], prog: a[4] * BUOY_T, t: performance.now() / 1000 }));
   G.crates = m.cr.map(a => ({ type: a[0] ? 'rapid' : 'repair', x: a[1], y: a[2], t: a[3], life: a[4] }));
   for (const v of m.ev) {
     if (v[0] === 'x') { explosion(v[1], v[2], v[3]); sfx.boom(); }
@@ -1982,211 +2025,7 @@ function mpGuestEnd(m) {
   setTimeout(mpLeave, 300);
 }
 
-/* ---------- amigos e versus ---------- */
-const amgEl = $('amg');
 const rpc = (fn, args) => api('rpc/' + fn, { method: 'POST', body: JSON.stringify(args || {}) }).then(r => r.json());
-const FMSG = { enviado: 'Pedido enviado.', aceito: 'Agora vocês são amigos!', ja: 'Já existe um pedido ou amizade com esse jogador.', nao_encontrado: 'Jogador não encontrado.', voce: 'Esse é você.', login: 'Entre numa conta.' };
-async function friendReq(n) { try { return FMSG[await rpc('amigo_pedir', { p_nome: n })] || 'Não foi possível.'; } catch (e) { return 'Sem conexão.'; } }
-const fbtn = (act, id, n, t, main) => '<button type="button" class="btn' + (main ? '' : ' ghost') + '" data-act="' + act + '" data-id="' + esc(id) + '" data-n="' + esc(n) + '" style="clip-path:none;min-height:34px;padding:4px 12px;font-size:14px;letter-spacing:.06em">' + t + '</button>';
-const frow = (left, btns) => '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line)"><div style="min-width:0">' + left + '</div><div style="display:flex;gap:6px;flex-wrap:wrap">' + btns + '</div></div>';
-async function loadFriends() {
-  const b = $('fBody'); b.textContent = 'Carregando…';
-  try {
-    const d = await rpc('amigos_lista');
-    if (!Array.isArray(d)) throw 0;
-    friendBadge();
-    const grp = (st, title, acts) => { const l = d.filter(f => f.status === st); return l.length ? '<div style="padding-top:8px;color:var(--steel)">' + title + '</div>' + l.map(f => frow('<b>' + esc(f.nome) + '</b>', acts(f))).join('') : ''; };
-    const B = (act, f, t, main) => fbtn(act, f.id, f.nome, t, main);
-    b.innerHTML = grp('recebido', 'Pedidos recebidos', f => B('ok', f, 'Aceitar', 1) + B('no', f, 'Recusar')) +
-      grp('amigo', 'Amigos', f => B('vs', f, 'Duelo', 1) + B('pf', f, 'Perfil') + B('rm', f, 'Remover')) +
-      grp('enviado', 'Pedidos enviados', f => B('rm', f, 'Cancelar')) || 'Você ainda não tem amigos.';
-  } catch (e) { b.textContent = 'Não foi possível carregar.'; }
-}
-$('btnAmg').addEventListener('click', () => {
-  if (!sess) { $('aMsg').textContent = 'Entre numa conta para usar amigos.'; $('auth').hidden = false; return; }
-  $('fMsg').textContent = 'Duelo só entre amigos: os dois tocam em "Duelo" ao lado do nome do outro.';
-  amgEl.hidden = false; loadFriends();
-});
-$('fBack').addEventListener('click', () => { if (MP.role === 'vs') mpLeave(); amgEl.hidden = true; });
-$('fAdd').addEventListener('click', async () => { const n = $('fName').value.trim().toLowerCase(); if (!n) return; $('fMsg').textContent = await friendReq(n); $('fName').value = ''; loadFriends(); });
-$('fName').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('fAdd').click(); });
-$('fName').addEventListener('keyup', e => e.stopPropagation());
-$('profAdd').addEventListener('click', async () => { $('profAdd').textContent = await friendReq(curProf); });
-$('fBody').addEventListener('click', async e => {
-  const a = e.target.closest('[data-act]'); if (!a) return;
-  const { act, id, n } = a.dataset;
-  if (act === 'vs') return vsJoin({ id, nome: n });
-  if (act === 'pf') { amgEl.hidden = true; return openProfile(n); }
-  try {
-    if (act === 'ok' || act === 'no') await rpc('amigo_responder', { p_id: id, p_aceitar: act === 'ok' });
-    else if (act === 'rm' && confirm('Remover ' + n + '?')) await rpc('amigo_remover', { p_id: id });
-  } catch (_) {}
-  loadFriends();
-});
-function vsHello() { const st = playerStats(); return { t: 'vhi', n: sess.nome, ship: save.ship, hs: st.spec.speed, hp: st.hp }; }
-let vsBusy = false;
-async function vsJoin(f) {
-  if (vsBusy) return;
-  vsBusy = true;
-  const say = t => { $('fMsg').textContent = t; };
-  say('Conectando…');
-  try {
-    await loadSb(); mpLeave();
-    if (!MP.sb) MP.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { realtime: { params: { eventsPerSecond: 40 } } });
-    const r = /^(ok|aceito):([0-9a-f-]{36})$/.exec(String(await rpc('duelo_convidar', { p_id: f.id })));
-    if (!r) { say('Não foi possível enviar o convite. Vocês precisam ser amigos.'); return; }
-    const accepting = r[1] === 'aceito', name = 'vs:' + [sess.id, f.id].sort().join(':') + ':' + r[2].slice(0, 8);
-    await MP.sb.realtime.setAuth(await token());
-    MP.sb.getChannels().forEach(c => { if (c.topic === 'realtime:' + name) MP.sb.removeChannel(c); });
-    const ch = MP.sb.channel(name, { config: { private: true, broadcast: { self: false, ack: false } } });
-    ch.on('broadcast', { event: 'm' }, ({ payload }) => { try { vsOnMsg(payload); } catch (e) {} });
-    MP.ch = ch;
-    await new Promise((res, rej) => {
-      const to = setTimeout(() => rej(0), 8000);
-      ch.subscribe(st => { if (st === 'SUBSCRIBED') { clearTimeout(to); res(); } else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') { clearTimeout(to); rej(0); } });
-    });
-    MP.role = 'vs'; MP.vsFriend = f;
-    const hello = () => mpSend(vsHello());
-    hello(); MP.joinI = setInterval(hello, 1000);
-    MP.joinT = setTimeout(() => { if (MP.role === 'vs' && state !== 'playing') { mpLeave(); say(f.nome + ' não respondeu ao duelo.'); } }, 90000);
-    say(accepting ? 'Entrando na sala de ' + f.nome + '…' : 'Convite enviado a ' + f.nome + '. Aguardando ele aceitar…');
-  } catch (e) { mpLeave(); say('Não foi possível conectar. Tente de novo.'); } finally { vsBusy = false; }
-}
-function vsStart(m) {
-  clearInterval(MP.joinI); clearTimeout(MP.joinT);
-  initAudio(); newGame();
-  const p = G.player, lo = sess.id < MP.vsFriend.id, hp = clamp(+m.hp || 100, 1, 2000);
-  p.x = lo ? -250 : 250; p.heading = p.aim = lo ? 0 : Math.PI;
-  G.p2 = mkOther(m.ship, clamp(+m.hs || 190, 50, 600));
-  Object.assign(G.p2, { nome: String(m.n || MP.vsFriend.nome).slice(0, 16), max: hp, hp, x: lo ? 250 : -250, y: 0, heading: lo ? Math.PI : 0, aim: lo ? Math.PI : 0 });
-  MP.sentDead = false; amgEl.hidden = true;
-  mpBegin();
-}
-function vsOnMsg(m) {
-  if (!m || MP.role !== 'vs') return;
-  if (m.t === 'vhi') { if (state !== 'playing') { vsStart(m); mpSend(vsHello()); } return; }
-  const q = G.p2;
-  if (state !== 'playing' || !q) return;
-  MP.lastIn = performance.now();
-  if (m.t === 'g' && !q.dead) {
-    const hp = Math.round(+m.hp);
-    if (hp < q.hp - .5) q.hflash = .15;
-    q.x = +m.x; q.y = +m.y; q.heading = +m.h; q.aim = +m.a; q.speed = +m.s; q.hp = hp; q.max = +m.mx || q.max;
-    q.vx = Math.cos(q.heading) * q.speed; q.vy = Math.sin(q.heading) * q.speed;
-  } else if (m.t === 'f' && !q.dead) {
-    const a = +m.a;
-    G.balls.push({ own: 'e', x: +m.x, y: +m.y, vx: Math.cos(a) * BALL_V, vy: Math.sin(a) * BALL_V, life: RANGE / BALL_V, dmg: clamp(+m.d || 20, 1, 70), trail: 0 });
-    muzzle(+m.x, +m.y, a, 1); sfx.enemy(); q.recoil = 1;
-  } else if (m.t === 'vd' && !q.dead) {
-    q.dead = true; q.hp = 0; explosion(q.x, q.y, 2.6); sfx.boom();
-    G.wrecks.push({ x: q.x, y: q.y, heading: q.heading, spec: q.spec, aim: q.aim, t: 0, vx: 0, vy: 0 });
-    setTimeout(() => vsEnd(true), 1500);
-  } else if (m.t === 'bye') vsEnd(true, 'O adversário saiu da partida.');
-}
-function stepVs(dt) {
-  G.t += dt;
-  const p = G.player, o = G.p2;
-  if (state === 'playing' && !p.dead) { const inp = gatherInput(); G.aimActive = inp.aim != null; stepPlayer(dt, inp); }
-  const d = Math.hypot(p.x, p.y); if (d > 900) { p.x *= 900 / d; p.y *= 900 / d; }
-  if (o) {
-    o.hflash = Math.max(0, o.hflash - dt); o.recoil = Math.max(0, o.recoil - dt * 6);
-    if (!o.dead) { o.x += o.vx * dt; o.y += o.vy * dt; wake(o, dt, o.spec.len, o.spec.wid); }
-  }
-  updateBalls(dt);
-  if (o && !o.dead) for (let i = G.balls.length - 1; i >= 0; i--) { const b = G.balls[i]; if (b.own === 'p' && hitShip(b.x, b.y, o)) { sparks(b.x, b.y, 7, 200); sfx.hit(); G.balls.splice(i, 1); } }
-  updateParts(dt);
-  G.shake *= Math.exp(-dt * 7); if (G.shake < .1) G.shake = 0;
-  G.flash = Math.max(0, G.flash - dt * 1.6);
-  followCam(dt);
-  MP.acc += dt;
-  if (MP.acc >= .05 && !p.dead && state === 'playing') { MP.acc = 0; mpSend({ t: 'g', x: r1(p.x), y: r1(p.y), h: r3(p.heading), a: r3(p.aim), s: Math.round(p.speed), hp: Math.round(p.hp), mx: p.max }); }
-  if (state !== 'playing') return;
-  if (p.dead) { if (!MP.sentDead) { MP.sentDead = true; mpSend({ t: 'vd' }); } G.deadT += dt; if (G.deadT > 1.6) vsEnd(false); }
-  else if (performance.now() - MP.lastIn > 6000) vsEnd(true, 'O adversário perdeu a conexão.');
-}
-function vsEnd(win, msg) {
-  if (state !== 'playing' || MP.role !== 'vs') return;
-  setState('over'); showOverlay('over');
-  $('ovStats').hidden = true;
-  $('ovTitle').textContent = win ? 'Vitória' : 'Derrota';
-  $('ovLead').textContent = msg || (win ? 'Você afundou o adversário.' : 'Seu navio foi afundado.');
-  setTimeout(mpLeave, 300);
-}
-
-/* ---------- convites de duelo ---------- */
-var inbox = null, inboxId = '', inboxBusy = false, badgeT = 0, invT = 0, invFrom = null;
-async function inboxStart() {
-  if (!sess || inboxBusy) return;
-  inboxBusy = true;
-  try {
-    await loadSb();
-    if (!MP.sb) MP.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { realtime: { params: { eventsPerSecond: 40 } } });
-    const tk = await token(); if (!tk || !sess) return;
-    MP.sb.realtime.setAuth(tk);
-    if (inbox && inboxId === sess.id) return;
-    inboxStop();
-    inboxId = sess.id;
-    inbox = MP.sb.channel('in:' + sess.id, { config: { private: true } });
-    inbox.on('broadcast', { event: 'inv' }, ({ payload }) => { try { showInvite(payload); friendBadge(); if (!$('inb').hidden) loadInbox(); } catch (e) {} });
-    inbox.subscribe();
-    friendBadge(); badgeT = setInterval(friendBadge, 20000);
-  } catch (e) {} finally { inboxBusy = false; }
-}
-function inboxStop() {
-  try { if (inbox && MP.sb) MP.sb.removeChannel(inbox); } catch (e) {}
-  inbox = null; inboxId = ''; clearInterval(badgeT); setInbN(0);
-}
-function setInbN(n) { const b = $('inbN'); b.hidden = !n; b.textContent = n > 9 ? '9+' : n; }
-async function friendBadge() {
-  if (!sess) return;
-  try {
-    const [fl, dl] = await Promise.all([rpc('amigos_lista'), rpc('duelos_lista')]);
-    const n = (Array.isArray(fl) ? fl.filter(f => f.status === 'recebido').length : 0) + (Array.isArray(dl) ? dl.length : 0);
-    setInbN(n);
-  } catch (e) {}
-}
-function showInvite(m) {
-  if (!m || !/^[0-9a-f-]{36}$/.test(String(m.id)) || state === 'playing') return;
-  if (MP.role === 'vs' && MP.vsFriend && MP.vsFriend.id === String(m.id)) { if (sess.id < String(m.id) && state !== 'playing') vsJoin(MP.vsFriend); return; }
-  invFrom = { id: String(m.id), nome: String(m.n || 'amigo').slice(0, 16) };
-  $('invTxt').textContent = invFrom.nome + ' te desafiou para um duelo!';
-  $('inv').hidden = false; try { sfx.pick(); } catch (e) {}
-  clearTimeout(invT); invT = setTimeout(() => { $('inv').hidden = true; }, 30000);
-}
-$('invNo').addEventListener('click', () => { $('inv').hidden = true; clearTimeout(invT); if (invFrom) rpc('duelo_cancelar', { p_id: invFrom.id }).catch(() => {}); friendBadge(); });
-$('invOk').addEventListener('click', () => {
-  $('inv').hidden = true; clearTimeout(invT);
-  if (!invFrom || !sess) return;
-  amgEl.hidden = false; loadFriends(); vsJoin(invFrom);
-});
-async function loadInbox() {
-  const b = $('inbBody'); b.textContent = 'Carregando…';
-  try {
-    const [fl, dl] = await Promise.all([rpc('amigos_lista'), rpc('duelos_lista')]);
-    if (!Array.isArray(fl) || !Array.isArray(dl)) throw 0;
-    const row = (k, nome, txt, btns) => frow('<span style="color:var(--steel)">' + k + '</span><br><b>' + esc(nome) + '</b> ' + txt, btns);
-    const h = dl.map(d => row('Duelo', d.nome, 'te desafiou', fbtn('dok', d.id, d.nome, 'Aceitar', 1) + fbtn('dno', d.id, d.nome, 'Recusar')))
-      .concat(fl.filter(f => f.status === 'recebido').map(f => row('Amizade', f.nome, 'quer ser seu amigo', fbtn('ok', f.id, f.nome, 'Aceitar', 1) + fbtn('no', f.id, f.nome, 'Recusar'))));
-    b.innerHTML = h.join('') || 'Nada por aqui.';
-  } catch (e) { b.textContent = 'Não foi possível carregar.'; }
-  friendBadge();
-}
-$('btnInb').addEventListener('click', () => {
-  if (!sess) { $('aMsg').textContent = 'Entre numa conta para usar a caixa de entrada.'; $('auth').hidden = false; return; }
-  $('inb').hidden = false; loadInbox();
-});
-$('inbBack').addEventListener('click', () => { $('inb').hidden = true; });
-$('inbBody').addEventListener('click', async e => {
-  const a = e.target.closest('[data-act]'); if (!a) return;
-  const { act, id, n } = a.dataset;
-  if (act === 'dok') { $('inb').hidden = true; amgEl.hidden = false; loadFriends(); return vsJoin({ id, nome: n }); }
-  try {
-    if (act === 'dno') await rpc('duelo_cancelar', { p_id: id });
-    else await rpc('amigo_responder', { p_id: id, p_aceitar: act === 'ok' });
-  } catch (_) {}
-  loadInbox();
-});
-if (sess) setTimeout(inboxStart, 1200);
 
 /* ---------- configurações ---------- */
 const cfgEl = $('cfg');
