@@ -2143,17 +2143,10 @@ async function friendBadge() {
 async function sendInvite(f) {
   const r = await rpc('duelo_convidar', { p_id: f.id });
   if (r !== 'ok') throw 0;
-  const ch = MP.sb.channel('in:' + f.id, { config: { private: true } });
-  try {
-    await new Promise((res, rej) => {
-      const to = setTimeout(() => rej(0), 6000);
-      ch.subscribe(st => { if (st === 'SUBSCRIBED') { clearTimeout(to); res(); } else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') { clearTimeout(to); rej(0); } });
-    });
-    await ch.send({ type: 'broadcast', event: 'inv', payload: { id: sess.id, n: sess.nome } });
-  } finally { setTimeout(() => { try { MP.sb.removeChannel(ch); } catch (e) {} }, 600); }
 }
 function showInvite(m) {
   if (!m || !/^[0-9a-f-]{36}$/.test(String(m.id)) || state === 'playing') return;
+  if (MP.role === 'vs' && MP.vsFriend && MP.vsFriend.id === String(m.id)) return;
   invFrom = { id: String(m.id), nome: String(m.n || 'amigo').slice(0, 16) };
   $('invTxt').textContent = invFrom.nome + ' te desafiou para um duelo!';
   $('inv').hidden = false; try { sfx.pick(); } catch (e) {}
