@@ -324,6 +324,7 @@ body:not(.touch) .help .only-touch { display: none; }
 </div></div>
 <button class="ibtn" id="btnCfg" type="button" aria-label="Configurações" title="Configurações" style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;z-index:20"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 <style>body[data-state="playing"] #btnCfg { display: none; }</style>
+<div id="inv" hidden style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 56px);left:50%;transform:translateX(-50%);z-index:40;width:min(360px,92vw);box-sizing:border-box;padding:12px;background:#0d1a22;border:1px solid var(--brass);color:var(--ink);display:flex;flex-direction:column;gap:8px"><span id="invTxt"></span><div style="display:flex;gap:8px"><button class="btn ghost" id="invOk" type="button" style="flex:1">Aceitar</button><button class="btn ghost" id="invNo" type="button" style="flex:1">Recusar</button></div></div>
 <div class="overlay" id="cfg" hidden style="z-index:30"><div class="panel">
   <h1 class="title sm">Configurações</h1>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0;border-top:1px solid var(--line)"><span>Som</span><button class="btn ghost" id="cfgSound" type="button" style="min-width:130px"></button></div>
@@ -1565,6 +1566,7 @@ async function authCall(path, body) {
 function setSess(d, nome) {
   sess = { at: d.access_token, rt: d.refresh_token, exp: Date.now() + (d.expires_in || 3600) * 1000 - 60000, id: d.user.id, nome };
   try { localStorage.setItem(SESS_KEY, JSON.stringify(sess)); } catch (e) {}
+  try { inboxStart(); } catch (e) {}
 }
 async function token() {
   if (!sess) return null;
@@ -1618,6 +1620,7 @@ async function pullCloud() {
 document.addEventListener('visibilitychange', () => { if (document.hidden) pushCloud(); });
 window.addEventListener('pagehide', () => { pushCloud(); });
 function logout() {
+  try { inboxStop(); } catch (e) {}
   sess = null;
   try { localStorage.removeItem(SESS_KEY); localStorage.removeItem(KEY_SAVE); localStorage.removeItem(KEY_BEST); localStorage.removeItem('mf_dono'); } catch (e) {}
   Object.assign(save, { coins: 0, ship: 'corveta', owned: ['corveta'], up: { hull: 0, gun: 0, rel: 0, eng: 0 }, ach: {}, kills: 0, bosses: 0, ts: 0, play: 0 });
@@ -1981,6 +1984,7 @@ async function loadFriends() {
   try {
     const d = await rpc('amigos_lista');
     if (!Array.isArray(d)) throw 0;
+    const np = d.filter(f => f.status === 'recebido').length; $('btnAmg').textContent = np ? 'Amigos (' + np + ')' : 'Amigos';
     const A = (act, f, t) => '<a data-act="' + act + '" data-id="' + esc(f.id) + '" data-n="' + esc(f.nome) + '" style="cursor:pointer;text-decoration:underline;margin-left:12px">' + t + '</a>';
     const grp = (st, title, acts) => { const l = d.filter(f => f.status === st); return l.length ? '<div style="padding-top:8px;color:var(--steel)">' + title + '</div>' + l.map(f => '<div style="padding:5px 0;border-top:1px solid var(--line)"><b>' + esc(f.nome) + '</b>' + acts(f) + '</div>').join('') : ''; };
     b.innerHTML = grp('recebido', 'Pedidos recebidos', f => A('ok', f, 'Aceitar') + A('no', f, 'Recusar')) +
@@ -2027,7 +2031,8 @@ async function vsJoin(f) {
     MP.role = 'vs'; MP.vsFriend = f;
     const hello = () => mpSend(vsHello());
     hello(); MP.joinI = setInterval(hello, 1000);
-    say('Aguardando ' + f.nome + ' tocar em Duelo…');
+    say('Enviando convite…');
+    sendInvite(f).then(() => say('Convite enviado a ' + f.nome + '. Aguardando ele aceitar…'), () => say('Aguardando ' + f.nome + ' tocar em Duelo… (não foi possível enviar o convite)'));
   } catch (e) { mpLeave(); say('Não foi possível conectar. O duelo só funciona entre amigos.'); }
 }
 function vsStart(m) {
@@ -2090,6 +2095,58 @@ function vsEnd(win, msg) {
   $('ovLead').textContent = msg || (win ? 'Você afundou o adversário.' : 'Seu navio foi afundado.');
   setTimeout(mpLeave, 300);
 }
+
+/* ---------- convites de duelo ---------- */
+var inbox = null, inboxId = '', inboxBusy = false, badgeT = 0, invT = 0, invFrom = null;
+async function inboxStart() {
+  if (!sess || inboxBusy) return;
+  inboxBusy = true;
+  try {
+    await loadSb();
+    if (!MP.sb) MP.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { realtime: { params: { eventsPerSecond: 40 } } });
+    const tk = await token(); if (!tk || !sess) return;
+    MP.sb.realtime.setAuth(tk);
+    if (inbox && inboxId === sess.id) return;
+    inboxStop();
+    inboxId = sess.id;
+    inbox = MP.sb.channel('in:' + sess.id, { config: { private: true } });
+    inbox.on('broadcast', { event: 'inv' }, ({ payload }) => { try { showInvite(payload); } catch (e) {} });
+    inbox.subscribe();
+    friendBadge(); badgeT = setInterval(friendBadge, 45000);
+  } catch (e) {} finally { inboxBusy = false; }
+}
+function inboxStop() {
+  try { if (inbox && MP.sb) MP.sb.removeChannel(inbox); } catch (e) {}
+  inbox = null; inboxId = ''; clearInterval(badgeT); $('btnAmg').textContent = 'Amigos';
+}
+async function friendBadge() {
+  if (!sess) return;
+  try { const d = await rpc('amigos_lista'); if (Array.isArray(d)) { const n = d.filter(f => f.status === 'recebido').length; $('btnAmg').textContent = n ? 'Amigos (' + n + ')' : 'Amigos'; } } catch (e) {}
+}
+async function sendInvite(f) {
+  const ch = MP.sb.channel('in:' + f.id, { config: { private: true } });
+  try {
+    await new Promise((res, rej) => {
+      const to = setTimeout(() => rej(0), 6000);
+      ch.subscribe(st => { if (st === 'SUBSCRIBED') { clearTimeout(to); res(); } else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') { clearTimeout(to); rej(0); } });
+    });
+    await ch.send({ type: 'broadcast', event: 'inv', payload: { id: sess.id, n: sess.nome } });
+  } finally { setTimeout(() => { try { MP.sb.removeChannel(ch); } catch (e) {} }, 600); }
+}
+function showInvite(m) {
+  if (!m || !/^[0-9a-f-]{36}$/.test(String(m.id)) || state === 'playing') return;
+  invFrom = { id: String(m.id), nome: String(m.n || 'amigo').slice(0, 16) };
+  $('invTxt').textContent = invFrom.nome + ' te desafiou para um duelo!';
+  $('inv').hidden = false; try { sfx.pick(); } catch (e) {}
+  clearTimeout(invT); invT = setTimeout(() => { $('inv').hidden = true; }, 30000);
+}
+$('invNo').addEventListener('click', () => { $('inv').hidden = true; clearTimeout(invT); });
+$('invOk').addEventListener('click', () => {
+  $('inv').hidden = true; clearTimeout(invT);
+  if (!invFrom || !sess) return;
+  amgEl.hidden = false; loadFriends(); vsJoin(invFrom);
+});
+if (sess) setTimeout(inboxStart, 1200);
 
 /* ---------- configurações ---------- */
 const cfgEl = $('cfg');
