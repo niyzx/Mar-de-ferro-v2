@@ -284,10 +284,11 @@ body:not(.touch) .help .only-touch { display: none; }
     </div>
   </div>
 </div>
-<div id="mate" hidden style="position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);z-index:5;pointer-events:none;width:min(170px,34vw);font-size:11px;letter-spacing:.14em;color:var(--steel);text-align:center"><span id="mateN"></span><div class="bar" style="margin-top:3px"><i id="mateF" style="background:var(--good)"></i></div></div>
+
+<div id="mate" hidden style="position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);z-index:5;pointer-events:none;width:min(170px,34vw);font-size:11px;letter-spacing:.14em;color:var(--steel);text-align:center;display:flex;flex-direction:column;gap:5px"></div>
 <div class="overlay" id="mpEl" hidden><div class="panel">
   <h1 class="title sm">Esquadra</h1>
-  <p class="note" id="mpMsg">Um cria a sala e manda o código; o outro entra com ele. Os dois enfrentam as mesmas ondas.</p>
+  <p class="note" id="mpMsg">Um cria a sala e manda o código; até 3 amigos entram com ele (4 jogadores). Todos enfrentam as mesmas ondas.</p>
   <div id="mpBig" style="font-family:var(--font-display);font-weight:900;font-size:54px;letter-spacing:.25em;color:var(--brass)"></div>
   <input id="mpCode" maxlength="4" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters" style="user-select:text;-webkit-user-select:text;width:100%;box-sizing:border-box;padding:10px;background:rgba(212,232,234,.08);border:1px solid var(--line);color:var(--ink);font:inherit;text-transform:uppercase;letter-spacing:.3em;text-align:center">
   <div class="actions">
@@ -424,7 +425,7 @@ const SHIPS = [
     spec: Object.assign({}, SPEC.player, { len: 150, wid: 42, turn: 1.1, hull: '#5c7480', deck: '#aebfc4', dark: '#2a3d46', stroke: '#e0a93c', accent: '#e0a93c', carrier: true,
       turrets: [{ x: .4, r: 5, bl: 16 }, { x: -.42, r: 5, bl: 16 }], cabin: { x: -.44, l: 6, w: 6 }, funnel: null }) }
 ];
-const MP = { role: null, ch: null, sb: null, code: '', guest: null, acked: false, ev: [], nid: 0, acc: 0, lastIn: 0, mute: 0, peerGone: false };
+const MP = { role: null, ch: null, sb: null, code: '', guests: [], pid: -1, acked: false, ev: [], nid: 0, acc: 0, lastIn: 0, mute: 0, peerGone: false };
 function evp(a) { if (MP.ev.length < 400) MP.ev.push(a); }
 const ACH = [
   { id: 'first', n: 'Primeiro tiro', d: 'Afunde 1 navio', f: () => save.kills >= 1 },
@@ -581,7 +582,7 @@ function newGame() {
   const st = playerStats();
   G = {
     t: 0, wave: 0, score: 0, kills: 0, coins: 0, queue: [], spawnT: 0, waveClearing: true, interlude: 1.3,
-    enemies: [], planes: [], balls: [], parts: [], wrecks: [], crates: [], buoys: [], texts: [],
+    enemies: [], planes: [], balls: [], parts: [], wrecks: [], crates: [], buoys: [], allies: [], texts: [],
     shake: 0, flash: 0, deadT: 0, hpMul: 1, fireScale: 1, aimActive: false,
     camera: { x: 0, y: 0 },
     player: {
@@ -690,7 +691,7 @@ function startWave() {
   if (!boss && n >= 3 && !G.queue.includes('battle') && n % 3 === 0) G.queue.push('battle');
   if (boss) G.queue.unshift('boss');
   G.spawnT = .4;
-  G.hpMul = 1 + (n - 1) * .07;
+  G.hpMul = (1 + (n - 1) * .07) * (1 + .3 * G.allies.length);
   G.fireScale = Math.max(.6, 1 - (n - 1) * .035);
   if (boss) banner('Onda ' + n + ' · CHEFE', 'Um couraçado gigante se aproxima');
   else banner('Onda ' + n, G.queue.length + ' navios inimigos à vista');
@@ -708,13 +709,16 @@ function spawnEnemy(type) {
     orbitT: rand(6, 12), phase: rand(0, TAU), flash: 0, wakeT: 0, smokeT: 0, recoil: 0
   });
 }
-function anyAlive() { return !G.player.dead || (MP.role === 'host' && G.p2 && !G.p2.dead); }
+function anyAlive() { return !G.player.dead || (MP.role === 'host' && G.allies.some(a => !a.dead)); }
 function mpWaveClear() {
-  if (MP.role !== 'host' || !G.p2) return;
-  const p = G.player, q = G.p2;
-  if (!q.dead) q.hp = Math.min(q.max, q.hp + q.max * .2);
-  else if (!p.dead && !MP.peerGone) { q.dead = false; q.hp = q.max * .4; q.x = p.x + 70; q.y = p.y; q.speed = 0; q.vx = q.vy = 0; q.cloak = 0; evp(['r', Math.round(q.x), Math.round(q.y)]); }
-  if (p.dead && !q.dead) { p.dead = false; p.hp = p.max * .4; p.x = q.x + 70; p.y = q.y; p.speed = 0; p.vx = p.vy = 0; p.cloak = 0; G.deadT = 0; MP.mute = 1; banner('De volta ao mar', 'Seu amigo te resgatou'); MP.mute = 0; }
+  if (MP.role !== 'host' || !G.allies.length) return;
+  const p = G.player;
+  for (const q of G.allies) {
+    if (!q.dead) q.hp = Math.min(q.max, q.hp + q.max * .2);
+    else if (!p.dead) { q.dead = false; q.hp = q.max * .4; q.x = p.x + 70; q.y = p.y; q.speed = 0; q.vx = q.vy = 0; q.cloak = 0; evp(['r', q.pid, Math.round(q.x), Math.round(q.y)]); }
+  }
+  const s = G.allies.find(a => !a.dead);
+  if (p.dead && s) { p.dead = false; p.hp = p.max * .4; p.x = s.x + 70; p.y = s.y; p.speed = 0; p.vx = p.vy = 0; p.cloak = 0; G.deadT = 0; MP.mute = 1; banner('De volta ao mar', 'Seu aliado te resgatou'); MP.mute = 0; }
 }
 function runWaves(dt) {
   const p = G.player;
@@ -806,7 +810,7 @@ function playerFire() {
   const p = G.player, a = p.aim + rand(-.012, .012);
   const tx = p.x + Math.cos(p.heading) * p.spec.len * .2, ty = p.y + Math.sin(p.heading) * p.spec.len * .2;
   const mx = tx + Math.cos(a) * 28, my = ty + Math.sin(a) * 28;
-  if (MP.role === 'guest') mpSend({ t: 'f', x: Math.round(mx), y: Math.round(my), a: +a.toFixed(3) });
+  if (MP.role === 'guest') mpSend({ t: 'f', i: MP.pid, x: Math.round(mx), y: Math.round(my), a: +a.toFixed(3) });
   else G.balls.push({ own: 'p', x: mx, y: my, vx: Math.cos(a) * BALL_V, vy: Math.sin(a) * BALL_V, life: RANGE / BALL_V, dmg: p.dmg, trail: 0 });
   p.reload = p.rel * (p.rapid > 0 ? .47 : 1);
   p.speed = Math.max(0, p.speed - 6); p.recoil = 1;
@@ -823,33 +827,41 @@ function hurtPlayer(dmg, x, y) {
   sfx.hurt();
   if (p.hp <= 0) killPlayer();
 }
-const BUOY_R = 110, BUOY_LIFE = 25, BUOY_T = 3;
-function dropBuoy(who, x, y) { if (!G.buoys.some(b => b.who === who)) G.buoys.push({ who, x, y, life: BUOY_LIFE, prog: 0, t: 0 }); }
+var hitA = null;
+const MAXP = 4, BUOY_R = 110, BUOY_LIFE = 25, BUOY_T = 3;
+function allyBy(pid) { return G.allies.find(a => a.pid === pid); }
+function playerBy(pid) { return pid === 0 ? G.player : allyBy(pid); }
+function dropBuoy(who, x, y) { if (!G.buoys.some(b => b.who === who)) G.buoys.push({ who, x, y, life: BUOY_LIFE, prog: 0, t: 0, mine: who === 0 }); }
 function stepBuoys(dt) {
-  const p = G.player, q = G.p2;
+  const all = [G.player].concat(G.allies);
   for (let i = G.buoys.length - 1; i >= 0; i--) {
-    const b = G.buoys[i], vic = b.who === 'p' ? p : q, res = b.who === 'p' ? q : p;
+    const b = G.buoys[i], vic = playerBy(b.who);
     b.t += dt; b.life -= dt;
-    if (!vic.dead || b.life <= 0 || MP.peerGone) { G.buoys.splice(i, 1); continue; }
-    if (!res.dead && Math.hypot(res.x - b.x, res.y - b.y) < BUOY_R) { b.prog = res.hflash > 0 ? 0 : b.prog + dt; }
-    else b.prog = Math.max(0, b.prog - dt * 1.5);
+    if (!vic || !vic.dead || b.life <= 0) { G.buoys.splice(i, 1); continue; }
+    const inside = all.some(r => r !== vic && !r.dead && Math.hypot(r.x - b.x, r.y - b.y) < BUOY_R);
+    b.prog = inside ? b.prog + dt : Math.max(0, b.prog - dt * 1.5);
     if (b.prog >= BUOY_T) {
       vic.dead = false; vic.hp = vic.max * .4; vic.x = b.x; vic.y = b.y; vic.speed = 0; vic.vx = vic.vy = 0; vic.cloak = 0;
-      if (b.who === 'q') evp(['r', Math.round(b.x), Math.round(b.y)]); else G.deadT = 0;
-      MP.mute = 1; banner(b.who === 'p' ? 'De volta ao mar' : (q.nome || 'Aliado') + ' voltou', b.who === 'p' ? 'Seu aliado te resgatou' : 'Resgate concluído'); MP.mute = 0;
+      if (b.who !== 0) evp(['r', b.who, Math.round(b.x), Math.round(b.y)]); else G.deadT = 0;
+      MP.mute = 1; banner(b.who === 0 ? 'De volta ao mar' : (vic.nome || 'Aliado') + ' voltou', b.who === 0 ? 'Seu aliado te resgatou' : 'Resgate concluído'); MP.mute = 0;
       sfx.pick(); explosion(b.x, b.y, .8);
       G.buoys.splice(i, 1);
     }
   }
 }
-function hurtP2(dmg, x, y) {
-  const q = G.p2;
+function hurtAlly(q, dmg, x, y) {
   q.hp -= dmg; q.hflash = .15; sparks(x, y, 8, 220);
-  if (q.hp <= 0) killP2();
+  if (q.hp <= 0) killAlly(q);
 }
-function killP2() {
-  const q = G.p2;
-  if (!MP.peerGone) dropBuoy('q', q.x, q.y);
+function dropAlly(q, why) {
+  MP.guests = MP.guests.filter(g => g.pid !== q.pid);
+  G.allies = G.allies.filter(a => a !== q);
+  G.buoys = G.buoys.filter(b => b.who !== q.pid);
+  if (!q.dead) { explosion(q.x, q.y, 2.6); sfx.boom(); }
+  MP.mute = 1; banner((q.nome || 'Aliado') + ' ' + why, 'Você segue com o resto da esquadra'); MP.mute = 0;
+}
+function killAlly(q) {
+  dropBuoy(q.pid, q.x, q.y);
   q.dead = true; q.hp = 0; q.speed = 0; q.vx = q.vy = 0; G.deadT = 0;
   explosion(q.x, q.y, 2.6);
   G.wrecks.push({ x: q.x, y: q.y, heading: q.heading, spec: q.spec, aim: q.aim, t: 0, vx: 0, vy: 0 });
@@ -857,22 +869,24 @@ function killP2() {
   if (G.player.dead) return;
   MP.mute = 1; banner((q.nome || 'Seu amigo') + ' foi afundado', 'Vá até a boia e fique nela para resgatá-lo'); MP.mute = 0;
 }
-function stepP2(dt) {
-  const q = G.p2;
-  q.hflash = Math.max(0, q.hflash - dt); q.recoil = Math.max(0, q.recoil - dt * 6);
-  if (q.rapid > 0) q.rapid -= dt;
-  if (q.cloak > 0) q.cloak -= dt;
-  if (q.cloakCd > 0) q.cloakCd -= dt;
-  if (!q.dead) {
-    q.x += q.vx * dt; q.y += q.vy * dt;
-    wake(q, dt, q.spec.len, q.spec.wid); damageSmoke(q, dt, q.hp / q.max);
-    if (!MP.peerGone && performance.now() - MP.lastIn > 6000) { MP.peerGone = true; killP2(); MP.mute = 1; banner('Amigo desconectou', 'Você segue sozinho'); MP.mute = 0; }
+function stepAllies(dt) {
+  for (let i = G.allies.length - 1; i >= 0; i--) {
+    const q = G.allies[i];
+    q.hflash = Math.max(0, q.hflash - dt); q.recoil = Math.max(0, q.recoil - dt * 6);
+    if (q.rapid > 0) q.rapid -= dt;
+    if (q.cloak > 0) q.cloak -= dt;
+    if (q.cloakCd > 0) q.cloakCd -= dt;
+    if (!q.dead) {
+      q.x += q.vx * dt; q.y += q.vy * dt;
+      wake(q, dt, q.spec.len, q.spec.wid); damageSmoke(q, dt, q.hp / q.max);
+      if (performance.now() - q.lastIn > 6000) dropAlly(q, 'desconectou');
+    }
   }
 }
 function killPlayer() {
   const p = G.player;
-  if (MP.role === 'host' && G.p2 && !G.p2.dead) { MP.mute = 1; banner('Você foi afundado', 'Aguarde o resgate na boia (' + BUOY_LIFE + ' s)'); MP.mute = 0; if (!MP.peerGone) dropBuoy('p', p.x, p.y); }
-  if (MP.role === 'guest' && G.p2 && !G.p2.dead) banner('Você foi afundado', 'Aguarde o resgate na boia');
+  if (MP.role === 'host' && G.allies.some(a => !a.dead)) { MP.mute = 1; banner('Você foi afundado', 'Aguarde o resgate na boia (' + BUOY_LIFE + ' s)'); MP.mute = 0; dropBuoy(0, p.x, p.y); }
+  if (MP.role === 'guest' && G.allies.some(a => !a.dead)) banner('Você foi afundado', 'Aguarde o resgate na boia');
   p.dead = true; p.hp = 0; p.speed = 0; p.vx = p.vy = 0; G.deadT = 0;
   explosion(p.x, p.y, 2.6);
   G.wrecks.push({ x: p.x, y: p.y, heading: p.heading, spec: p.spec, aim: p.aim, t: 0, vx: 0, vy: 0 });
@@ -892,7 +906,7 @@ function autoGun(dt) {
   if (p.autoT <= 0 && Math.abs(angDiff(p.autoAim, want)) < .12) {
     const a = p.autoAim, ox = p.x + Math.cos(p.heading) * p.spec.len * .1, oy = p.y + Math.sin(p.heading) * p.spec.len * .1;
     const mx = ox + Math.cos(a) * 14, my = oy + Math.sin(a) * 14;
-    if (MP.role === 'guest') mpSend({ t: 'f', u: 1, x: Math.round(mx), y: Math.round(my), a: +a.toFixed(3) });
+    if (MP.role === 'guest') mpSend({ t: 'f', i: MP.pid, u: 1, x: Math.round(mx), y: Math.round(my), a: +a.toFixed(3) });
     else G.balls.push({ own: 'p', x: mx, y: my, vx: Math.cos(a) * BALL_V, vy: Math.sin(a) * BALL_V, life: RANGE * .9 / BALL_V, dmg: Math.round(p.dmg * .5), trail: 0 });
     p.autoT = 1 * (p.rapid > 0 ? .47 : 1);
     muzzle(mx, my, a, .6); sfx.enemy();
@@ -955,20 +969,23 @@ function useCloak() {
   if (state !== 'playing' || !G) return;
   const p = G.player;
   if (!(p.cloakAb || p.airAb) || p.dead || p.cloak > 0 || p.cloakCd > 0) return;
-  if (p.airAb) { p.cloakCd = 45; if (MP.role === 'guest') { mpSend({ t: 'a' }); tone(180, 520, .7, .35, 'sawtooth'); } else summonPlanes(); return; }
+  if (p.airAb) { p.cloakCd = 45; if (MP.role === 'guest') { mpSend({ t: 'a', i: MP.pid }); tone(180, 520, .7, .35, 'sawtooth'); } else summonPlanes(); return; }
   p.cloak = 9; p.cloakCd = 25;
-  if (MP.role === 'guest') mpSend({ t: 'c' });
+  if (MP.role === 'guest') mpSend({ t: 'c', i: MP.pid });
   floatText(p.x, p.y - 30, 'submerso', '#8aa3ab');
   tone(320, 90, .5, .3);
 }
 
 /* ---------- inimigos ---------- */
 function enemyTarget(e) {
-  const a = G.player, b = G.p2;
-  if (!b || MP.role !== 'host' || b.dead) return a;
-  if (a.dead) return b;
-  if (a.cloak > 0 && b.cloak <= 0) return b;
-  return Math.hypot(a.x - e.x, a.y - e.y) <= Math.hypot(b.x - e.x, b.y - e.y) ? a : b;
+  const a = G.player;
+  if (MP.role !== 'host' || !G.allies.length) return a;
+  const c = [a].concat(G.allies).filter(x => !x.dead);
+  if (!c.length) return a;
+  const vis = c.filter(x => x.cloak <= 0), list = vis.length ? vis : c;
+  let best = list[0], bd = 1e18;
+  for (const x of list) { const d = Math.hypot(x.x - e.x, x.y - e.y); if (d < bd) { bd = d; best = x; } }
+  return best;
 }
 function updateEnemy(e, dt) {
   const p = enemyTarget(e), s = e.spec, hid = p.dead || p.cloak > 0;
@@ -991,7 +1008,7 @@ function updateEnemy(e, dt) {
   const want = Math.atan2(p.y + p.vy * lead - e.y, p.x + p.vx * lead - e.x);
   e.aim += clamp(angDiff(e.aim, want), -3.2 * dt, 3.2 * dt);
   e.fireT -= dt;
-  if (e.fireT <= 0 && !hid && dist < s.ball * 1.5 && (onScreen(e, 50) || (MP.role === 'host' && G.p2 && Math.hypot(e.x - G.p2.x, e.y - G.p2.y) < 520)) && Math.abs(angDiff(e.aim, want)) < .14) {
+  if (e.fireT <= 0 && !hid && dist < s.ball * 1.5 && (onScreen(e, 50) || (MP.role === 'host' && G.allies.some(q => Math.hypot(e.x - q.x, e.y - q.y) < 520))) && Math.abs(angDiff(e.aim, want)) < .14) {
     enemyFire(e);
     e.fireT = s.fire * G.fireScale * rand(.85, 1.2);
   }
@@ -1072,8 +1089,8 @@ function updateBalls(dt) {
         }
       } else if (!p.dead && p.cloak <= 0 && hitShip(b.x, b.y, p)) {
         hit = true; hurtPlayer(b.dmg, b.x, b.y);
-      } else if (MP.role === 'host' && G.p2 && !G.p2.dead && G.p2.cloak <= 0 && hitShip(b.x, b.y, G.p2)) {
-        hit = true; hurtP2(b.dmg, b.x, b.y);
+      } else if (MP.role === 'host' && (hitA = G.allies.find(q => !q.dead && q.cloak <= 0 && hitShip(b.x, b.y, q)))) {
+        hit = true; hurtAlly(hitA, b.dmg, b.x, b.y);
       }
     }
     b.trail -= dt;
@@ -1088,7 +1105,7 @@ function updateCrates(dt) {
     const c = G.crates[i];
     c.life -= dt; c.t += dt;
     if (c.life <= 0) { G.crates.splice(i, 1); continue; }
-    const who = (!p.dead && Math.hypot(p.x - c.x, p.y - c.y) < 36) ? p : (MP.role === 'host' && G.p2 && !G.p2.dead && Math.hypot(G.p2.x - c.x, G.p2.y - c.y) < 36 ? G.p2 : null);
+    const who = (!p.dead && Math.hypot(p.x - c.x, p.y - c.y) < 36) ? p : ((MP.role === 'host' && G.allies.find(q => !q.dead && Math.hypot(q.x - c.x, q.y - c.y) < 36)) || null);
     if (who) {
       if (c.type === 'repair') { who.hp = Math.min(who.max, who.hp + who.max * .3); floatText(c.x, c.y - 16, '+30% casco', '#4fd1a5'); }
       else { who.rapid = 8; floatText(c.x, c.y - 16, 'fogo rápido', '#e0a93c'); }
@@ -1141,16 +1158,16 @@ function step(dt) {
     for (let i = G.enemies.length - 1; i >= 0; i--) updateEnemy(G.enemies[i], dt);
     separate();
   }
-  if (MP.role === 'host' && G.p2) { stepP2(dt); if (state === 'playing') stepBuoys(dt); }
+  if (MP.role === 'host') { stepAllies(dt); if (state === 'playing') stepBuoys(dt); }
   updatePlanes(dt); updateBalls(dt); updateCrates(dt); updateParts(dt);
   if (MP.role === 'host') mpHostTick(dt);
-  if (p.dead && state === 'playing' && !(MP.role === 'host' && G.p2 && !G.p2.dead)) { G.deadT += dt; if (G.deadT > 1.6) gameOver(); }
+  if (p.dead && state === 'playing' && !(MP.role === 'host' && G.allies.some(a => !a.dead))) { G.deadT += dt; if (G.deadT > 1.6) gameOver(); }
   G.shake *= Math.exp(-dt * 7); if (G.shake < .1) G.shake = 0;
   G.flash = Math.max(0, G.flash - dt * 1.6);
   followCam(dt);
 }
 function followCam(dt) {
-  const p = G.player, ct = (p.dead && G.p2 && !G.p2.dead) ? G.p2 : p;
+  const p = G.player, al = G.allies.find(a => !a.dead), ct = (p.dead && al) ? al : p;
   const k = 1 - Math.exp(-dt * 4.5), c = G.camera;
   c.x += (ct.x + Math.cos(ct.heading) * ct.speed * .35 - c.x) * k;
   c.y += (ct.y + Math.sin(ct.heading) * ct.speed * .35 - c.y) * k;
@@ -1216,7 +1233,7 @@ function drawShip(x, y, heading, spec, aim, o) {
   ctx.restore();
 }
 function drawBuoy(b) {
-  const mine = b.mine !== undefined ? b.mine : b.who === 'p', t = b.t || 0, blink = b.life < 6 && Math.sin(t * 12) < 0, f = clamp(b.prog / BUOY_T, 0, 1);
+  const mine = b.mine, t = b.t || 0, blink = b.life < 6 && Math.sin(t * 12) < 0, f = clamp(b.prog / BUOY_T, 0, 1);
   ctx.save(); ctx.translate(b.x, b.y); ctx.globalAlpha = blink ? .4 : 1;
   ctx.setLineDash([8, 8]); ctx.lineDashOffset = -t * 14; ctx.beginPath(); ctx.arc(0, 0, BUOY_R, 0, TAU);
   ctx.strokeStyle = 'rgba(224,169,60,.7)'; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
@@ -1323,8 +1340,8 @@ function drawArrows() {
     ctx.fillStyle = 'rgba(226,85,47,.92)'; ctx.fill(); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(10,31,44,.9)'; ctx.stroke();
     ctx.restore();
   }
-  const fr = G.p2;
-  if (fr && !fr.dead && state === 'playing') {
+  for (const fr of G.allies) {
+  if (!fr.dead && state === 'playing') {
     const sx = W / 2 + (fr.x - c.x) * zoom, sy = H / 2 + (fr.y - c.y) * zoom;
     if (!(sx > -8 && sx < W + 8 && sy > -8 && sy < H + 8)) {
       const dx = sx - cx, dy = sy - cy;
@@ -1342,8 +1359,9 @@ function drawArrows() {
       ctx.strokeText(tx, lx, ly); ctx.fillText(tx, lx, ly);
     }
   }
+  }
   for (const b of G.buoys) {
-    if ((b.mine !== undefined ? b.mine : b.who === 'p') || state !== 'playing') continue;
+    if (b.mine || state !== 'playing') continue;
     const sx = W / 2 + (b.x - c.x) * zoom, sy = H / 2 + (b.y - c.y) * zoom;
     if (sx > -8 && sx < W + 8 && sy > -8 && sy < H + 8) continue;
     const dx = sx - cx, dy = sy - cy, t = Math.min(hw / (Math.abs(dx) || 1e-6), hh / (Math.abs(dy) || 1e-6));
@@ -1416,14 +1434,15 @@ function render() {
     alpha: p.cloak > 0 ? (p.cloak < .5 ? .2 + .8 * (1 - p.cloak / .5) : .2) : undefined
   });
 
-  const q2 = G.p2;
-  if (q2 && !q2.dead) {
+  for (const q2 of G.allies) {
+  if (!q2.dead) {
     drawShip(q2.x, q2.y, q2.heading, q2.spec, q2.aim, { flash: q2.hflash, recoil: q2.recoil, aux: q2.auto ? q2.autoAim : null, alpha: q2.cloak > 0 ? .35 : undefined });
     const fs = 11 / zoom, bw = 44, by = q2.y - q2.spec.len * .5 - 10;
     ctx.fillStyle = 'rgba(10,31,44,.75)'; ctx.fillRect(q2.x - bw / 2 - 1, by - 1, bw + 2, 5);
     ctx.fillStyle = '#4fd1a5'; ctx.fillRect(q2.x - bw / 2, by, bw * clamp(q2.hp / q2.max, 0, 1), 3);
     ctx.font = '600 ' + fs + 'px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     ctx.fillStyle = '#ffffff'; ctx.fillText(q2.nome || 'amigo', q2.x, by - 3);
+  }
   }
   for (const b of G.balls) {
     const enemy = b.own === 'e';
@@ -1471,9 +1490,12 @@ const el = {
 const cache = {};
 function setText(k, v) { if (cache[k] !== v) { cache[k] = v; el[k].textContent = v; } }
 function hud() {
-  const mt = $('mate'), q = G && G.p2, showM = !!q && state !== 'menu';
+  const mt = $('mate'), al = (G && G.allies) || [], showM = al.length > 0 && state !== 'menu';
   if (mt.hidden === showM) mt.hidden = !showM;
-  if (showM) { const t = (q.nome || 'Aliado') + (q.dead ? ' · afundado' : ''); if ($('mateN').textContent !== t) $('mateN').textContent = t; $('mateF').style.transform = 'scaleX(' + clamp(q.hp / q.max, 0, 1).toFixed(3) + ')'; }
+  if (showM) {
+    if (mt.children.length !== al.length) mt.innerHTML = al.map(() => '<div><span></span><div class="bar" style="margin-top:2px"><i style="background:var(--good)"></i></div></div>').join('');
+    al.forEach((q, i) => { const r = mt.children[i], t = (q.nome || 'Aliado') + (q.dead ? ' · afundado' : ''); if (r.firstChild.textContent !== t) r.firstChild.textContent = t; r.lastChild.firstChild.style.transform = 'scaleX(' + clamp(q.hp / q.max, 0, 1).toFixed(3) + ')'; });
+  }
   if (!G || state === 'menu') return;
   const p = G.player;
   const hp = Math.max(0, Math.ceil(p.hp));
@@ -1800,17 +1822,17 @@ function loadSb() {
   });
 }
 function mpLeave() {
-  try { if (MP.ch && MP.role) mpSend({ t: 'bye' }); } catch (e) {}
+  try { if (MP.ch && MP.role) mpSend({ t: 'bye', i: MP.pid }); } catch (e) {}
   try { if (MP.ch && MP.sb) MP.sb.removeChannel(MP.ch); } catch (e) {}
   clearInterval(MP.joinI); clearTimeout(MP.joinT);
-  MP.ch = null; MP.role = null; MP.guest = null; MP.acked = false; MP.ev = []; MP.peerGone = false;
-  if (G) G.p2 = null;
+  MP.ch = null; MP.role = null; MP.guests = []; MP.pid = -1; MP.acked = false; MP.ev = []; MP.peerGone = false;
+  if (G) { G.allies = []; G.buoys = []; }
 }
 async function mpConnect(code, role) {
   await loadSb();
   mpLeave();
   if (!MP.sb) MP.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { realtime: { params: { eventsPerSecond: 40 } } });
-  MP.role = role; MP.code = code;
+  MP.role = role; MP.code = code; MP.pid = role === 'host' ? 0 : -1;
   await new Promise((res, rej) => {
     const ch = MP.sb.channel('mf-' + code, { config: { broadcast: { self: false, ack: false } } });
     ch.on('broadcast', { event: 'm' }, ({ payload }) => { try { mpOnMsg(payload); } catch (e) {} });
@@ -1825,7 +1847,7 @@ async function mpConnect(code, role) {
 function mpBusy(b) { for (const id of ['mpCreate', 'mpJoin']) $(id).disabled = b; }
 $('btnMp').addEventListener('click', () => {
   mpLeave(); $('mpBig').textContent = ''; $('mpShare').hidden = true; $('mpGo').hidden = true; $('mpCode').hidden = false; mpBusy(false);
-  mpSay('Um cria a sala e manda o código; o outro entra com ele. Os dois enfrentam as mesmas ondas.');
+  mpSay('Um cria a sala e manda o código; até 3 amigos entram com ele (4 jogadores). Todos enfrentam as mesmas ondas.');
   mpEl.hidden = false;
 });
 $('mpBack').addEventListener('click', () => { mpLeave(); mpEl.hidden = true; });
@@ -1863,11 +1885,11 @@ $('mpShare').addEventListener('click', async () => {
 $('mpCode').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('mpJoin').click(); });
 $('mpCode').addEventListener('keyup', e => e.stopPropagation());
 $('mpCode').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ''); });
-$('mpGo').addEventListener('click', () => { if (MP.role === 'host' && MP.guest) mpStartHost(); });
-function mkOther(id, speed) {
+$('mpGo').addEventListener('click', () => { if (MP.role === 'host' && MP.guests.length) mpStartHost(); });
+function mkOther(id, speed, pid) {
   const sh = SHIPS.find(s => s.id === id) || SHIPS[0];
   return { spec: Object.assign({}, sh.spec, { speed }), max: 100, hp: 100, dmg: 20, rel: .6, auto: false, cloakAb: false, airAb: false, autoT: 0, autoAim: -Math.PI / 2,
-    cloak: 0, cloakCd: 0, x: 90, y: 0, heading: -Math.PI / 2, speed: 0, vx: 0, vy: 0, aim: -Math.PI / 2, reload: 0, rapid: 0, dead: false, wakeT: 0, smokeT: 0, hflash: 0, recoil: 0, shipId: sh.id };
+    pid, lastIn: performance.now(), cloak: 0, cloakCd: 0, x: pid > 0 ? 90 + (pid - 1) * 80 : 0, y: 0, heading: -Math.PI / 2, speed: 0, vx: 0, vy: 0, aim: -Math.PI / 2, reload: 0, rapid: 0, dead: false, wakeT: 0, smokeT: 0, hflash: 0, recoil: 0, shipId: sh.id };
 }
 function mpBegin() {
   for (const k of ['move', 'aim']) sticks[k] = null;
@@ -1876,89 +1898,106 @@ function mpBegin() {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   last = performance.now();
 }
+function mpRoster() { mpSay((MP.guests.length + 1) + '/' + MAXP + ' na esquadra: ' + MP.guests.map(g => g.n).join(', ') + '. Toque em Zarpar quando todos entrarem.'); }
 function mpStartHost() {
   initAudio(); newGame(); MP.nid = 0;
-  const g = MP.guest;
-  G.p2 = mkOther(g.id, g.speed);
-  G.p2.nome = g.n; G.p2.auto = !!g.au;
-  Object.assign(G.p2, { max: g.hp, hp: g.hp, dmg: g.dmg, rel: g.rel });
-  mpSend({ t: 'go', hn: sess ? sess.nome : 'anfitrião', ship: save.ship, hs: playerStats().spec.speed });
+  const hn = sess ? sess.nome : 'anfitrião';
+  G.allies = MP.guests.map(g => { const q = mkOther(g.id, g.speed, g.pid); Object.assign(q, { nome: g.n, auto: !!g.au, max: g.hp, hp: g.hp, dmg: g.dmg, rel: g.rel }); return q; });
+  mpSend({ t: 'go', r: [[0, hn, save.ship, playerStats().spec.speed]].concat(MP.guests.map(g => [g.pid, g.n, g.id, g.speed])) });
   mpBegin();
 }
 function mpStartGuest(m) {
   initAudio(); newGame();
-  const p = G.player;
-  p.x = 90;
-  G.p2 = mkOther(m.ship, m.hs);
-  G.p2.nome = String(m.hn || MP.hostName || 'amigo').slice(0, 16);
+  G.player.x = 90 + (MP.pid - 1) * 80;
+  G.allies = (m.r || []).filter(r => r[0] !== MP.pid).map(r => { const q = mkOther(r[2], +r[3] || 190, r[0]); q.nome = String(r[1] || 'amigo').slice(0, 16); return q; });
   mpBegin();
 }
 function mpOnMsg(m) {
   if (!m || !MP.role) return;
   if (MP.role === 'host') {
-    if (m.t === 'join' && MP.guest && MP.guest.u !== String(m.u)) { mpSend({ t: 'full', u: String(m.u) }); }
-    else if (m.t === 'join' && !(MP.guest && state === 'playing')) {
-      const first = !MP.guest;
-      MP.guest = { u: String(m.u), au: m.au ? 1 : 0, n: String(m.n || 'amigo').slice(0, 16), id: m.id, hp: clamp(+m.hp || 100, 1, 2000), dmg: clamp(+m.dmg || 20, 1, 500), rel: clamp(+m.rel || .6, .1, 3), speed: clamp(+m.speed || 190, 50, 600) };
-      mpSend({ t: 'ack', u: String(m.u), n: sess ? sess.nome : 'anfitrião' });
-      if (first) { const sh = SHIPS.find(x => x.id === MP.guest.id); $('mpGo').hidden = false; mpSay(MP.guest.n + ' entrou' + (sh ? ' com ' + sh.name : '') + '! Toque em Zarpar.'); }
-    } else if (m.t === 'c' && G.p2 && !G.p2.dead && state === 'playing') {
-      const q = G.p2;
+    if (m.t === 'join') {
+      let g = MP.guests.find(x => x.u === String(m.u)), isNew = false;
+      if (!g) {
+        if (state === 'playing' || MP.guests.length >= MAXP - 1) { mpSend({ t: 'full', u: String(m.u) }); return; }
+        let pid = 1; while (MP.guests.some(x => x.pid === pid)) pid++;
+        g = { pid, u: String(m.u) }; MP.guests.push(g); isNew = true;
+      }
+      if (state === 'playing') return;
+      Object.assign(g, { au: m.au ? 1 : 0, n: String(m.n || 'amigo').slice(0, 16), id: m.id, hp: clamp(+m.hp || 100, 1, 2000), dmg: clamp(+m.dmg || 20, 1, 500), rel: clamp(+m.rel || .6, .1, 3), speed: clamp(+m.speed || 190, 50, 600) });
+      mpSend({ t: 'ack', u: g.u, pid: g.pid, n: sess ? sess.nome : 'anfitrião' });
+      if (isNew) { $('mpGo').hidden = false; mpRoster(); }
+      return;
+    }
+    const pid = +m.i;
+    if (m.t === 'bye') {
+      const q = allyBy(pid);
+      if (state === 'playing' && q) dropAlly(q, 'saiu');
+      else if (state !== 'playing') { MP.guests = MP.guests.filter(x => x.pid !== pid); if (!MP.guests.length) { $('mpGo').hidden = true; mpSay('O amigo saiu. Mande o código de novo.'); } else mpRoster(); }
+      return;
+    }
+    const q = allyBy(pid);
+    if (!q || q.dead || state !== 'playing') return;
+    if (m.t === 'c') {
       if (!(q.cloak > 0 || q.cloakCd > 0)) { q.cloak = 9; q.cloakCd = 25; MP.mute = 1; floatText(q.x, q.y - 30, 'submerso', '#8aa3ab'); MP.mute = 0; }
-    } else if (m.t === 'a' && G.p2 && !G.p2.dead && state === 'playing') {
-      const q = G.p2;
+    } else if (m.t === 'a') {
       if (!(q.cloakCd > 0)) { q.cloakCd = 45; summonPlanes(q); tone(180, 520, .7, .35, 'sawtooth'); }
-    } else if (m.t === 'g' && G.p2 && !G.p2.dead && state === 'playing') {
-      const q = G.p2; MP.lastIn = performance.now(); q.autoAim = +m.u || 0;
+    } else if (m.t === 'g') {
+      q.lastIn = performance.now(); q.autoAim = +m.u || 0;
       { const nx = +m.x, ny = +m.y, k = Math.hypot(nx - q.x, ny - q.y) < 160 ? .6 : 1; q.x += (nx - q.x) * k; q.y += (ny - q.y) * k; } q.heading = +m.h; q.aim = +m.a; q.speed = +m.s;
       q.vx = Math.cos(q.heading) * q.speed; q.vy = Math.sin(q.heading) * q.speed;
-    } else if (m.t === 'f' && G.p2 && !G.p2.dead && state === 'playing') {
-      const q = G.p2, a = +m.a;
+    } else if (m.t === 'f') {
+      const a = +m.a;
       G.balls.push({ own: 'p', x: +m.x, y: +m.y, vx: Math.cos(a) * BALL_V, vy: Math.sin(a) * BALL_V, life: (m.u ? RANGE * .9 : RANGE) / BALL_V, dmg: m.u ? Math.round(q.dmg * .5) : q.dmg, trail: 0 });
       MP.mute = 1; muzzle(+m.x, +m.y, a, m.u ? .6 : 1); MP.mute = 0; sfx.enemy(); if (!m.u) q.recoil = 1;
-    } else if (m.t === 'bye') {
-      if (state === 'playing' && G.p2 && !MP.peerGone) { MP.peerGone = true; if (!G.p2.dead) killP2(); MP.mute = 1; banner('Amigo saiu', 'Você segue sozinho'); MP.mute = 0; }
-      else if (state !== 'playing') { MP.guest = null; $('mpGo').hidden = true; mpSay('O amigo saiu. Mande o código de novo.'); }
     }
   } else {
-    if (m.t === 'full' && m.u === MP.uid && !MP.acked) { mpLeave(); mpBusy(false); mpSay('Sala cheia: já tem um aliado nela.'); }
+    if (m.t === 'full' && m.u === MP.uid && !MP.acked) { mpLeave(); mpBusy(false); mpSay('Sala cheia ou partida já iniciada.'); }
     else if (m.t === 'ack' && m.u === MP.uid) {
-      if (!MP.acked) { MP.acked = true; MP.hostName = String(m.n || 'anfitrião').slice(0, 16); clearInterval(MP.joinI); clearTimeout(MP.joinT); mpSay('Conectado à sala de ' + MP.hostName + '. Aguardando ele zarpar…'); }
+      if (!MP.acked) { MP.acked = true; MP.pid = +m.pid; MP.hostName = String(m.n || 'anfitrião').slice(0, 16); clearInterval(MP.joinI); clearTimeout(MP.joinT); mpSay('Conectado à sala de ' + MP.hostName + ' (jogador ' + (MP.pid + 1) + '). Aguardando ele zarpar…'); }
     } else if (m.t === 'go') { mpStartGuest(m); }
-    else if (m.t === 's' && G && G.p2 && state === 'playing') mpApply(m);
+    else if (m.t === 's' && G && state === 'playing') mpApply(m);
     else if (m.t === 'end' && state === 'playing') mpGuestEnd(m);
-    else if (m.t === 'bye' && state === 'playing') mpGuestEnd(null);
+    else if (m.t === 'bye' && m.i === 0 && state === 'playing') mpGuestEnd(null);
   }
 }
 function mpHostTick(dt) {
   MP.acc += dt;
-  if (MP.acc < .066 || !G.p2 || state !== 'playing') return;
+  if (MP.acc < .066 || !G.allies.length || state !== 'playing') return;
   MP.acc = 0;
-  const p = G.player, q = G.p2;
+  const p = G.player;
   mpSend({ t: 's', w: G.wave, sc: Math.floor(G.score), k: G.kills, c: G.coins,
     h: [r1(p.x), r1(p.y), r3(p.heading), r3(p.aim), Math.round(p.speed), p.dead ? 1 : 0, Math.round(p.hp), p.max, p.cloak > 0 ? 1 : 0, save.ship, p.auto ? 1 : 0, r3(p.autoAim || 0)],
-    y: [Math.round(q.hp), q.max, q.dead ? 1 : 0, r1(Math.max(0, q.rapid)), r1(Math.max(0, q.cloak))],
+    al: G.allies.map(q => [q.pid, r1(q.x), r1(q.y), r3(q.heading), r3(q.aim), Math.round(q.speed), q.dead ? 1 : 0, Math.round(q.hp), q.max, q.cloak > 0 ? 1 : 0, q.shipId, q.auto ? 1 : 0, r3(q.autoAim || 0), r1(Math.max(0, q.rapid))]),
     e: G.enemies.map(e => [e.id, e.type, r1(e.x), r1(e.y), r3(e.heading), r3(e.aim), Math.round(e.hp), Math.round(e.max), Math.round(e.vx), Math.round(e.vy)]),
     b: G.balls.map(b => [b.own === 'p' ? 0 : 1, r1(b.x), r1(b.y), Math.round(b.vx), Math.round(b.vy), r3(b.life)]),
     cr: G.crates.map(c => [c.type === 'repair' ? 0 : 1, r1(c.x), r1(c.y), r1(c.t), r1(c.life)]),
     pl: G.planes.map(a => [r1(a.x), r1(a.y), r3(a.h), r1(a.life)]),
-    bu: G.buoys.map(b => [b.who === 'q' ? 1 : 0, r1(b.x), r1(b.y), r1(b.life), r3(b.prog / BUOY_T)]),
+    bu: G.buoys.map(b => [b.who, r1(b.x), r1(b.y), r1(b.life), r3(b.prog / BUOY_T)]),
     ev: MP.ev });
   MP.ev = [];
 }
 function mpApply(m) {
   MP.lastIn = performance.now();
   G.wave = m.w; G.score = m.sc; G.kills = m.k; G.coins = m.c;
-  const o = G.p2, h = m.h, p = G.player, y = m.y;
-  { const dx = h[0] - o.x, dy = h[1] - o.y, k = Math.hypot(dx, dy) < 160 ? .55 : 1; o.x += dx * k; o.y += dy * k; } o.heading = h[2]; o.aim = h[3]; o.speed = h[4];
-  o.vx = Math.cos(o.heading) * o.speed; o.vy = Math.sin(o.heading) * o.speed;
-  if (h[6] < o.hp && !h[5]) o.hflash = .15;
-  o.dead = !!h[5]; o.hp = h[6]; o.max = h[7]; o.cloak = h[8] ? 1 : 0; o.auto = !!h[10]; o.autoAim = h[11] || 0;
-  if (o.shipId !== h[9]) { const sh = SHIPS.find(s => s.id === h[9]); if (sh) { o.spec = Object.assign({}, sh.spec, { speed: o.spec.speed }); o.shipId = sh.id; } }
-  if (y[0] < p.hp - .5 && !p.dead) { p.hflash = .15; G.flash = Math.min(.6, G.flash + .35); G.shake = Math.min(16, G.shake + 4); sfx.hurt(); }
-  p.hp = y[0]; p.max = y[1]; p.rapid = y[3];
-  if (y[2] && !p.dead) killPlayer();
-  else if (!y[2] && p.dead) p.dead = false;
+  const h = m.h, p = G.player, al = m.al || [], me = al.find(a => a[0] === MP.pid), seen = new Set();
+  for (const a of [[0].concat(h)].concat(al.filter(a => a[0] !== MP.pid))) {
+    let o = allyBy(a[0]);
+    if (!o) { o = mkOther(a[10], 190, a[0]); o.nome = a[0] === 0 ? (MP.hostName || 'anfitrião') : 'Aliado'; G.allies.push(o); }
+    seen.add(a[0]);
+    { const dx = a[1] - o.x, dy = a[2] - o.y, k = Math.hypot(dx, dy) < 160 ? .55 : 1; o.x += dx * k; o.y += dy * k; }
+    o.heading = a[3]; o.aim = a[4]; o.speed = a[5];
+    o.vx = Math.cos(o.heading) * o.speed; o.vy = Math.sin(o.heading) * o.speed;
+    if (a[7] < o.hp && !a[6]) o.hflash = .15;
+    o.dead = !!a[6]; o.hp = a[7]; o.max = a[8]; o.cloak = a[9] ? 1 : 0; o.auto = !!a[11]; o.autoAim = a[12] || 0;
+    if (o.shipId !== a[10]) { const sh = SHIPS.find(z => z.id === a[10]); if (sh) { o.spec = Object.assign({}, sh.spec, { speed: o.spec.speed }); o.shipId = sh.id; } }
+  }
+  G.allies = G.allies.filter(o => seen.has(o.pid));
+  if (me) {
+    if (me[7] < p.hp - .5 && !p.dead) { p.hflash = .15; G.flash = Math.min(.6, G.flash + .35); G.shake = Math.min(16, G.shake + 4); sfx.hurt(); }
+    p.hp = me[7]; p.max = me[8]; p.rapid = me[13];
+    if (me[6] && !p.dead) killPlayer();
+    else if (!me[6] && p.dead) p.dead = false;
+  }
   const old = new Map(G.enemies.map(e => [e.id, e])), list = [];
   for (const a of m.e) {
     let e = old.get(a[0]);
@@ -1970,7 +2009,7 @@ function mpApply(m) {
   G.enemies = list;
   G.balls = m.b.map(a => ({ own: a[0] ? 'e' : 'p', x: a[1], y: a[2], vx: a[3], vy: a[4], life: a[5], trail: 0 }));
   G.planes = (m.pl || []).map(a => ({ x: a[0], y: a[1], h: a[2], v: 480, life: a[3], trail: 0 }));
-  G.buoys = (m.bu || []).map(a => ({ mine: !!a[0], x: a[1], y: a[2], life: a[3], prog: a[4] * BUOY_T, t: performance.now() / 1000 }));
+  G.buoys = (m.bu || []).map(a => ({ who: a[0], mine: a[0] === MP.pid, x: a[1], y: a[2], life: a[3], prog: a[4] * BUOY_T, t: performance.now() / 1000 }));
   G.crates = m.cr.map(a => ({ type: a[0] ? 'rapid' : 'repair', x: a[1], y: a[2], t: a[3], life: a[4] }));
   for (const v of m.ev) {
     if (v[0] === 'x') { explosion(v[1], v[2], v[3]); sfx.boom(); }
@@ -1982,16 +2021,16 @@ function mpApply(m) {
     else if (v[0] === 'sp') splash(v[1], v[2]);
     else if (v[0] === 'k') {
       if (v[1] === 'e') { sfx.enemy(); const e = G.enemies.find(z => z.id === v[2]); if (e) e.recoil = 1; }
-      else if (v[1] === 'c') { sfx.cannon(); o.recoil = 1; }
+      else if (v[1] === 'c') { sfx.cannon(); const oo = allyBy(0); if (oo) oo.recoil = 1; }
       else if (v[1] === 'h') sfx.hit();
       else if (v[1] === 'p') sfx.pick();
     }
-    else if (v[0] === 'r') { p.dead = false; p.x = v[1]; p.y = v[2]; p.speed = 0; p.vx = p.vy = 0; p.cloak = 0; }
+    else if (v[0] === 'r' && v[1] === MP.pid) { p.dead = false; p.x = v[2]; p.y = v[3]; p.speed = 0; p.vx = p.vy = 0; p.cloak = 0; }
   }
 }
 function stepGuest(dt) {
   G.t += dt;
-  const p = G.player, o = G.p2;
+  const p = G.player;
   if (state === 'playing' && !p.dead) { const inp = gatherInput(); G.aimActive = inp.aim != null; stepPlayer(dt, inp); }
   for (const e of G.enemies) { e.x += e.vx * dt; e.y += e.vy * dt; e.flash = Math.max(0, e.flash - dt); wake(e, dt, e.spec.len, e.spec.wid); damageSmoke(e, dt, e.hp / e.max); }
   for (const b of G.balls) {
@@ -2003,9 +2042,9 @@ function stepGuest(dt) {
     pl.x += Math.cos(pl.h) * pl.v * dt; pl.y += Math.sin(pl.h) * pl.v * dt; pl.trail -= dt;
     if (pl.trail <= 0) { pl.trail = .03; addP({ t: 'smoke', x: pl.x - Math.cos(pl.h) * 12, y: pl.y - Math.sin(pl.h) * 12, life: .5, size: 2, grow: 6 }); }
   }
-  if (o) { o.hflash = Math.max(0, o.hflash - dt); o.recoil = Math.max(0, o.recoil - dt * 6); }
+  for (const o of G.allies) { o.hflash = Math.max(0, o.hflash - dt); o.recoil = Math.max(0, o.recoil - dt * 6); }
   for (const c of G.crates) { c.t += dt; c.life -= dt; }
-  if (o && !o.dead) { o.x += o.vx * dt; o.y += o.vy * dt; wake(o, dt, o.spec.len, o.spec.wid); }
+  for (const o of G.allies) if (!o.dead) { o.x += o.vx * dt; o.y += o.vy * dt; wake(o, dt, o.spec.len, o.spec.wid); }
   updateParts(dt);
   G.shake *= Math.exp(-dt * 7); if (G.shake < .1) G.shake = 0;
   G.flash = Math.max(0, G.flash - dt * 1.6);
@@ -2013,7 +2052,7 @@ function stepGuest(dt) {
   MP.acc += dt;
   if (MP.acc >= .05 && !p.dead) {
     MP.acc = 0;
-    mpSend({ t: 'g', x: r1(p.x), y: r1(p.y), h: r3(p.heading), a: r3(p.aim), s: Math.round(p.speed), u: r3(p.autoAim || 0) });
+    mpSend({ t: 'g', i: MP.pid, x: r1(p.x), y: r1(p.y), h: r3(p.heading), a: r3(p.aim), s: Math.round(p.speed), u: r3(p.autoAim || 0) });
   }
   if (performance.now() - MP.lastIn > 6000 && state === 'playing') mpGuestEnd(null);
 }
