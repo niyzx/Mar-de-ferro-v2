@@ -323,7 +323,8 @@ body:not(.touch) .help .only-touch { display: none; }
   <div class="actions"><button class="btn ghost" id="pMine" type="button" hidden>Meu perfil</button><button class="btn ghost" id="rankBack" type="button">Voltar</button></div>
 </div></div>
 <button class="ibtn" id="btnCfg" type="button" aria-label="Configurações" title="Configurações" style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;z-index:20"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-<style>body[data-state="playing"] #btnCfg { display: none; }</style>
+<button class="ibtn" id="btnInb" type="button" aria-label="Caixa de entrada" title="Caixa de entrada" style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:62px;z-index:20"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3.5 6.5 12 13l8.5-6.5"/></svg><span id="inbN" hidden style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:var(--brass);color:#0d1a22;font:700 11px/18px sans-serif;text-align:center"></span></button>
+<style>body[data-state="playing"] #btnCfg, body[data-state="playing"] #btnInb { display: none; } #btnInb { position: fixed; }</style>
 <div id="inv" hidden style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 56px);left:50%;transform:translateX(-50%);z-index:40;width:min(360px,92vw);box-sizing:border-box;padding:12px;background:#0d1a22;border:1px solid var(--brass);color:var(--ink);display:flex;flex-direction:column;gap:8px"><span id="invTxt"></span><div style="display:flex;gap:8px"><button class="btn ghost" id="invOk" type="button" style="flex:1">Aceitar</button><button class="btn ghost" id="invNo" type="button" style="flex:1">Recusar</button></div></div>
 <div class="overlay" id="cfg" hidden style="z-index:30"><div class="panel">
   <h1 class="title sm">Configurações</h1>
@@ -338,6 +339,12 @@ body:not(.touch) .help .only-touch { display: none; }
   <p class="note" id="fMsg">Duelo só entre amigos: os dois tocam em "Duelo" ao lado do nome do outro.</p>
   <div id="fBody" style="font-size:13px;line-height:1.5;max-height:50vh;overflow-y:auto"></div>
   <div class="actions"><button class="btn ghost" id="fBack" type="button">Voltar</button></div>
+</div></div>
+<div class="overlay" id="inb" hidden><div class="panel">
+  <h1 class="title sm">Caixa de entrada</h1>
+  <p class="note">Pedidos de amizade e convites de duelo.</p>
+  <div id="inbBody" style="font-size:13px;line-height:1.5;max-height:55vh;overflow-y:auto"></div>
+  <div class="actions"><button class="btn ghost" id="inbBack" type="button">Voltar</button></div>
 </div></div>
 <div class="overlay" id="prof" hidden><div class="panel">
   <div class="kicker">Perfil</div>
@@ -1762,6 +1769,7 @@ function loadSb() {
   });
 }
 function mpLeave() {
+  try { if (MP.role === 'vs' && MP.vsFriend) rpc('duelo_cancelar', { p_id: MP.vsFriend.id }).catch(() => {}); } catch (e) {}
   try { if (MP.ch && MP.role) mpSend({ t: 'bye' }); } catch (e) {}
   try { if (MP.ch && MP.sb) MP.sb.removeChannel(MP.ch); } catch (e) {}
   clearInterval(MP.joinI); clearTimeout(MP.joinT);
@@ -1979,17 +1987,19 @@ const amgEl = $('amg');
 const rpc = (fn, args) => api('rpc/' + fn, { method: 'POST', body: JSON.stringify(args || {}) }).then(r => r.json());
 const FMSG = { enviado: 'Pedido enviado.', aceito: 'Agora vocês são amigos!', ja: 'Já existe um pedido ou amizade com esse jogador.', nao_encontrado: 'Jogador não encontrado.', voce: 'Esse é você.', login: 'Entre numa conta.' };
 async function friendReq(n) { try { return FMSG[await rpc('amigo_pedir', { p_nome: n })] || 'Não foi possível.'; } catch (e) { return 'Sem conexão.'; } }
+const fbtn = (act, id, n, t, main) => '<button type="button" class="btn' + (main ? '' : ' ghost') + '" data-act="' + act + '" data-id="' + esc(id) + '" data-n="' + esc(n) + '" style="clip-path:none;min-height:34px;padding:4px 12px;font-size:14px;letter-spacing:.06em">' + t + '</button>';
+const frow = (left, btns) => '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line)"><div style="min-width:0">' + left + '</div><div style="display:flex;gap:6px;flex-wrap:wrap">' + btns + '</div></div>';
 async function loadFriends() {
   const b = $('fBody'); b.textContent = 'Carregando…';
   try {
     const d = await rpc('amigos_lista');
     if (!Array.isArray(d)) throw 0;
-    const np = d.filter(f => f.status === 'recebido').length; $('btnAmg').textContent = np ? 'Amigos (' + np + ')' : 'Amigos';
-    const A = (act, f, t) => '<a data-act="' + act + '" data-id="' + esc(f.id) + '" data-n="' + esc(f.nome) + '" style="cursor:pointer;text-decoration:underline;margin-left:12px">' + t + '</a>';
-    const grp = (st, title, acts) => { const l = d.filter(f => f.status === st); return l.length ? '<div style="padding-top:8px;color:var(--steel)">' + title + '</div>' + l.map(f => '<div style="padding:5px 0;border-top:1px solid var(--line)"><b>' + esc(f.nome) + '</b>' + acts(f) + '</div>').join('') : ''; };
-    b.innerHTML = grp('recebido', 'Pedidos recebidos', f => A('ok', f, 'Aceitar') + A('no', f, 'Recusar')) +
-      grp('amigo', 'Amigos', f => A('vs', f, 'Duelo') + A('pf', f, 'Perfil') + A('rm', f, 'Remover')) +
-      grp('enviado', 'Pedidos enviados', f => A('rm', f, 'Cancelar')) || 'Você ainda não tem amigos.';
+    friendBadge();
+    const grp = (st, title, acts) => { const l = d.filter(f => f.status === st); return l.length ? '<div style="padding-top:8px;color:var(--steel)">' + title + '</div>' + l.map(f => frow('<b>' + esc(f.nome) + '</b>', acts(f))).join('') : ''; };
+    const B = (act, f, t, main) => fbtn(act, f.id, f.nome, t, main);
+    b.innerHTML = grp('recebido', 'Pedidos recebidos', f => B('ok', f, 'Aceitar', 1) + B('no', f, 'Recusar')) +
+      grp('amigo', 'Amigos', f => B('vs', f, 'Duelo', 1) + B('pf', f, 'Perfil') + B('rm', f, 'Remover')) +
+      grp('enviado', 'Pedidos enviados', f => B('rm', f, 'Cancelar')) || 'Você ainda não tem amigos.';
   } catch (e) { b.textContent = 'Não foi possível carregar.'; }
 }
 $('btnAmg').addEventListener('click', () => {
@@ -2014,7 +2024,7 @@ $('fBody').addEventListener('click', async e => {
   loadFriends();
 });
 function vsHello() { const st = playerStats(); return { t: 'vhi', n: sess.nome, ship: save.ship, hs: st.spec.speed, hp: st.hp }; }
-async function vsJoin(f) {
+async function vsJoin(f, accepting) {
   const say = t => { $('fMsg').textContent = t; };
   say('Conectando…');
   try {
@@ -2031,12 +2041,14 @@ async function vsJoin(f) {
     MP.role = 'vs'; MP.vsFriend = f;
     const hello = () => mpSend(vsHello());
     hello(); MP.joinI = setInterval(hello, 1000);
+    MP.joinT = setTimeout(() => { if (MP.role === 'vs' && state !== 'playing') { mpLeave(); say(f.nome + ' não respondeu ao duelo.'); } }, 90000);
+    if (accepting) { rpc('duelo_cancelar', { p_id: f.id }).catch(() => {}); say('Aguardando ' + f.nome + ' entrar…'); return; }
     say('Enviando convite…');
     sendInvite(f).then(() => say('Convite enviado a ' + f.nome + '. Aguardando ele aceitar…'), () => say('Aguardando ' + f.nome + ' tocar em Duelo… (não foi possível enviar o convite)'));
   } catch (e) { mpLeave(); say('Não foi possível conectar. O duelo só funciona entre amigos.'); }
 }
 function vsStart(m) {
-  clearInterval(MP.joinI);
+  clearInterval(MP.joinI); clearTimeout(MP.joinT);
   initAudio(); newGame();
   const p = G.player, lo = sess.id < MP.vsFriend.id, hp = clamp(+m.hp || 100, 1, 2000);
   p.x = lo ? -250 : 250; p.heading = p.aim = lo ? 0 : Math.PI;
@@ -2110,20 +2122,27 @@ async function inboxStart() {
     inboxStop();
     inboxId = sess.id;
     inbox = MP.sb.channel('in:' + sess.id, { config: { private: true } });
-    inbox.on('broadcast', { event: 'inv' }, ({ payload }) => { try { showInvite(payload); } catch (e) {} });
+    inbox.on('broadcast', { event: 'inv' }, ({ payload }) => { try { showInvite(payload); friendBadge(); if (!$('inb').hidden) loadInbox(); } catch (e) {} });
     inbox.subscribe();
-    friendBadge(); badgeT = setInterval(friendBadge, 45000);
+    friendBadge(); badgeT = setInterval(friendBadge, 20000);
   } catch (e) {} finally { inboxBusy = false; }
 }
 function inboxStop() {
   try { if (inbox && MP.sb) MP.sb.removeChannel(inbox); } catch (e) {}
-  inbox = null; inboxId = ''; clearInterval(badgeT); $('btnAmg').textContent = 'Amigos';
+  inbox = null; inboxId = ''; clearInterval(badgeT); setInbN(0);
 }
+function setInbN(n) { const b = $('inbN'); b.hidden = !n; b.textContent = n > 9 ? '9+' : n; }
 async function friendBadge() {
   if (!sess) return;
-  try { const d = await rpc('amigos_lista'); if (Array.isArray(d)) { const n = d.filter(f => f.status === 'recebido').length; $('btnAmg').textContent = n ? 'Amigos (' + n + ')' : 'Amigos'; } } catch (e) {}
+  try {
+    const [fl, dl] = await Promise.all([rpc('amigos_lista'), rpc('duelos_lista')]);
+    const n = (Array.isArray(fl) ? fl.filter(f => f.status === 'recebido').length : 0) + (Array.isArray(dl) ? dl.length : 0);
+    setInbN(n);
+  } catch (e) {}
 }
 async function sendInvite(f) {
+  const r = await rpc('duelo_convidar', { p_id: f.id });
+  if (r !== 'ok') throw 0;
   const ch = MP.sb.channel('in:' + f.id, { config: { private: true } });
   try {
     await new Promise((res, rej) => {
@@ -2140,11 +2159,38 @@ function showInvite(m) {
   $('inv').hidden = false; try { sfx.pick(); } catch (e) {}
   clearTimeout(invT); invT = setTimeout(() => { $('inv').hidden = true; }, 30000);
 }
-$('invNo').addEventListener('click', () => { $('inv').hidden = true; clearTimeout(invT); });
+$('invNo').addEventListener('click', () => { $('inv').hidden = true; clearTimeout(invT); if (invFrom) rpc('duelo_cancelar', { p_id: invFrom.id }).catch(() => {}); friendBadge(); });
 $('invOk').addEventListener('click', () => {
   $('inv').hidden = true; clearTimeout(invT);
   if (!invFrom || !sess) return;
-  amgEl.hidden = false; loadFriends(); vsJoin(invFrom);
+  amgEl.hidden = false; loadFriends(); vsJoin(invFrom, true);
+});
+async function loadInbox() {
+  const b = $('inbBody'); b.textContent = 'Carregando…';
+  try {
+    const [fl, dl] = await Promise.all([rpc('amigos_lista'), rpc('duelos_lista')]);
+    if (!Array.isArray(fl) || !Array.isArray(dl)) throw 0;
+    const row = (k, nome, txt, btns) => frow('<span style="color:var(--steel)">' + k + '</span><br><b>' + esc(nome) + '</b> ' + txt, btns);
+    const h = dl.map(d => row('Duelo', d.nome, 'te desafiou', fbtn('dok', d.id, d.nome, 'Aceitar', 1) + fbtn('dno', d.id, d.nome, 'Recusar')))
+      .concat(fl.filter(f => f.status === 'recebido').map(f => row('Amizade', f.nome, 'quer ser seu amigo', fbtn('ok', f.id, f.nome, 'Aceitar', 1) + fbtn('no', f.id, f.nome, 'Recusar'))));
+    b.innerHTML = h.join('') || 'Nada por aqui.';
+  } catch (e) { b.textContent = 'Não foi possível carregar.'; }
+  friendBadge();
+}
+$('btnInb').addEventListener('click', () => {
+  if (!sess) { $('aMsg').textContent = 'Entre numa conta para usar a caixa de entrada.'; $('auth').hidden = false; return; }
+  $('inb').hidden = false; loadInbox();
+});
+$('inbBack').addEventListener('click', () => { $('inb').hidden = true; });
+$('inbBody').addEventListener('click', async e => {
+  const a = e.target.closest('[data-act]'); if (!a) return;
+  const { act, id, n } = a.dataset;
+  if (act === 'dok') { $('inb').hidden = true; amgEl.hidden = false; loadFriends(); return vsJoin({ id, nome: n }, true); }
+  try {
+    if (act === 'dno') await rpc('duelo_cancelar', { p_id: id });
+    else await rpc('amigo_responder', { p_id: id, p_aceitar: act === 'ok' });
+  } catch (_) {}
+  loadInbox();
 });
 if (sess) setTimeout(inboxStart, 1200);
 
