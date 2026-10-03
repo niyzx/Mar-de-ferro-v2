@@ -151,8 +151,51 @@ body:not(.touch) .help .only-touch { display: none; }
 .sbtn:disabled { opacity: .35; cursor: not-allowed; }
 .pill { flex: none; padding: 4px 10px; border: 1px solid var(--brass); color: var(--brass); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
+/* menu compacto */
+.overlay { padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px calc(env(safe-area-inset-bottom, 0px) + 12px); }
+.panel { gap: 10px; }
+.title { font-size: clamp(38px, 11vw, 62px); line-height: .95; }
+.title.sm { font-size: clamp(30px, 8vw, 42px); }
+.kicker { font-size: 10px; letter-spacing: .22em; }
+.lead { font-size: 13px; line-height: 1.45; }
+.stats { gap: 6px 14px; }
+.stats > div { padding-top: 5px; }
+.stats dt { font-size: 9px; }
+.stats dd { font-size: 24px; }
+.help { padding: 8px 0; gap: 3px; font-size: 11px; line-height: 1.35; }
+.help dt { font-size: 10px; }
+#ovHelp .note { margin-top: 6px !important; }
+.actions { gap: 8px; }
+.btn { min-height: 44px; padding: 6px 36px 6px 20px; font-size: 22px; }
+.btn.ghost { min-height: 36px; padding: 5px 14px; font-size: 15px; letter-spacing: .08em; }
+.card { padding: 7px 0; }
+.sbtn { min-height: 34px; font-size: 17px; }
+/* paisagem */
+@media (orientation: landscape) and (max-height: 520px) {
+  .overlay { padding: 8px 18px; }
+  .panel { width: min(820px, 100%); gap: 6px; }
+  .title { font-size: clamp(30px, 8vh, 44px); }
+  .title.sm { font-size: 28px; }
+  .lead { font-size: 12px; }
+  .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .stats dd { font-size: 20px; }
+  .help { grid-template-columns: 1fr 1fr; column-gap: 20px; }
+  .help .row { grid-template-columns: minmax(0, 7em) minmax(0, 1fr); gap: 8px; }
+  .btn { min-height: 38px; font-size: 19px; }
+  .btn.ghost { min-height: 32px; font-size: 14px; padding: 4px 12px; }
+  .note { font-size: 11px; line-height: 1.3; }
+  #shopBody h2 { margin: 8px 0 2px; }
+}
+#loading { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #06121a; color: #e9f2f3; transition: opacity .5s; }
+#loading.out { opacity: 0; pointer-events: none; }
+#loading b { font-family: var(--font-display, 'Bebas Neue', sans-serif); font-weight: 900; font-size: clamp(40px, 12vw, 72px); letter-spacing: .06em; text-transform: uppercase; line-height: 1; }
+#loading small { font-family: var(--font-mono, monospace); font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: #e0a93c; }
+#loading i { display: block; width: min(260px, 70vw); height: 4px; background: rgba(212,232,234,.15); overflow: hidden; }
+#loading i::after { content: ''; display: block; height: 100%; width: 40%; background: #e0a93c; animation: ld 1.1s ease-in-out infinite; }
+@keyframes ld { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
 </style>
 
+<div id="loading"><small>Preparando a frota</small><b>Mar de Ferro</b><i></i></div>
 <canvas id="sea" aria-label="Mar de batalha"></canvas>
 
 <div class="hud" id="hud">
@@ -218,11 +261,24 @@ body:not(.touch) .help .only-touch { display: none; }
       <button class="btn ghost" id="btnMenu" type="button" hidden>Menu principal</button>
       <button class="btn ghost" id="btnShop" type="button">Oficina</button>
       <button class="btn ghost" id="btnRank" type="button" hidden>Ranking</button>
+      <button class="btn ghost" id="btnMp" type="button" hidden>Jogar com amigo</button>
       <button class="btn ghost" id="btnAch" type="button" hidden>Conquistas</button>
       <button class="btn ghost" id="btnAcct" type="button" hidden>Entrar / Criar conta</button>
     </div>
   </div>
 </div>
+<div class="overlay" id="mpEl" hidden><div class="panel">
+  <h1 class="title sm">Jogar com amigo</h1>
+  <p class="note" id="mpMsg">Um cria a sala e manda o código; o outro entra com ele. Os dois enfrentam as mesmas ondas.</p>
+  <div id="mpBig" style="font-family:var(--font-display);font-weight:900;font-size:54px;letter-spacing:.25em;color:var(--brass)"></div>
+  <input id="mpCode" maxlength="4" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters" style="user-select:text;-webkit-user-select:text;width:100%;box-sizing:border-box;padding:10px;background:rgba(212,232,234,.08);border:1px solid var(--line);color:var(--ink);font:inherit;text-transform:uppercase;letter-spacing:.3em;text-align:center">
+  <div class="actions">
+    <button class="btn" id="mpGo" type="button" hidden>Zarpar</button>
+    <button class="btn ghost" id="mpCreate" type="button">Criar sala</button>
+    <button class="btn ghost" id="mpJoin" type="button">Entrar na sala</button>
+    <button class="btn ghost" id="mpBack" type="button">Voltar</button>
+  </div>
+</div></div>
 <div class="overlay" id="auth" hidden><div class="panel">
   <h1 class="title sm">Conta</h1>
   <p class="note">Seu progresso (moedas, navios, melhorias e recorde) fica salvo na conta. Nome: 3 a 16 letras minúsculas, números ou _. Senha: mínimo 6.</p>
@@ -333,6 +389,7 @@ const SHIPS = [
     spec: Object.assign({}, SPEC.player, { len: 150, wid: 42, turn: 1.1, hull: '#5c7480', deck: '#aebfc4', dark: '#2a3d46', stroke: '#e0a93c', accent: '#e0a93c', carrier: true,
       turrets: [{ x: .4, r: 5, bl: 16 }, { x: -.42, r: 5, bl: 16 }], cabin: { x: -.44, l: 6, w: 6 }, funnel: null }) }
 ];
+const MP = { role: null, ch: null, sb: null, code: '', guest: null, acked: false, ev: [], nid: 0, acc: 0, lastIn: 0, mute: 0, peerGone: false };
 const ACH = [
   { id: 'first', n: 'Primeiro tiro', d: 'Afunde 1 navio', f: () => save.kills >= 1 },
   { id: 'k100', n: 'Lobo do mar', d: 'Afunde 100 navios', f: () => save.kills >= 100 },
@@ -351,7 +408,7 @@ function checkAch() {
   for (const a of ACH) {
     let ok = false;
     try { ok = a.f(); } catch (e) {}
-    if (ok && !save.ach[a.id]) { save.ach[a.id] = 1; ch = true; try { banner('Conquista: ' + a.n, a.d); sfx.pick(); } catch (e) {} }
+    if (ok && !save.ach[a.id]) { save.ach[a.id] = 1; ch = true; try { MP.mute = 1; banner('Conquista: ' + a.n, a.d); MP.mute = 0; sfx.pick(); } catch (e) {} }
   }
   if (ch) persist();
 }
@@ -366,6 +423,7 @@ const MAXLV = 5, KEY_SAVE = 'mar-de-ferro-save';
 const upCost = l => Math.round(150 * Math.pow(1.9, l) / 10) * 10;
 let save = { coins: 0, ship: 'corveta', owned: ['corveta'], up: { hull: 0, gun: 0, rel: 0, eng: 0 }, ach: {}, kills: 0, bosses: 0 };
 function loadExtra(sv) {
+  save.ts = Math.max(0, Number(sv && sv.ts) || 0);
   save.kills = Math.max(0, Math.floor(Number(sv && sv.kills) || 0));
   save.bosses = Math.max(0, Math.floor(Number(sv && sv.bosses) || 0));
   save.ach = {};
@@ -381,7 +439,7 @@ try {
     loadExtra(sv);
   }
 } catch (e) {}
-function persist() { if (TEST_MODE) save.coins = 99999999; try { localStorage.setItem(KEY_SAVE, JSON.stringify(save)); } catch (e) {} try { cloudSoon(); } catch (e) {} try { checkAch(); } catch (e) {} }
+function persist() { if (TEST_MODE) save.coins = 99999999; save.ts = Date.now(); try { localStorage.setItem(KEY_SAVE, JSON.stringify(save)); } catch (e) {} try { cloudSoon(); } catch (e) {} try { checkAch(); } catch (e) {} }
 if (TEST_MODE) save.coins = 99999999;
 else if (save.coins >= 99999999) { save.coins = 0; persist(); } // limpa o saldo falso do modo de teste
 function playerStats() {
@@ -524,6 +582,7 @@ function muzzle(x, y, a, k) {
   sparks(x, y, 4, 160);
 }
 function explosion(x, y, k) {
+  if (MP.role === 'host') MP.ev.push(['x', Math.round(x), Math.round(y), k]);
   for (let i = 0; i < 18 * k; i++) {
     const a = rand(0, TAU), v = rand(15, 120) * k;
     addP({ t: 'fire', x: x + rand(-6, 6), y: y + rand(-6, 6), vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rand(.35, .85), size: rand(8, 16) * Math.sqrt(k), drag: 2.5 });
@@ -541,7 +600,7 @@ function explosion(x, y, k) {
   addP({ t: 'flash', x, y, life: .2, size: 46 * k });
   G.shake = Math.min(16, G.shake + 5 * k);
 }
-function floatText(x, y, str, col) { G.texts.push({ x, y, str, col, age: 0, life: 1.1 }); }
+function floatText(x, y, str, col) { if (MP.role === 'host' && !MP.mute) MP.ev.push(['t', Math.round(x), Math.round(y), str, col]); G.texts.push({ x, y, str, col, age: 0, life: 1.1 }); }
 function wake(s, dt, len, wid) {
   if (s.speed < 15) return;
   s.wakeT -= dt;
@@ -562,6 +621,7 @@ function damageSmoke(s, dt, frac) {
 /* ---------- ondas ---------- */
 const bannerEl = $('banner');
 function banner(big, small) {
+  if (MP.role === 'host' && !MP.mute) MP.ev.push(['b', big, small || '']);
   bannerEl.innerHTML = '<b></b><span></span>';
   bannerEl.firstChild.textContent = big;
   bannerEl.lastChild.textContent = small || '';
@@ -603,25 +663,34 @@ function spawnEnemy(type) {
   const x = p.x + Math.cos(a) * r, y = p.y + Math.sin(a) * r;
   const s = SPEC[type], toP = Math.atan2(p.y - y, p.x - x);
   G.enemies.push({
-    type, spec: s, x, y, heading: toP, speed: s.speed * .6, vx: 0, vy: 0, aim: toP,
+    id: ++MP.nid, type, spec: s, x, y, heading: toP, speed: s.speed * .6, vx: 0, vy: 0, aim: toP,
     hp: s.hp * G.hpMul, max: s.hp * G.hpMul, fireT: rand(1.2, 2.8), orbit: Math.random() < .5 ? 1 : -1,
     orbitT: rand(6, 12), phase: rand(0, TAU), flash: 0, wakeT: 0, smokeT: 0, recoil: 0
   });
+}
+function anyAlive() { return !G.player.dead || (MP.role === 'host' && G.p2 && !G.p2.dead); }
+function mpWaveClear() {
+  if (MP.role !== 'host' || !G.p2) return;
+  const p = G.player, q = G.p2;
+  if (!q.dead) q.hp = Math.min(q.max, q.hp + q.max * .2);
+  else if (!p.dead && !MP.peerGone) { q.dead = false; q.hp = q.max * .4; q.x = p.x + 70; q.y = p.y; q.speed = 0; q.vx = q.vy = 0; q.cloak = 0; MP.ev.push(['r', Math.round(q.x), Math.round(q.y)]); }
+  if (p.dead && !q.dead) { p.dead = false; p.hp = p.max * .4; p.x = q.x + 70; p.y = q.y; p.speed = 0; p.vx = p.vy = 0; p.cloak = 0; G.deadT = 0; MP.mute = 1; banner('De volta ao mar', 'Seu amigo te resgatou'); MP.mute = 0; }
 }
 function runWaves(dt) {
   const p = G.player;
   if (G.waveClearing) {
     G.interlude -= dt;
-    if (G.interlude <= 0 && !p.dead) { G.waveClearing = false; startWave(); }
+    if (G.interlude <= 0 && anyAlive()) { G.waveClearing = false; startWave(); }
     return;
   }
   const cap = Math.min(4 + Math.floor(G.wave / 2), 9);
   if (G.queue.length && G.enemies.length < cap) {
     G.spawnT -= dt;
     if (G.spawnT <= 0) { spawnEnemy(G.queue.shift()); G.spawnT = rand(.8, 1.8); }
-  } else if (!G.queue.length && !G.enemies.length && !p.dead) {
+  } else if (!G.queue.length && !G.enemies.length && anyAlive()) {
     G.waveClearing = true; G.interlude = 3.2;
-    p.hp = Math.min(p.max, p.hp + p.max * .2);
+    if (!p.dead) p.hp = Math.min(p.max, p.hp + p.max * .2);
+    mpWaveClear();
     addCoins(15 * G.wave);
     banner('Onda superada', '+20% de casco · +' + 15 * G.wave + ' moedas');
   }
@@ -697,7 +766,8 @@ function playerFire() {
   const p = G.player, a = p.aim + rand(-.012, .012);
   const tx = p.x + Math.cos(p.heading) * p.spec.len * .2, ty = p.y + Math.sin(p.heading) * p.spec.len * .2;
   const mx = tx + Math.cos(a) * 28, my = ty + Math.sin(a) * 28;
-  G.balls.push({ own: 'p', x: mx, y: my, vx: Math.cos(a) * BALL_V, vy: Math.sin(a) * BALL_V, life: RANGE / BALL_V, dmg: p.dmg, trail: 0 });
+  if (MP.role === 'guest') mpSend({ t: 'f', x: Math.round(mx), y: Math.round(my), a: +a.toFixed(3) });
+  else G.balls.push({ own: 'p', x: mx, y: my, vx: Math.cos(a) * BALL_V, vy: Math.sin(a) * BALL_V, life: RANGE / BALL_V, dmg: p.dmg, trail: 0 });
   p.reload = p.rel * (p.rapid > 0 ? .47 : 1);
   p.speed = Math.max(0, p.speed - 6); p.recoil = 1;
   muzzle(mx, my, a, 1);
@@ -712,8 +782,34 @@ function hurtPlayer(dmg, x, y) {
   sfx.hurt();
   if (p.hp <= 0) killPlayer();
 }
+function hurtP2(dmg, x, y) {
+  const q = G.p2;
+  q.hp -= dmg; q.hflash = .15; sparks(x, y, 8, 220);
+  if (q.hp <= 0) killP2();
+}
+function killP2() {
+  const q = G.p2;
+  q.dead = true; q.hp = 0; q.speed = 0; q.vx = q.vy = 0; G.deadT = 0;
+  explosion(q.x, q.y, 2.6);
+  G.wrecks.push({ x: q.x, y: q.y, heading: q.heading, spec: q.spec, aim: q.aim, t: 0, vx: 0, vy: 0 });
+  sfx.boom();
+  if (G.player.dead) return;
+  MP.mute = 1; banner('Seu amigo foi afundado', 'Termine a onda para resgatá-lo'); MP.mute = 0;
+}
+function stepP2(dt) {
+  const q = G.p2;
+  q.hflash = Math.max(0, q.hflash - dt); q.recoil = Math.max(0, q.recoil - dt * 6);
+  if (q.rapid > 0) q.rapid -= dt;
+  if (!q.dead) {
+    q.x += q.vx * dt; q.y += q.vy * dt;
+    wake(q, dt, q.spec.len, q.spec.wid); damageSmoke(q, dt, q.hp / q.max);
+    if (!MP.peerGone && performance.now() - MP.lastIn > 6000) { MP.peerGone = true; killP2(); MP.mute = 1; banner('Amigo desconectou', 'Você segue sozinho'); MP.mute = 0; }
+  }
+}
 function killPlayer() {
   const p = G.player;
+  if (MP.role === 'host' && G.p2 && !G.p2.dead) { MP.mute = 1; banner('Você foi afundado', 'Seu amigo segue; termine a onda para voltar'); MP.mute = 0; }
+  if (MP.role === 'guest' && G.p2 && !G.p2.dead) banner('Você foi afundado', 'Seu amigo segue; termine a onda para voltar');
   p.dead = true; p.hp = 0; p.speed = 0; p.vx = p.vy = 0; G.deadT = 0;
   explosion(p.x, p.y, 2.6);
   G.wrecks.push({ x: p.x, y: p.y, heading: p.heading, spec: p.spec, aim: p.aim, t: 0, vx: 0, vy: 0 });
@@ -802,8 +898,15 @@ function useCloak() {
 }
 
 /* ---------- inimigos ---------- */
+function enemyTarget(e) {
+  const a = G.player, b = G.p2;
+  if (!b || MP.role !== 'host' || b.dead) return a;
+  if (a.dead) return b;
+  if (a.cloak > 0 && b.cloak <= 0) return b;
+  return Math.hypot(a.x - e.x, a.y - e.y) <= Math.hypot(b.x - e.x, b.y - e.y) ? a : b;
+}
 function updateEnemy(e, dt) {
-  const p = G.player, s = e.spec, hid = p.dead || p.cloak > 0;
+  const p = enemyTarget(e), s = e.spec, hid = p.dead || p.cloak > 0;
   const dx = p.x - e.x, dy = p.y - e.y, dist = Math.hypot(dx, dy) || 1, toP = Math.atan2(dy, dx);
   e.orbitT -= dt;
   if (e.orbitT <= 0) { e.orbit *= -1; e.orbitT = rand(6, 12); }
@@ -823,7 +926,7 @@ function updateEnemy(e, dt) {
   const want = Math.atan2(p.y + p.vy * lead - e.y, p.x + p.vx * lead - e.x);
   e.aim += clamp(angDiff(e.aim, want), -3.2 * dt, 3.2 * dt);
   e.fireT -= dt;
-  if (e.fireT <= 0 && !hid && dist < s.ball * 1.5 && onScreen(e, 50) && Math.abs(angDiff(e.aim, want)) < .14) {
+  if (e.fireT <= 0 && !hid && dist < s.ball * 1.5 && (onScreen(e, 50) || (MP.role === 'host' && G.p2 && Math.hypot(e.x - G.p2.x, e.y - G.p2.y) < 520)) && Math.abs(angDiff(e.aim, want)) < .14) {
     enemyFire(e);
     e.fireT = s.fire * G.fireScale * rand(.85, 1.2);
   }
@@ -842,6 +945,7 @@ function enemyFire(e) {
   sfx.enemy();
 }
 function sinkEnemy(e) {
+  if (MP.role === 'host') MP.ev.push(['w', Math.round(e.x), Math.round(e.y), +e.heading.toFixed(2), e.type, +e.aim.toFixed(2)]);
   explosion(e.x, e.y, e.type === 'boss' ? 3.2 : e.type === 'battle' ? 2 : e.type === 'frigate' || e.type === 'blindado' ? 1.4 : 1);
   G.wrecks.push({ x: e.x, y: e.y, heading: e.heading, spec: e.spec, aim: e.aim, t: 0, vx: e.vx * .3, vy: e.vy * .3 });
   G.score += e.spec.score; G.kills++; save.kills++; if (e.type === 'boss') { save.bosses++; banner('Chefe derrotado', '+' + e.spec.score + ' pontos'); }
@@ -902,6 +1006,8 @@ function updateBalls(dt) {
         }
       } else if (!p.dead && p.cloak <= 0 && hitShip(b.x, b.y, p)) {
         hit = true; hurtPlayer(b.dmg, b.x, b.y);
+      } else if (MP.role === 'host' && G.p2 && !G.p2.dead && G.p2.cloak <= 0 && hitShip(b.x, b.y, G.p2)) {
+        hit = true; hurtP2(b.dmg, b.x, b.y);
       }
     }
     b.trail -= dt;
@@ -916,9 +1022,10 @@ function updateCrates(dt) {
     const c = G.crates[i];
     c.life -= dt; c.t += dt;
     if (c.life <= 0) { G.crates.splice(i, 1); continue; }
-    if (!p.dead && Math.hypot(p.x - c.x, p.y - c.y) < 36) {
-      if (c.type === 'repair') { p.hp = Math.min(p.max, p.hp + p.max * .3); floatText(c.x, c.y - 16, '+30% casco', '#4fd1a5'); }
-      else { p.rapid = 8; floatText(c.x, c.y - 16, 'fogo rápido', '#e0a93c'); }
+    const who = (!p.dead && Math.hypot(p.x - c.x, p.y - c.y) < 36) ? p : (MP.role === 'host' && G.p2 && !G.p2.dead && Math.hypot(G.p2.x - c.x, G.p2.y - c.y) < 36 ? G.p2 : null);
+    if (who) {
+      if (c.type === 'repair') { who.hp = Math.min(who.max, who.hp + who.max * .3); floatText(c.x, c.y - 16, '+30% casco', '#4fd1a5'); }
+      else { who.rapid = 8; floatText(c.x, c.y - 16, 'fogo rápido', '#e0a93c'); }
       for (let k = 0; k < 10; k++) {
         const a = rand(0, TAU), v = rand(30, 110);
         addP({ t: 'spark', x: c.x, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .5, size: 1.6, drag: 2 });
@@ -952,6 +1059,7 @@ function updateParts(dt) {
 
 /* ---------- passo do jogo ---------- */
 function step(dt) {
+  if (MP.role === 'guest') { stepGuest(dt); return; }
   G.t += dt;
   const p = G.player;
   let inp;
@@ -965,13 +1073,19 @@ function step(dt) {
     for (let i = G.enemies.length - 1; i >= 0; i--) updateEnemy(G.enemies[i], dt);
     separate();
   }
+  if (MP.role === 'host' && G.p2) stepP2(dt);
   updatePlanes(dt); updateBalls(dt); updateCrates(dt); updateParts(dt);
-  if (p.dead && state === 'playing') { G.deadT += dt; if (G.deadT > 1.6) gameOver(); }
+  if (MP.role === 'host') mpHostTick(dt);
+  if (p.dead && state === 'playing' && !(MP.role === 'host' && G.p2 && !G.p2.dead)) { G.deadT += dt; if (G.deadT > 1.6) gameOver(); }
   G.shake *= Math.exp(-dt * 7); if (G.shake < .1) G.shake = 0;
   G.flash = Math.max(0, G.flash - dt * 1.6);
+  followCam(dt);
+}
+function followCam(dt) {
+  const p = G.player, ct = (p.dead && G.p2 && !G.p2.dead) ? G.p2 : p;
   const k = 1 - Math.exp(-dt * 4.5), c = G.camera;
-  c.x += (p.x + Math.cos(p.heading) * p.speed * .35 - c.x) * k;
-  c.y += (p.y + Math.sin(p.heading) * p.speed * .35 - c.y) * k;
+  c.x += (ct.x + Math.cos(ct.heading) * ct.speed * .35 - c.x) * k;
+  c.y += (ct.y + Math.sin(ct.heading) * ct.speed * .35 - c.y) * k;
 }
 
 /* ---------- desenho ---------- */
@@ -1186,6 +1300,15 @@ function render() {
     alpha: p.cloak > 0 ? (p.cloak < .5 ? .2 + .8 * (1 - p.cloak / .5) : .2) : undefined
   });
 
+  const q2 = G.p2;
+  if (q2 && !q2.dead) {
+    drawShip(q2.x, q2.y, q2.heading, q2.spec, q2.aim, { flash: q2.hflash, recoil: q2.recoil, alpha: q2.cloak > 0 ? .35 : undefined });
+    const fs = 11 / zoom, bw = 44, by = q2.y - q2.spec.len * .5 - 10;
+    ctx.fillStyle = 'rgba(10,31,44,.75)'; ctx.fillRect(q2.x - bw / 2 - 1, by - 1, bw + 2, 5);
+    ctx.fillStyle = '#4fd1a5'; ctx.fillRect(q2.x - bw / 2, by, bw * clamp(q2.hp / q2.max, 0, 1), 3);
+    ctx.font = '600 ' + fs + 'px "IBM Plex Mono", monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillStyle = '#4fd1a5'; ctx.fillText('AMIGO', q2.x, by - 3);
+  }
   for (const b of G.balls) {
     const enemy = b.own === 'e';
     ctx.globalCompositeOperation = 'lighter';
@@ -1269,6 +1392,7 @@ function showOverlay(mode) {
   $('btnRank').hidden = !RANK_ON || mode === 'paused';
   $('btnAcct').hidden = mode === 'paused';
   $('btnAch').hidden = mode === 'paused';
+  $('btnMp').hidden = mode === 'paused';
   refreshAcct();
   $('sendMsg').textContent = '';
   $('bal').textContent = 'Saldo: ' + fmt(save.coins) + ' moedas';
@@ -1297,6 +1421,7 @@ function showOverlay(mode) {
   try { btnMain.focus({ preventScroll: true }); } catch (e) {}
 }
 function startGame() {
+  if (MP.role) mpLeave();
   initAudio();
   newGame();
   for (const k of ['move', 'aim']) sticks[k] = null;
@@ -1305,7 +1430,7 @@ function startGame() {
   if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
 }
 function pauseGame() {
-  if (state !== 'playing' || G.player.dead) return;
+  if (state !== 'playing' || G.player.dead || MP.role) return;
   setState('paused'); showOverlay('paused');
 }
 function resumeGame() {
@@ -1323,10 +1448,12 @@ function gameOver() {
   }
   setState('over'); showOverlay('over');
   if (RANK_ON) submitScore();
+  if (MP.role === 'host') { mpSend({ t: 'end', w: G.wave, sc: Math.floor(G.score), k: G.kills, c: G.coins }); setTimeout(mpLeave, 700); }
 }
 btnMain.addEventListener('click', () => { if (state === 'paused') resumeGame(); else startGame(); });
 btnAlt.addEventListener('click', startGame);
 $('btnMenu').addEventListener('click', () => {
+  if (MP.role) mpLeave();
   newGame();
   for (const k of ['move', 'aim']) sticks[k] = null;
   setState('menu'); showOverlay('menu');
@@ -1394,19 +1521,28 @@ function cloudSoon() { if (!sess) return; clearTimeout(cloudT); cloudT = setTime
 async function pushCloud() {
   if (!sess) return;
   clearTimeout(cloudT);
-  try { await api('perfis?on_conflict=user_id', { method: 'POST', body: JSON.stringify({ user_id: sess.id, dados: { save, best }, atualizado: new Date().toISOString() }) }); } catch (e) {}
+  try { await api('perfis?on_conflict=user_id', { method: 'POST', keepalive: true, body: JSON.stringify({ user_id: sess.id, dados: { save, best }, atualizado: new Date().toISOString() }) }); } catch (e) {}
 }
 async function pullCloud() {
   try {
     const r = await api('perfis?user_id=eq.' + sess.id + '&select=dados');
     const d = await r.json();
-    if (Array.isArray(d) && d.length) applyCloud(d[0].dados); else await pushCloud();
+    if (!Array.isArray(d)) return;
+    const dono = localStorage.getItem('mf_dono');
+    if (d.length) {
+      const cts = Number(d[0].dados && d[0].dados.save && d[0].dados.save.ts) || 0;
+      if (dono === sess.id && save.ts > cts) await pushCloud();
+      else applyCloud(d[0].dados);
+    } else await pushCloud();
+    localStorage.setItem('mf_dono', sess.id);
   } catch (e) {}
 }
+document.addEventListener('visibilitychange', () => { if (document.hidden) pushCloud(); });
+window.addEventListener('pagehide', () => { pushCloud(); });
 function logout() {
   sess = null;
-  try { localStorage.removeItem(SESS_KEY); localStorage.removeItem(KEY_SAVE); localStorage.removeItem(KEY_BEST); } catch (e) {}
-  Object.assign(save, { coins: 0, ship: 'corveta', owned: ['corveta'], up: { hull: 0, gun: 0, rel: 0, eng: 0 }, ach: {}, kills: 0, bosses: 0 });
+  try { localStorage.removeItem(SESS_KEY); localStorage.removeItem(KEY_SAVE); localStorage.removeItem(KEY_BEST); localStorage.removeItem('mf_dono'); } catch (e) {}
+  Object.assign(save, { coins: 0, ship: 'corveta', owned: ['corveta'], up: { hull: 0, gun: 0, rel: 0, eng: 0 }, ach: {}, kills: 0, bosses: 0, ts: 0 });
   best = 0; refreshAcct();
 }
 function refreshAcct() {
@@ -1469,6 +1605,209 @@ $('btnRank').addEventListener('click', openRank);
 $('rankBack').addEventListener('click', () => { rankEl.hidden = true; });
 if (sess) { refreshAcct(); pullCloud().then(refreshAcct); }
 
+
+/* ---------- multiplayer (Supabase Realtime) ---------- */
+const mpEl = $('mpEl');
+const r1 = v => Math.round(v * 10) / 10, r3 = v => Math.round(v * 1000) / 1000;
+function mpSay(t) { $('mpMsg').textContent = t; }
+function mpSend(payload) { try { if (MP.ch) MP.ch.send({ type: 'broadcast', event: 'm', payload }); } catch (e) {} }
+function loadSb() {
+  return new Promise((res, rej) => {
+    if (window.supabase && window.supabase.createClient) return res();
+    const sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    sc.onload = () => (window.supabase && window.supabase.createClient) ? res() : rej(new Error('sb'));
+    sc.onerror = () => rej(new Error('sb'));
+    document.head.appendChild(sc);
+  });
+}
+function mpLeave() {
+  try { if (MP.ch && MP.role) mpSend({ t: 'bye' }); } catch (e) {}
+  try { if (MP.ch && MP.sb) MP.sb.removeChannel(MP.ch); } catch (e) {}
+  clearInterval(MP.joinI); clearTimeout(MP.joinT);
+  MP.ch = null; MP.role = null; MP.guest = null; MP.acked = false; MP.ev = []; MP.peerGone = false;
+  if (G) G.p2 = null;
+}
+async function mpConnect(code, role) {
+  await loadSb();
+  mpLeave();
+  if (!MP.sb) MP.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { realtime: { params: { eventsPerSecond: 40 } } });
+  MP.role = role; MP.code = code;
+  await new Promise((res, rej) => {
+    const ch = MP.sb.channel('mf-' + code, { config: { broadcast: { self: false, ack: false } } });
+    ch.on('broadcast', { event: 'm' }, ({ payload }) => { try { mpOnMsg(payload); } catch (e) {} });
+    MP.ch = ch;
+    const to = setTimeout(() => rej(new Error('timeout')), 8000);
+    ch.subscribe(st => {
+      if (st === 'SUBSCRIBED') { clearTimeout(to); res(); }
+      else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') { clearTimeout(to); rej(new Error(st)); }
+    });
+  });
+}
+function mpBusy(b) { for (const id of ['mpCreate', 'mpJoin']) $(id).disabled = b; }
+$('btnMp').addEventListener('click', () => {
+  mpLeave(); $('mpBig').textContent = ''; $('mpGo').hidden = true; $('mpCode').hidden = false; mpBusy(false);
+  mpSay('Um cria a sala e manda o código; o outro entra com ele. Os dois enfrentam as mesmas ondas.');
+  mpEl.hidden = false;
+});
+$('mpBack').addEventListener('click', () => { mpLeave(); mpEl.hidden = true; });
+$('mpCreate').addEventListener('click', async () => {
+  const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; let code = '';
+  for (let i = 0; i < 4; i++) code += L[Math.floor(Math.random() * L.length)];
+  mpBusy(true); mpSay('Criando sala…');
+  try {
+    await mpConnect(code, 'host');
+    $('mpBig').textContent = code; $('mpCode').hidden = true;
+    mpSay('Mande o código ao amigo e espere ele entrar.');
+  } catch (e) { mpLeave(); mpSay('Não foi possível conectar. Verifique a internet e tente de novo.'); }
+  mpBusy(false);
+});
+$('mpJoin').addEventListener('click', async () => {
+  const code = $('mpCode').value.trim().toUpperCase();
+  if (!/^[A-Z]{4}$/.test(code)) { mpSay('Digite o código de 4 letras.'); return; }
+  mpBusy(true); mpSay('Entrando…');
+  try {
+    await mpConnect(code, 'guest');
+    const st = playerStats();
+    const info = { t: 'join', id: save.ship, hp: st.hp, dmg: st.dmg, rel: st.rel, speed: st.spec.speed };
+    MP.acked = false;
+    const send = () => mpSend(info);
+    send(); MP.joinI = setInterval(send, 1200);
+    MP.joinT = setTimeout(() => { if (!MP.acked) { mpLeave(); mpBusy(false); mpSay('Sala não encontrada. Confira o código.'); } }, 7000);
+  } catch (e) { mpLeave(); mpBusy(false); mpSay('Não foi possível conectar. Verifique a internet e tente de novo.'); }
+});
+$('mpGo').addEventListener('click', () => { if (MP.role === 'host' && MP.guest) mpStartHost(); });
+function mkOther(id, speed) {
+  const sh = SHIPS.find(s => s.id === id) || SHIPS[0];
+  return { spec: Object.assign({}, sh.spec, { speed }), max: 100, hp: 100, dmg: 20, rel: .6, auto: false, cloakAb: false, airAb: false, autoT: 0, autoAim: -Math.PI / 2,
+    cloak: 0, cloakCd: 0, x: 90, y: 0, heading: -Math.PI / 2, speed: 0, vx: 0, vy: 0, aim: -Math.PI / 2, reload: 0, rapid: 0, dead: false, wakeT: 0, smokeT: 0, hflash: 0, recoil: 0, shipId: sh.id };
+}
+function mpBegin() {
+  for (const k of ['move', 'aim']) sticks[k] = null;
+  MP.acc = 0; MP.lastIn = performance.now(); MP.ev = []; MP.peerGone = false;
+  setState('playing'); ov.hidden = true; mpEl.hidden = true;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  last = performance.now();
+}
+function mpStartHost() {
+  initAudio(); newGame(); MP.nid = 0;
+  const g = MP.guest;
+  G.p2 = mkOther(g.id, g.speed);
+  Object.assign(G.p2, { max: g.hp, hp: g.hp, dmg: g.dmg, rel: g.rel });
+  mpSend({ t: 'go', ship: save.ship, hs: playerStats().spec.speed });
+  mpBegin();
+}
+function mpStartGuest(m) {
+  initAudio(); newGame();
+  const p = G.player;
+  p.cloakAb = false; p.airAb = false; p.auto = false; p.x = 90;
+  G.p2 = mkOther(m.ship, m.hs);
+  mpBegin();
+}
+function mpOnMsg(m) {
+  if (!m || !MP.role) return;
+  if (MP.role === 'host') {
+    if (m.t === 'join' && !(MP.guest && state === 'playing')) {
+      const first = !MP.guest;
+      MP.guest = { id: m.id, hp: clamp(+m.hp || 100, 1, 2000), dmg: clamp(+m.dmg || 20, 1, 500), rel: clamp(+m.rel || .6, .1, 3), speed: clamp(+m.speed || 190, 50, 600) };
+      mpSend({ t: 'ack' });
+      if (first) { $('mpGo').hidden = false; mpSay('Amigo conectado! Toque em Zarpar.'); }
+    } else if (m.t === 'g' && G.p2 && !G.p2.dead && state === 'playing') {
+      const q = G.p2; MP.lastIn = performance.now();
+      q.x = +m.x; q.y = +m.y; q.heading = +m.h; q.aim = +m.a; q.speed = +m.s;
+      q.vx = Math.cos(q.heading) * q.speed; q.vy = Math.sin(q.heading) * q.speed;
+    } else if (m.t === 'f' && G.p2 && !G.p2.dead && state === 'playing') {
+      const q = G.p2, a = +m.a;
+      G.balls.push({ own: 'p', x: +m.x, y: +m.y, vx: Math.cos(a) * BALL_V, vy: Math.sin(a) * BALL_V, life: RANGE / BALL_V, dmg: q.dmg, trail: 0 });
+      muzzle(+m.x, +m.y, a, 1); sfx.enemy(); q.recoil = 1;
+    } else if (m.t === 'bye') {
+      if (state === 'playing' && G.p2 && !MP.peerGone) { MP.peerGone = true; if (!G.p2.dead) killP2(); MP.mute = 1; banner('Amigo saiu', 'Você segue sozinho'); MP.mute = 0; }
+      else if (state !== 'playing') { MP.guest = null; $('mpGo').hidden = true; mpSay('O amigo saiu. Mande o código de novo.'); }
+    }
+  } else {
+    if (m.t === 'ack') {
+      if (!MP.acked) { MP.acked = true; clearInterval(MP.joinI); clearTimeout(MP.joinT); mpSay('Conectado! Aguardando o anfitrião zarpar…'); }
+    } else if (m.t === 'go') { mpStartGuest(m); }
+    else if (m.t === 's' && G && G.p2 && state === 'playing') mpApply(m);
+    else if (m.t === 'end' && state === 'playing') mpGuestEnd(m);
+    else if (m.t === 'bye' && state === 'playing') mpGuestEnd(null);
+  }
+}
+function mpHostTick(dt) {
+  MP.acc += dt;
+  if (MP.acc < .066 || !G.p2 || state !== 'playing') return;
+  MP.acc = 0;
+  const p = G.player, q = G.p2;
+  mpSend({ t: 's', w: G.wave, sc: Math.floor(G.score), k: G.kills, c: G.coins,
+    h: [r1(p.x), r1(p.y), r3(p.heading), r3(p.aim), Math.round(p.speed), p.dead ? 1 : 0, Math.round(p.hp), p.max, p.cloak > 0 ? 1 : 0, save.ship],
+    y: [Math.round(q.hp), q.max, q.dead ? 1 : 0, r1(Math.max(0, q.rapid))],
+    e: G.enemies.map(e => [e.id, e.type, r1(e.x), r1(e.y), r3(e.heading), r3(e.aim), Math.round(e.hp), Math.round(e.max), Math.round(e.vx), Math.round(e.vy)]),
+    b: G.balls.map(b => [b.own === 'p' ? 0 : 1, r1(b.x), r1(b.y), Math.round(b.vx), Math.round(b.vy), r3(b.life)]),
+    cr: G.crates.map(c => [c.type === 'repair' ? 0 : 1, r1(c.x), r1(c.y), r1(c.t), r1(c.life)]),
+    ev: MP.ev });
+  MP.ev = [];
+}
+function mpApply(m) {
+  MP.lastIn = performance.now();
+  G.wave = m.w; G.score = m.sc; G.kills = m.k; G.coins = m.c;
+  const o = G.p2, h = m.h, p = G.player, y = m.y;
+  o.x = h[0]; o.y = h[1]; o.heading = h[2]; o.aim = h[3]; o.speed = h[4];
+  o.vx = Math.cos(o.heading) * o.speed; o.vy = Math.sin(o.heading) * o.speed;
+  o.dead = !!h[5]; o.hp = h[6]; o.max = h[7]; o.cloak = h[8] ? 1 : 0;
+  if (o.shipId !== h[9]) { const sh = SHIPS.find(s => s.id === h[9]); if (sh) { o.spec = Object.assign({}, sh.spec, { speed: o.spec.speed }); o.shipId = sh.id; } }
+  if (y[0] < p.hp - .5 && !p.dead) { p.hflash = .15; G.flash = Math.min(.6, G.flash + .35); G.shake = Math.min(16, G.shake + 4); sfx.hurt(); }
+  p.hp = y[0]; p.max = y[1]; p.rapid = y[3];
+  if (y[2] && !p.dead) killPlayer();
+  else if (!y[2] && p.dead) p.dead = false;
+  const old = new Map(G.enemies.map(e => [e.id, e])), list = [];
+  for (const a of m.e) {
+    let e = old.get(a[0]);
+    if (!e) e = { id: a[0], type: a[1], spec: SPEC[a[1]], flash: 0, recoil: 0, wakeT: 0, smokeT: 0, speed: 0, hp: a[6] };
+    else if (a[6] < e.hp) e.flash = .12;
+    e.x = a[2]; e.y = a[3]; e.heading = a[4]; e.aim = a[5]; e.hp = a[6]; e.max = a[7]; e.vx = a[8]; e.vy = a[9]; e.speed = Math.hypot(a[8], a[9]);
+    if (e.spec) list.push(e);
+  }
+  G.enemies = list;
+  G.balls = m.b.map(a => ({ own: a[0] ? 'e' : 'p', x: a[1], y: a[2], vx: a[3], vy: a[4], life: a[5], trail: 0 }));
+  G.crates = m.cr.map(a => ({ type: a[0] ? 'rapid' : 'repair', x: a[1], y: a[2], t: a[3], life: a[4] }));
+  for (const v of m.ev) {
+    if (v[0] === 'x') { explosion(v[1], v[2], v[3]); sfx.boom(); }
+    else if (v[0] === 'b') banner(v[1], v[2]);
+    else if (v[0] === 't') floatText(v[1], v[2], v[3], v[4]);
+    else if (v[0] === 'w' && SPEC[v[4]]) G.wrecks.push({ x: v[1], y: v[2], heading: v[3], spec: SPEC[v[4]], aim: v[5], t: 0, vx: 0, vy: 0 });
+    else if (v[0] === 'r') { p.dead = false; p.x = v[1]; p.y = v[2]; p.speed = 0; p.vx = p.vy = 0; p.cloak = 0; }
+  }
+}
+function stepGuest(dt) {
+  G.t += dt;
+  const p = G.player, o = G.p2;
+  if (state === 'playing' && !p.dead) { const inp = gatherInput(); G.aimActive = inp.aim != null; stepPlayer(dt, inp); }
+  for (const e of G.enemies) { e.x += e.vx * dt; e.y += e.vy * dt; e.flash = Math.max(0, e.flash - dt); wake(e, dt, e.spec.len, e.spec.wid); damageSmoke(e, dt, e.hp / e.max); }
+  for (const b of G.balls) {
+    b.x += b.vx * dt; b.y += b.vy * dt; b.trail -= dt;
+    if (b.trail <= 0) { b.trail = .03; addP({ t: 'smoke', x: b.x, y: b.y, life: .45, size: 2, grow: 7 }); }
+  }
+  for (const c of G.crates) { c.t += dt; c.life -= dt; }
+  if (o && !o.dead) { o.x += o.vx * dt; o.y += o.vy * dt; wake(o, dt, o.spec.len, o.spec.wid); }
+  updateParts(dt);
+  G.shake *= Math.exp(-dt * 7); if (G.shake < .1) G.shake = 0;
+  G.flash = Math.max(0, G.flash - dt * 1.6);
+  followCam(dt);
+  MP.acc += dt;
+  if (MP.acc >= .05 && !p.dead) {
+    MP.acc = 0;
+    mpSend({ t: 'g', x: r1(p.x), y: r1(p.y), h: r3(p.heading), a: r3(p.aim), s: Math.round(p.speed) });
+  }
+  if (performance.now() - MP.lastIn > 6000 && state === 'playing') mpGuestEnd(null);
+}
+function mpGuestEnd(m) {
+  if (m) { G.wave = m.w; G.score = m.sc; G.kills = m.k; G.coins = m.c; }
+  save.coins += G.coins; save.kills += G.kills; persist();
+  gameOver();
+  if (!m) $('sendMsg').textContent = 'Conexão com o anfitrião perdida.';
+  setTimeout(mpLeave, 300);
+}
+
 /* ---------- conquistas ---------- */
 $('btnAch').addEventListener('click', () => {
   const n = ACH.filter(a => save.ach[a.id]).length;
@@ -1513,7 +1852,7 @@ shopBody.addEventListener('click', e => {
     const l = save.up[id];
     if (l < MAXLV && save.coins >= upCost(l)) { save.coins -= upCost(l); save.up[id] = l + 1; sfx.pick(); }
   }
-  persist(); renderShop();
+  persist(); pushCloud(); renderShop();
 });
 $('btnShop').addEventListener('click', () => { renderShop(); shopEl.hidden = false; });
 $('shopBack').addEventListener('click', () => { shopEl.hidden = true; showOverlay(state === 'over' ? 'over' : 'menu'); });
@@ -1567,6 +1906,19 @@ window.addEventListener('keyup', e => keys.delete(e.code));
 window.addEventListener('blur', () => { keys.clear(); mouse.down = false; });
 document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
 window.addEventListener('resize', resize);
+/* tenta travar em paisagem (tela cheia) no primeiro toque; se não der, o aviso de girar cobre a tela */
+let lockTried = false;
+function tryLandscape() {
+  if (lockTried || !matchMedia('(pointer: coarse)').matches) return;
+  lockTried = true;
+  try {
+    const el = document.documentElement;
+    const fs = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : null;
+    Promise.resolve(fs).then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape')).catch(() => {});
+  } catch (e) {}
+}
+window.addEventListener('pointerdown', tryLandscape, { once: true });
+
 
 /* ---------- laço principal ---------- */
 let last = performance.now();
@@ -1581,6 +1933,13 @@ function frame(now) {
   hud();
 }
 
+(function hideLoading() {
+  const t0 = performance.now(), L = $('loading');
+  const done = () => { const w = Math.max(0, 1200 - (performance.now() - t0)); setTimeout(() => { L.classList.add('out'); setTimeout(() => L.remove(), 600); }, w); };
+  const ready = [new Promise(r => { if (document.readyState === 'complete') r(); else window.addEventListener('load', r); })];
+  try { if (document.fonts && document.fonts.ready) ready.push(document.fonts.ready); } catch (e) {}
+  Promise.race([Promise.all(ready), new Promise(r => setTimeout(r, 6000))]).then(done, done);
+})();
 resize();
 newGame();
 setState('menu');
