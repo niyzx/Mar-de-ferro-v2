@@ -325,6 +325,7 @@ body:not(.touch) .help .only-touch { display: none; }
   <div class="actions"><button class="btn ghost" id="pMine" type="button" hidden>Meu perfil</button><button class="btn ghost" id="rankBack" type="button">Voltar</button></div>
 </div></div>
 <button class="ibtn" id="btnCfg" type="button" aria-label="Configurações" title="Configurações" style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;z-index:20"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+<style>body[data-state="playing"] #btnCfg { display: none; }</style>
 <div class="overlay" id="cfg" hidden style="z-index:30"><div class="panel">
   <h1 class="title sm">Configurações</h1>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0;border-top:1px solid var(--line)"><span>Som</span><button class="btn ghost" id="cfgSound" type="button" style="min-width:130px"></button></div>
@@ -1158,7 +1159,7 @@ function step(dt) {
     for (let i = G.enemies.length - 1; i >= 0; i--) updateEnemy(G.enemies[i], dt);
     separate();
   }
-  if (MP.role === 'host') { stepAllies(dt); if (state === 'playing') stepBuoys(dt); }
+  if (MP.role === 'host' && state === 'playing') { stepAllies(dt); stepBuoys(dt); }
   updatePlanes(dt); updateBalls(dt); updateCrates(dt); updateParts(dt);
   if (MP.role === 'host') mpHostTick(dt);
   if (p.dead && state === 'playing' && !(MP.role === 'host' && G.allies.some(a => !a.dead))) { G.deadT += dt; if (G.deadT > 1.6) gameOver(); }
@@ -1556,12 +1557,16 @@ function showOverlay(mode) {
     $('sScore').textContent = fmt(G.score);
     $('sBest').textContent = fmt(best);
     $('sCoins').textContent = fmt(G.coins);
-    btnMain.textContent = 'Zarpar de novo';
+    btnMain.textContent = MP.role === 'host' && MP.guests.length ? 'Revanche' : MP.role === 'guest' ? 'Aguardando anfitrião…' : 'Zarpar de novo';
+    if (MP.role === 'guest') $('ovLead').textContent += ' Aguarde o anfitrião iniciar a revanche.';
+    else if (MP.role === 'host' && MP.guests.length) $('ovLead').textContent += ' A esquadra continua na sala: toque em Revanche.';
   }
   ov.hidden = false;
   try { btnMain.focus({ preventScroll: true }); } catch (e) {}
 }
 function startGame() {
+  if (MP.role === 'guest') { $('ovLead').textContent = 'Aguardando o anfitrião iniciar a revanche…'; return; }
+  if (MP.role === 'host' && MP.guests.length && state === 'over') { mpStartHost(); return; }
   if (MP.role) mpLeave();
   initAudio();
   newGame();
@@ -1589,7 +1594,7 @@ function gameOver() {
   }
   setState('over'); showOverlay('over');
   if (RANK_ON) submitScore();
-  if (MP.role === 'host') { mpSend({ t: 'end', w: G.wave, sc: Math.floor(G.score), k: G.kills, c: G.coins }); setTimeout(mpLeave, 700); }
+  if (MP.role === 'host') mpSend({ t: 'end', w: G.wave, sc: Math.floor(G.score), k: G.kills, c: G.coins });
 }
 btnMain.addEventListener('click', () => { if (state === 'paused') resumeGame(); else startGame(); });
 btnAlt.addEventListener('click', startGame);
@@ -1958,6 +1963,7 @@ function mpOnMsg(m) {
     else if (m.t === 's' && G && state === 'playing') mpApply(m);
     else if (m.t === 'end' && state === 'playing') mpGuestEnd(m);
     else if (m.t === 'bye' && m.i === 0 && state === 'playing') mpGuestEnd(null);
+    else if (m.t === 'bye' && m.i === 0 && state === 'over') { mpLeave(); showOverlay('over'); $('sendMsg').textContent = 'O anfitrião saiu da sala.'; }
   }
 }
 function mpHostTick(dt) {
@@ -2057,11 +2063,11 @@ function stepGuest(dt) {
   if (performance.now() - MP.lastIn > 6000 && state === 'playing') mpGuestEnd(null);
 }
 function mpGuestEnd(m) {
+  if (!m) mpLeave();
   if (m) { G.wave = m.w; G.score = m.sc; G.kills = m.k; G.coins = m.c; }
   save.coins += G.coins; save.kills += G.kills; persist();
   gameOver();
   if (!m) $('sendMsg').textContent = 'Conexão com o anfitrião perdida.';
-  setTimeout(mpLeave, 300);
 }
 
 const rpc = (fn, args) => api('rpc/' + fn, { method: 'POST', body: JSON.stringify(args || {}) }).then(r => r.json());
