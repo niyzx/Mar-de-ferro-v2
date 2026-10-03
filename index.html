@@ -2024,14 +2024,21 @@ $('fBody').addEventListener('click', async e => {
   loadFriends();
 });
 function vsHello() { const st = playerStats(); return { t: 'vhi', n: sess.nome, ship: save.ship, hs: st.spec.speed, hp: st.hp }; }
-async function vsJoin(f, accepting) {
+let vsBusy = false;
+async function vsJoin(f) {
+  if (vsBusy) return;
+  vsBusy = true;
   const say = t => { $('fMsg').textContent = t; };
   say('Conectando…');
   try {
     await loadSb(); mpLeave();
     if (!MP.sb) MP.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { realtime: { params: { eventsPerSecond: 40 } } });
-    MP.sb.realtime.setAuth(await token());
-    const ch = MP.sb.channel('vs:' + [sess.id, f.id].sort().join(':'), { config: { private: true, broadcast: { self: false, ack: false } } });
+    const r = /^(ok|aceito):([0-9a-f-]{36})$/.exec(String(await rpc('duelo_convidar', { p_id: f.id })));
+    if (!r) { say('Não foi possível enviar o convite. Vocês precisam ser amigos.'); return; }
+    const accepting = r[1] === 'aceito', name = 'vs:' + [sess.id, f.id].sort().join(':') + ':' + r[2].slice(0, 8);
+    await MP.sb.realtime.setAuth(await token());
+    MP.sb.getChannels().forEach(c => { if (c.topic === 'realtime:' + name) MP.sb.removeChannel(c); });
+    const ch = MP.sb.channel(name, { config: { private: true, broadcast: { self: false, ack: false } } });
     ch.on('broadcast', { event: 'm' }, ({ payload }) => { try { vsOnMsg(payload); } catch (e) {} });
     MP.ch = ch;
     await new Promise((res, rej) => {
@@ -2042,10 +2049,8 @@ async function vsJoin(f, accepting) {
     const hello = () => mpSend(vsHello());
     hello(); MP.joinI = setInterval(hello, 1000);
     MP.joinT = setTimeout(() => { if (MP.role === 'vs' && state !== 'playing') { mpLeave(); say(f.nome + ' não respondeu ao duelo.'); } }, 90000);
-    if (accepting) { rpc('duelo_cancelar', { p_id: f.id }).catch(() => {}); say('Aguardando ' + f.nome + ' entrar…'); return; }
-    say('Enviando convite…');
-    sendInvite(f).then(() => say('Convite enviado a ' + f.nome + '. Aguardando ele aceitar…'), () => say('Aguardando ' + f.nome + ' tocar em Duelo… (não foi possível enviar o convite)'));
-  } catch (e) { mpLeave(); say('Não foi possível conectar. O duelo só funciona entre amigos.'); }
+    say(accepting ? 'Entrando na sala de ' + f.nome + '…' : 'Convite enviado a ' + f.nome + '. Aguardando ele aceitar…');
+  } catch (e) { mpLeave(); say('Não foi possível conectar. Tente de novo.'); } finally { vsBusy = false; }
 }
 function vsStart(m) {
   clearInterval(MP.joinI); clearTimeout(MP.joinT);
@@ -2140,13 +2145,9 @@ async function friendBadge() {
     setInbN(n);
   } catch (e) {}
 }
-async function sendInvite(f) {
-  const r = await rpc('duelo_convidar', { p_id: f.id });
-  if (r !== 'ok') throw 0;
-}
 function showInvite(m) {
   if (!m || !/^[0-9a-f-]{36}$/.test(String(m.id)) || state === 'playing') return;
-  if (MP.role === 'vs' && MP.vsFriend && MP.vsFriend.id === String(m.id)) return;
+  if (MP.role === 'vs' && MP.vsFriend && MP.vsFriend.id === String(m.id)) { if (sess.id < String(m.id) && state !== 'playing') vsJoin(MP.vsFriend); return; }
   invFrom = { id: String(m.id), nome: String(m.n || 'amigo').slice(0, 16) };
   $('invTxt').textContent = invFrom.nome + ' te desafiou para um duelo!';
   $('inv').hidden = false; try { sfx.pick(); } catch (e) {}
@@ -2156,7 +2157,7 @@ $('invNo').addEventListener('click', () => { $('inv').hidden = true; clearTimeou
 $('invOk').addEventListener('click', () => {
   $('inv').hidden = true; clearTimeout(invT);
   if (!invFrom || !sess) return;
-  amgEl.hidden = false; loadFriends(); vsJoin(invFrom, true);
+  amgEl.hidden = false; loadFriends(); vsJoin(invFrom);
 });
 async function loadInbox() {
   const b = $('inbBody'); b.textContent = 'Carregando…';
@@ -2178,7 +2179,7 @@ $('inbBack').addEventListener('click', () => { $('inb').hidden = true; });
 $('inbBody').addEventListener('click', async e => {
   const a = e.target.closest('[data-act]'); if (!a) return;
   const { act, id, n } = a.dataset;
-  if (act === 'dok') { $('inb').hidden = true; amgEl.hidden = false; loadFriends(); return vsJoin({ id, nome: n }, true); }
+  if (act === 'dok') { $('inb').hidden = true; amgEl.hidden = false; loadFriends(); return vsJoin({ id, nome: n }); }
   try {
     if (act === 'dno') await rpc('duelo_cancelar', { p_id: id });
     else await rpc('amigo_responder', { p_id: id, p_aceitar: act === 'ok' });
