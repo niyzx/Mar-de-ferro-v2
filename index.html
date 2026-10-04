@@ -405,12 +405,13 @@ body:not(.touch) .help .only-touch { display: none; }
   <h1 class="title sm">Conta</h1>
   <div class="tabs" id="aTabs"><button type="button" data-m="login" class="on">Entrar</button><button type="button" data-m="signup">Criar conta</button></div>
   <p class="note" id="aNote"></p>
-  <input class="fld" id="aUser" maxlength="16" placeholder="Nome de usuário" autocomplete="username" autocapitalize="none">
+  <input class="fld" id="aUser" maxlength="120" placeholder="Nome de usuário ou e-mail" autocomplete="username" autocapitalize="none">
   <div style="display:flex;gap:8px"><input class="fld" id="aPass" type="password" placeholder="Senha" autocomplete="current-password" style="flex:1;min-width:0"><button class="btn ghost" id="aShow" type="button" style="min-height:0;padding:0 12px" aria-label="Mostrar senha">ver</button></div>
   <input class="fld" id="aPass2" type="password" placeholder="Repita a senha" autocomplete="new-password" hidden>
   <p class="note" id="aMsg"></p>
   <div class="actions">
     <button class="btn" id="aGo" type="button">Entrar</button>
+    <button class="btn ghost" id="aForgot" type="button">Esqueci a senha</button>
     <button class="btn ghost" id="aBack" type="button">Voltar</button>
   </div>
 </div></div>
@@ -419,13 +420,27 @@ body:not(.touch) .help .only-touch { display: none; }
   <dl class="stats" id="pStats"></dl>
   <p class="note" id="pSync"></p>
   <input class="fld" id="pNew" type="password" placeholder="Nova senha (mínimo 6)" autocomplete="new-password">
+  <p class="note">Personalizar perfil</p>
+  <div id="pAv" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+  <select class="fld" id="pFlag"></select>
+  <select class="fld" id="pTit"></select>
+  <button class="btn ghost" id="pCustBtn" type="button" style="font-size:16px;padding:6px 16px;margin-bottom:12px">Salvar perfil</button>
+  <p class="note" id="pEmailSt"></p>
+  <input class="fld" id="pEmail" type="email" placeholder="Seu e-mail" autocomplete="email" autocapitalize="none" hidden>
   <p class="note" id="pMsg"></p>
   <div class="actions">
+    <button class="btn ghost" id="pEmailBtn" type="button" hidden>Vincular e-mail</button>
     <button class="btn ghost" id="pPass" type="button">Alterar senha</button>
     <button class="btn ghost" id="pSyncBtn" type="button">Sincronizar agora</button>
     <button class="btn ghost" id="pOut" type="button">Sair da conta</button>
     <button class="btn ghost" id="pBack" type="button">Voltar</button>
   </div>
+</div></div>
+<div class="overlay" id="rec" hidden><div class="panel">
+  <div class="kicker">Recuperar conta</div><h1 class="title sm">Nova senha</h1>
+  <input class="fld" id="rPass" type="password" placeholder="Nova senha (mínimo 6)" autocomplete="new-password">
+  <p class="note" id="rMsg"></p>
+  <div class="actions"><button class="btn" id="rGo" type="button">Salvar senha</button><button class="btn ghost" id="rBack" type="button">Cancelar</button></div>
 </div></div>
 <div class="overlay" id="achEl" hidden><div class="panel">
   <h1 class="title sm">Conquistas</h1>
@@ -2110,20 +2125,24 @@ async function doAuth(signup) {
 }
 async function doAuth0(signup) {
   const nome = $('aUser').value.trim().toLowerCase(), pw = $('aPass').value, m = $('aMsg');
-  if (!/^[a-z0-9_]{3,16}$/.test(nome)) { m.textContent = 'Nome inválido: use 3 a 16 letras minúsculas, números ou _.'; return; }
+  const isMail = !signup && nome.includes('@');
+  if (!isMail && !/^[a-z0-9_]{3,16}$/.test(nome)) { m.textContent = 'Nome inválido: use 3 a 16 letras minúsculas, números ou _.'; return; }
   if (pw.length < 6) { m.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
   if (signup && pw !== $('aPass2').value) { m.textContent = 'As senhas não são iguais.'; return; }
   m.textContent = 'Aguarde…';
   try {
-    const body = { email: nome + '@marferro.app', password: pw };
+    const body = { email: isMail ? nome : nome + '@marferro.app', password: pw };
+    if (signup) body.data = { nome };
     let r = await authCall(signup ? 'signup' : 'token?grant_type=password', body);
     if (signup && r.ok && !r.d.access_token) { m.textContent = 'Conta criada, mas o Supabase exige confirmação por e-mail. Desligue "Confirm email" nas configurações.'; return; }
     if (!r.ok) {
       const t = String(r.d.msg || r.d.error_description || r.d.message || '');
-      m.textContent = /already|registered/i.test(t) ? 'Esse nome já existe.' : /invalid login/i.test(t) ? 'Nome ou senha incorretos.' : 'Erro: ' + (t || 'tente de novo.');
+      m.textContent = /already|registered/i.test(t) ? 'Esse nome já existe.' : /invalid login/i.test(t) ? 'Nome ou senha incorretos. Se você vinculou um e-mail, entre com ele.' : 'Erro: ' + (t || 'tente de novo.');
       return;
     }
-    setSess(r.d, nome);
+    const nm = isMail ? String((r.d.user.user_metadata || {}).nome || '') : nome;
+    if (!nm) { m.textContent = 'Esta conta não tem nome de jogador. Entre pelo nome de usuário.'; return; }
+    setSess(r.d, nm);
     await pullCloud();
     $('aPass').value = ''; $('aPass2').value = ''; m.textContent = '';
     $('auth').hidden = true; refreshAcct();
@@ -2135,8 +2154,9 @@ function setAMode(m) {
   for (const t of $('aTabs').children) t.classList.toggle('on', t.dataset.m === m);
   $('aPass2').hidden = m !== 'signup'; $('aGo').textContent = m === 'signup' ? 'Criar conta' : 'Entrar';
   $('aPass').autocomplete = m === 'signup' ? 'new-password' : 'current-password';
-  $('aNote').textContent = m === 'signup' ? 'Nome: 3 a 16 letras minúsculas, números ou _. Senha: mínimo 6. Não há e-mail: se esquecer a senha, não dá para recuperar a conta.' : 'Entre para carregar seu progresso salvo (moedas, navios, melhorias e recorde).';
+  $('aNote').textContent = m === 'signup' ? 'Nome: 3 a 16 letras minúsculas, números ou _. Senha: mínimo 6. Depois de criar a conta, vincule um e-mail em Conta para poder recuperá-la.' : 'Entre para carregar seu progresso salvo (moedas, navios, melhorias e recorde).';
   $('aMsg').textContent = '';
+  $('aForgot').hidden = m === 'signup'; $('aUser').placeholder = m === 'signup' ? 'Nome de usuário' : 'Nome de usuário ou e-mail';
 }
 function fillAcct() {
   $('pName').textContent = sess.nome;
@@ -2146,17 +2166,17 @@ function fillAcct() {
   $('pMsg').textContent = ''; $('pNew').value = '';
 }
 $('btnAcct').addEventListener('click', () => {
-  if (sess) { fillAcct(); $('acctEl').hidden = false; }
+  if (sess) { fillAcct(); loadMail(); loadVis(); $('acctEl').hidden = false; }
   else { setAMode('login'); $('auth').hidden = false; }
 });
 $('aTabs').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (b) setAMode(b.dataset.m); });
 $('aGo').addEventListener('click', () => doAuth(aMode === 'signup'));
 $('aShow').addEventListener('click', () => { const h = $('aPass').type === 'password'; $('aPass').type = h ? 'text' : 'password'; $('aPass2').type = $('aPass').type; $('aShow').textContent = h ? 'ocultar' : 'ver'; });
-for (const id of ['aUser', 'aPass', 'aPass2', 'pNew']) {
-  $(id).addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { if (id === 'pNew') $('pPass').click(); else $('aGo').click(); } });
+for (const id of ['aUser', 'aPass', 'aPass2', 'pNew', 'pEmail', 'rPass']) {
+  $(id).addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { if (id === 'pNew') $('pPass').click(); else if (id === 'pEmail') $('pEmailBtn').click(); else if (id === 'rPass') $('rGo').click(); else $('aGo').click(); } });
   $(id).addEventListener('keyup', e => e.stopPropagation());
 }
-$('aUser').addEventListener('input', e => { e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); });
+$('aUser').addEventListener('input', e => { const v = e.target.value.toLowerCase(); e.target.value = aMode === 'signup' ? v.replace(/[^a-z0-9_]/g, '') : v.replace(/\s/g, ''); });
 $('pBack').addEventListener('click', () => { $('acctEl').hidden = true; });
 $('pOut').addEventListener('click', () => { if (confirm('Sair da conta ' + sess.nome + '?')) { logout(); $('acctEl').hidden = true; } });
 $('pSyncBtn').addEventListener('click', async () => { $('pMsg').textContent = 'Sincronizando…'; const ok = await pushCloud(); fillAcct(); $('pMsg').textContent = ok ? 'Progresso sincronizado.' : 'Falha ao sincronizar. Verifique a internet.'; });
@@ -2281,12 +2301,15 @@ async function openProfile(nome) {
     const r = await api('rpc/perfil_publico', { method: 'POST', body: JSON.stringify({ p_nome: nome }) });
     const d = await r.json();
     if (!d || !d.nome) { b.textContent = 'Jogador não encontrado.'; return; }
-    $('profName').textContent = d.nome; curProf = d.nome;
+    curProf = d.nome;
+    let vis = {};
+    try { const v = await (await api('rpc/visual_publico', { method: 'POST', body: JSON.stringify({ p_nome: d.nome }) })).json(); vis = (Array.isArray(v) ? v[0] : v) || {}; } catch (e) {}
+    $('profName').textContent = [AV[vis.avatar], d.nome, flagEmoji(vis.bandeira)].filter(Boolean).join(' ');
     const sv = d.save || {}, up = sv.up || {}, rk = d.ranking;
     const owned = (Array.isArray(sv.owned) ? sv.owned : ['corveta']).map(id => SHIPS.find(s => s.id === id)).filter(Boolean);
     const ship = SHIPS.find(s => s.id === sv.ship) || SHIPS[0];
     const ach = ACH.filter(a => sv.ach && sv.ach[a.id]);
-    b.innerHTML =
+    b.innerHTML = (TT[vis.titulo] ? kv('Título', esc(TT[vis.titulo])) : '') +
       kv('Membro desde', dia(d.desde)) + kv('Último salvamento', dia(d.atualizado)) +
       kv('Recorde de pontos', num(d.best)) +
       (rk ? kv('Posição no ranking', '#' + num(rk.pos)) + kv('Melhor onda', num(rk.onda)) : kv('Ranking', 'sem pontuação enviada')) +
@@ -2316,6 +2339,88 @@ $('pSearch').addEventListener('keyup', e => e.stopPropagation());
 $('pMine').addEventListener('click', () => { if (sess) openProfile(sess.nome); });
 $('profBack').addEventListener('click', () => { profEl.hidden = true; rankEl.hidden = false; });
 if (sess) { refreshAcct(); pullCloud().then(refreshAcct); }
+/* ---------- personalização de perfil ---------- */
+const AV = { ancora: '⚓', bussola: '🧭', caveira: '☠️', tubarao: '🦈', polvo: '🐙', baleia: '🐋', raio: '⚡', fogo: '🔥', coroa: '👑', estrela: '⭐' };
+const TT = { marujo: 'Marujo', capitao: 'Capitão', almirante: 'Almirante', lobo: 'Lobo do Mar', fantasma: 'Navio Fantasma', tempestade: 'Senhor da Tempestade' };
+const FLAGS = 'br pt us ar mx es fr de it jp gb ca cl co uy pe'.split(' ');
+const flagEmoji = c => /^[a-z]{2}$/.test(c || '') ? String.fromCodePoint(...[...c.toUpperCase()].map(x => 127397 + x.charCodeAt(0))) : '';
+let myVis = { avatar: null, bandeira: null, titulo: null };
+function paintCust() {
+  $('pAv').innerHTML = Object.entries(AV).map(([k, v]) => '<button type="button" class="ibtn" data-av="' + k + '" aria-label="' + k + '" style="font-size:22px' + (myVis.avatar === k ? ';border-color:var(--brass);background:rgba(224,169,60,.25)' : '') + '">' + v + '</button>').join('');
+  $('pFlag').innerHTML = '<option value="">Sem bandeira</option>' + FLAGS.map(c => '<option value="' + c + '"' + (myVis.bandeira === c ? ' selected' : '') + '>' + flagEmoji(c) + ' ' + c.toUpperCase() + '</option>').join('');
+  $('pTit').innerHTML = '<option value="">Sem título</option>' + Object.entries(TT).map(([k, v]) => '<option value="' + k + '"' + (myVis.titulo === k ? ' selected' : '') + '>' + v + '</option>').join('');
+  $('pName').textContent = [AV[myVis.avatar], sess.nome, flagEmoji(myVis.bandeira)].filter(Boolean).join(' ');
+}
+async function loadVis() {
+  try { const d = await (await api('visual?user_id=eq.' + sess.id + '&select=avatar,bandeira,titulo')).json(); myVis = (Array.isArray(d) && d[0]) || { avatar: null, bandeira: null, titulo: null }; } catch (e) {}
+  paintCust();
+}
+$('pAv').addEventListener('click', e => { const b = e.target.closest('[data-av]'); if (b) { myVis.avatar = myVis.avatar === b.dataset.av ? null : b.dataset.av; paintCust(); } });
+$('pCustBtn').addEventListener('click', async () => {
+  const m = $('pMsg'); m.textContent = 'Salvando…';
+  myVis.bandeira = $('pFlag').value || null; myVis.titulo = $('pTit').value || null;
+  try {
+    const r = await api('visual?on_conflict=user_id', { method: 'POST', body: JSON.stringify({ user_id: sess.id, avatar: myVis.avatar, bandeira: myVis.bandeira, titulo: myVis.titulo, atualizado: new Date().toISOString() }) });
+    m.textContent = r.ok ? 'Perfil atualizado.' : 'Não foi possível salvar o perfil.'; paintCust();
+  } catch (e) { m.textContent = 'Sem conexão. Tente de novo.'; }
+});
+/* ---------- e-mail verificado: vincular, recuperar senha ---------- */
+const MAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const backUrl = () => /^https?:/.test(location.href) ? '?redirect_to=' + encodeURIComponent(location.origin + location.pathname) : '';
+const maskMail = m => m.replace(/^(.).*(@.*)$/, '$1***$2');
+const userCall = (tk, method, body, q) => fetch(SUPABASE_URL + '/auth/v1/user' + (q || ''), { method, headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + tk, 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) });
+async function loadMail() {
+  const st = $('pEmailSt'), inp = $('pEmail'), btn = $('pEmailBtn');
+  st.textContent = 'Verificando e-mail…'; inp.hidden = true; btn.hidden = true;
+  try {
+    const r = await userCall(await token(), 'GET'), u = await r.json();
+    if (!r.ok) throw 0;
+    if (u.email && !/@marferro\.app$/i.test(u.email) && u.email_confirmed_at) { st.textContent = '✓ E-mail verificado: ' + maskMail(u.email) + '. Use-o para entrar e recuperar a senha.'; return; }
+    inp.hidden = false; btn.hidden = false;
+    if (u.new_email) { st.textContent = 'Aguardando confirmação de ' + maskMail(u.new_email) + '. Abra o link enviado (veja o spam).'; inp.value = u.new_email; btn.textContent = 'Reenviar link'; }
+    else { st.textContent = 'Sem e-mail vinculado: se esquecer a senha, a conta não pode ser recuperada.'; btn.textContent = 'Vincular e-mail'; }
+  } catch (e) { st.textContent = ''; }
+}
+$('pEmailBtn').addEventListener('click', async () => {
+  const mail = $('pEmail').value.trim().toLowerCase(), m = $('pMsg');
+  if (!MAIL_RE.test(mail)) { m.textContent = 'Digite um e-mail válido.'; return; }
+  m.textContent = 'Enviando…';
+  try {
+    const r = await userCall(await token(), 'PUT', { email: mail, data: { nome: sess.nome } }, backUrl());
+    const d = await r.json().catch(() => ({})), t = String(d.msg || d.message || d.error_description || '');
+    m.textContent = r.ok ? 'Enviamos um link de confirmação para ' + mail + '. Abra-o para concluir.' : /already|registered|exists/i.test(t) ? 'Esse e-mail já está em uso em outra conta.' : /rate|seconds|too many/i.test(t) ? 'Aguarde um pouco antes de pedir outro link.' : 'Não foi possível enviar agora. Tente de novo.';
+    if (r.ok) loadMail();
+  } catch (e) { m.textContent = 'Sem conexão. Tente de novo.'; }
+});
+$('aForgot').addEventListener('click', async () => {
+  const mail = $('aUser').value.trim().toLowerCase(), m = $('aMsg');
+  if (!MAIL_RE.test(mail)) { m.textContent = 'Digite o e-mail vinculado à conta no campo acima.'; return; }
+  m.textContent = 'Enviando…';
+  try { const r = await authCall('recover' + backUrl(), { email: mail }); m.textContent = r.ok ? 'Se esse e-mail estiver vinculado a uma conta, enviamos um link para criar nova senha.' : 'Não foi possível enviar agora. Tente mais tarde.'; }
+  catch (e) { m.textContent = 'Sem conexão. Tente de novo.'; }
+});
+let recTok = null;
+$('rGo').addEventListener('click', async () => {
+  const pw = $('rPass').value, m = $('rMsg');
+  if (pw.length < 6) { m.textContent = 'A nova senha precisa ter pelo menos 6 caracteres.'; return; }
+  m.textContent = 'Salvando…';
+  try {
+    const r = await userCall(recTok, 'PUT', { password: pw }), d = await r.json().catch(() => ({}));
+    if (r.ok) { recTok = null; $('rPass').value = ''; $('rec').hidden = true; setAMode('login'); $('aMsg').textContent = 'Senha alterada. Entre com seu e-mail e a nova senha.'; $('auth').hidden = false; }
+    else m.textContent = /different/i.test(String(d.msg || d.message)) ? 'Escolha uma senha diferente da anterior.' : 'O link expirou ou já foi usado. Peça um novo.';
+  } catch (e) { m.textContent = 'Sem conexão. Tente de novo.'; }
+});
+$('rBack').addEventListener('click', () => { recTok = null; $('rec').hidden = true; });
+(function authReturn() {
+  const p = new URLSearchParams(location.hash.slice(1)), type = p.get('type'), err = p.get('error_description'), msg = p.get('message');
+  if (!type && !err && !msg) return;
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  if (type === 'recovery' && p.get('access_token')) { recTok = p.get('access_token'); $('rec').hidden = false; return; }
+  const t = err || (type === 'email_change' ? 'E-mail confirmado! Agora você pode entrar com ele e recuperar a senha por ele.' : msg);
+  if (sess) { fillAcct(); loadMail(); $('pMsg').textContent = t; $('acctEl').hidden = false; }
+  else { setAMode('login'); $('aMsg').textContent = t; $('auth').hidden = false; }
+})();
+
 
 
 /* ---------- multiplayer (Supabase Realtime) ---------- */
