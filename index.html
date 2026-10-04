@@ -405,13 +405,12 @@ body:not(.touch) .help .only-touch { display: none; }
   <h1 class="title sm">Conta</h1>
   <div class="tabs" id="aTabs"><button type="button" data-m="login" class="on">Entrar</button><button type="button" data-m="signup">Criar conta</button></div>
   <p class="note" id="aNote"></p>
-  <input class="fld" id="aUser" maxlength="120" placeholder="Nome de usuário ou e-mail" autocomplete="username" autocapitalize="none">
+  <input class="fld" id="aUser" maxlength="16" placeholder="Nome de usuário" autocomplete="username" autocapitalize="none">
   <div style="display:flex;gap:8px"><input class="fld" id="aPass" type="password" placeholder="Senha" autocomplete="current-password" style="flex:1;min-width:0"><button class="btn ghost" id="aShow" type="button" style="min-height:0;padding:0 12px" aria-label="Mostrar senha">ver</button></div>
   <input class="fld" id="aPass2" type="password" placeholder="Repita a senha" autocomplete="new-password" hidden>
   <p class="note" id="aMsg"></p>
   <div class="actions">
     <button class="btn" id="aGo" type="button">Entrar</button>
-    <button class="btn ghost" id="aForgot" type="button">Esqueci a senha</button>
     <button class="btn ghost" id="aBack" type="button">Voltar</button>
   </div>
 </div></div>
@@ -420,27 +419,13 @@ body:not(.touch) .help .only-touch { display: none; }
   <dl class="stats" id="pStats"></dl>
   <p class="note" id="pSync"></p>
   <input class="fld" id="pNew" type="password" placeholder="Nova senha (mínimo 6)" autocomplete="new-password">
-  <p class="note">Personalizar perfil</p>
-  <div id="pAv" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
-  <select class="fld" id="pFlag"></select>
-  <select class="fld" id="pTit"></select>
-  <button class="btn ghost" id="pCustBtn" type="button" style="font-size:16px;padding:6px 16px;margin-bottom:12px">Salvar perfil</button>
-  <p class="note" id="pEmailSt"></p>
-  <input class="fld" id="pEmail" type="email" placeholder="Seu e-mail" autocomplete="email" autocapitalize="none" hidden>
   <p class="note" id="pMsg"></p>
   <div class="actions">
-    <button class="btn ghost" id="pEmailBtn" type="button" hidden>Vincular e-mail</button>
     <button class="btn ghost" id="pPass" type="button">Alterar senha</button>
     <button class="btn ghost" id="pSyncBtn" type="button">Sincronizar agora</button>
     <button class="btn ghost" id="pOut" type="button">Sair da conta</button>
     <button class="btn ghost" id="pBack" type="button">Voltar</button>
   </div>
-</div></div>
-<div class="overlay" id="rec" hidden><div class="panel">
-  <div class="kicker">Recuperar conta</div><h1 class="title sm">Nova senha</h1>
-  <input class="fld" id="rPass" type="password" placeholder="Nova senha (mínimo 6)" autocomplete="new-password">
-  <p class="note" id="rMsg"></p>
-  <div class="actions"><button class="btn" id="rGo" type="button">Salvar senha</button><button class="btn ghost" id="rBack" type="button">Cancelar</button></div>
 </div></div>
 <div class="overlay" id="achEl" hidden><div class="panel">
   <h1 class="title sm">Conquistas</h1>
@@ -450,7 +435,7 @@ body:not(.touch) .help .only-touch { display: none; }
 </div></div>
 <div class="overlay" id="rank" hidden><div class="panel">
   <h1 class="title sm">Ranking</h1>
-  <div id="rTabs" class="rk-tabs"><button data-tab="semana" type="button">Semana</button><button data-tab="pontos" type="button">Recordes</button><button data-tab="kills" type="button">Abates</button><button data-tab="horas" type="button">Horas</button></div>
+  <div id="rTabs" class="rk-tabs"><button data-tab="semana" type="button">Semana</button><button data-tab="pontos" type="button">Pontos</button><button data-tab="kills" type="button">Abates</button><button data-tab="horas" type="button">Horas</button></div>
   <div style="display:flex;gap:6px"><input id="pSearch" maxlength="16" placeholder="Buscar jogador" autocomplete="off" autocapitalize="none" style="user-select:text;-webkit-user-select:text;flex:1;min-width:0;box-sizing:border-box;padding:10px;background:rgba(212,232,234,.08);border:1px solid var(--line);color:var(--ink);font:inherit"><button class="btn ghost" id="pGo" type="button" style="padding:6px 16px;font-size:16px">Buscar</button></div>
   <div id="rankInfo" class="rk-info" hidden></div>
   <div id="rankMe" class="rk-meb" hidden></div>
@@ -585,6 +570,7 @@ const MP = { role: null, ch: null, sb: null, code: '', guests: [], pid: -1, acke
 function evp(a) { if (MP.ev.length < 400) MP.ev.push(a); }
 const mw = () => Math.max(save.maxWave || 0, G ? G.wave : 0), ms = () => Math.max(best || 0, G ? G.score : 0);
 const upsMax = () => UPS.filter(u => save.up[u.k] >= MAXLV).length;
+const TOPNOW = {};
 const ACH = [
   { id: 'first', c: 'Combate', n: 'Primeiro tiro', d: 'Afunde 1 navio', r: 50, f: () => save.kills >= 1, p: () => [save.kills, 1] },
   { id: 'k100', c: 'Combate', n: 'Lobo do mar', d: 'Afunde 100 navios', r: 150, f: () => save.kills >= 100, p: () => [save.kills, 100] },
@@ -604,7 +590,11 @@ const ACH = [
   { id: 'fleet3', c: 'Frota', n: 'Esquadrão', d: 'Tenha 3 navios', r: 300, f: () => save.owned.length >= 3, p: () => [save.owned.length, 3] },
   { id: 'fleetAll', c: 'Frota', n: 'Armada completa', d: 'Tenha todos os navios', r: 2000, f: () => save.owned.length >= SHIPS.length, p: () => [save.owned.length, SHIPS.length] },
   { id: 'yard', c: 'Frota', n: 'Estaleiro', d: 'Melhoria no nível máximo', r: 400, f: () => upsMax() >= 1, p: () => [upsMax(), 1] },
-  { id: 'yardAll', c: 'Frota', n: 'Estaleiro completo', d: 'Todas as melhorias no máximo', r: 3000, f: () => upsMax() >= UPS.length, p: () => [upsMax(), UPS.length] }
+  { id: 'yardAll', c: 'Frota', n: 'Estaleiro completo', d: 'Todas as melhorias no máximo', r: 3000, f: () => upsMax() >= UPS.length, p: () => [upsMax(), UPS.length] },
+  { id: 'topSem', c: 'Ranking', n: 'Campeão da semana', d: 'Fique em 1º no ranking semanal', r: 2000, f: () => !!TOPNOW.semana },
+  { id: 'topPts', c: 'Ranking', n: 'Rei dos pontos', d: 'Fique em 1º no ranking de pontos', r: 2000, f: () => !!TOPNOW.pontos },
+  { id: 'topKills', c: 'Ranking', n: 'Rei dos abates', d: 'Fique em 1º no ranking de abates', r: 2000, f: () => !!TOPNOW.kills },
+  { id: 'topHoras', c: 'Ranking', n: 'Rei das horas', d: 'Fique em 1º no ranking de horas', r: 2000, f: () => !!TOPNOW.horas }
 ];
 function checkAch() {
   let ch = false;
@@ -625,7 +615,7 @@ const UPS = [
   { k: 'rel', n: 'Carregador rápido', d: '−7% de recarga' },
   { k: 'eng', n: 'Motores', d: '+6% de velocidade' }
 ];
-const TEST_MODE = true; // true = dinheiro infinito para testes; mude para false antes de publicar de verdade
+const TEST_MODE = false; // true = dinheiro infinito para testes; mude para false antes de publicar de verdade
 const MAXLV = 5, KEY_SAVE = 'mar-de-ferro-save';
 const upCost = l => Math.round(150 * Math.pow(1.9, l) / 10) * 10;
 let save = { coins: 0, ship: 'corveta', owned: ['corveta'], up: { hull: 0, gun: 0, rel: 0, eng: 0 }, ach: {}, kills: 0, bosses: 0 };
@@ -719,7 +709,6 @@ const sfx = {
   coin() { tone(1320, 1760, .09, .13, 'triangle'); setTimeout(() => tone(1760, 2100, .14, .13, 'triangle'), 70); },
   alarm() { tone(880, 880, .09, .1, 'square'); setTimeout(() => tone(880, 880, .09, .1, 'square'), 150); }
 };
-document.addEventListener('click', e => { if (e.target.closest && e.target.closest('button')) sfx.click(); }, true);
 function lowAlarm(dt) {
   const p = G && G.player;
   if (!p || p.dead || state !== 'playing' || !(p.hp < p.max * .3)) { if (G) G.lowT = 0; return; }
@@ -777,7 +766,7 @@ function setState(s) { state = s; document.body.dataset.state = s; }
 function newGame() {
   const st = playerStats();
   G = {
-    t: 0, wave: 0, score: 0, kills: 0, coins: 0, queue: [], spawnT: 0, waveClearing: true, interlude: 1.3,
+    wx: null, wxNext: 50 + Math.random() * 40, t: 0, wave: 0, score: 0, kills: 0, coins: 0, queue: [], spawnT: 0, waveClearing: true, interlude: 1.3,
     enemies: [], escorts: [], planes: [], balls: [], parts: [], wrecks: [], crates: [], buoys: [], allies: [], texts: [],
     shake: 0, flash: 0, deadT: 0, hpMul: 1, fireScale: 1, aimActive: false,
     camera: { x: 0, y: 0 },
@@ -1454,6 +1443,47 @@ function updateParts(dt) {
 
 /* ---------- passo do jogo ---------- */
 let playAcc = 0;
+/* clima: aparece de vez em quando, só durante a partida, a partir da onda 2 */
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function stepWeather(dt) {
+  const w = G.wx;
+  if (state !== 'playing') { if (w) { w.k = Math.max(0, w.k - dt); if (!w.k) G.wx = null; } return; }
+  if (!w) {
+    if (G.wave < 2 || G.player.dead) return;
+    G.wxNext -= dt;
+    if (G.wxNext <= 0) {
+      const storm = Math.random() < .5;
+      G.wx = { type: storm ? 'storm' : 'fog', t: 0, dur: 25 + Math.random() * 20, k: 0, ang: Math.random() * TAU, fl: 0, nextL: 3 };
+      banner(storm ? 'Tempestade' : 'Nevoeiro', storm ? 'Ventos fortes empurram seu navio' : 'Visibilidade reduzida');
+    }
+    return;
+  }
+  w.t += dt;
+  if (w.t >= w.dur) { G.wx = null; G.wxNext = 80 + Math.random() * 100; return; }
+  w.k = Math.max(0, Math.min(1, w.t / 3, (w.dur - w.t) / 3));
+  if (w.type === 'storm') {
+    const p = G.player;
+    if (!p.dead) { p.x += Math.cos(w.ang) * 34 * w.k * dt; p.y += Math.sin(w.ang) * 34 * w.k * dt; }
+    w.nextL -= dt; if (w.nextL <= 0) { if (!REDUCED) w.fl = 1; w.nextL = 3 + Math.random() * 5; }
+    w.fl = Math.max(0, w.fl - dt * 3);
+  }
+}
+function drawWeather() {
+  const w = G && G.wx; if (!w || !w.k) return;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (w.type === 'fog') {
+    const p = G.player, c = G.camera, px = W / 2 + (p.x - c.x) * zoom, py = H / 2 + (p.y - c.y) * zoom, r = 250 * zoom;
+    const g = ctx.createRadialGradient(px, py, r * .35, px, py, r * 1.5);
+    g.addColorStop(0, 'rgba(160,182,190,0)'); g.addColorStop(1, 'rgba(160,182,190,' + (.88 * w.k) + ')');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  } else {
+    ctx.fillStyle = 'rgba(4,12,20,' + (.3 * w.k) + ')'; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(190,215,225,' + (.35 * w.k) + ')'; ctx.lineWidth = 1; ctx.beginPath();
+    for (let i = 0; i < 70; i++) { const x = ((i * 137.5 + G.t * 260) % (W + 80)) - 40, y = ((i * 89.3 + G.t * 620) % (H + 40)) - 20; ctx.moveTo(x, y); ctx.lineTo(x - 7, y - 18); }
+    ctx.stroke();
+    if (w.fl > 0) { ctx.fillStyle = 'rgba(235,245,255,' + (.4 * w.fl) + ')'; ctx.fillRect(0, 0, W, H); }
+  }
+}
 function step(dt) {
   if (state === 'playing') { save.play = (save.play || 0) + dt; playAcc += dt; if (playAcc > 30) { playAcc = 0; persist(); } }
   if (MP.role === 'guest') { stepGuest(dt); return; }
@@ -1465,6 +1495,7 @@ function step(dt) {
   else inp = { mag: 0, ang: p.heading, aim: null, fire: false };
   G.aimActive = inp.aim != null;
   if (!p.dead) stepPlayer(dt, inp);
+  stepWeather(dt);
   if (state === 'playing' || state === 'over') {
     if (state === 'playing') runWaves(dt);
     for (let i = G.enemies.length - 1; i >= 0; i--) updateEnemy(G.enemies[i], dt);
@@ -1793,7 +1824,7 @@ function drawMateArrows() {
     ctx.fillText((q.nome || '') + ' ' + Math.round(Math.hypot(q.x - G.player.x, q.y - G.player.y) / 10) + 'm', ax - Math.cos(a) * 26, ay - Math.sin(a) * 26);
   }
 }
-function render() { render0(); drawMateArrows(); }
+function render() { render0(); drawWeather(); drawMateArrows(); }
 function render0() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.fillStyle = '#0a1f2c'; ctx.fillRect(0, 0, W, H);
@@ -2125,24 +2156,20 @@ async function doAuth(signup) {
 }
 async function doAuth0(signup) {
   const nome = $('aUser').value.trim().toLowerCase(), pw = $('aPass').value, m = $('aMsg');
-  const isMail = !signup && nome.includes('@');
-  if (!isMail && !/^[a-z0-9_]{3,16}$/.test(nome)) { m.textContent = 'Nome inválido: use 3 a 16 letras minúsculas, números ou _.'; return; }
+  if (!/^[a-z0-9_]{3,16}$/.test(nome)) { m.textContent = 'Nome inválido: use 3 a 16 letras minúsculas, números ou _.'; return; }
   if (pw.length < 6) { m.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
   if (signup && pw !== $('aPass2').value) { m.textContent = 'As senhas não são iguais.'; return; }
   m.textContent = 'Aguarde…';
   try {
-    const body = { email: isMail ? nome : nome + '@marferro.app', password: pw };
-    if (signup) body.data = { nome };
+    const body = { email: nome + '@marferro.app', password: pw };
     let r = await authCall(signup ? 'signup' : 'token?grant_type=password', body);
     if (signup && r.ok && !r.d.access_token) { m.textContent = 'Conta criada, mas o Supabase exige confirmação por e-mail. Desligue "Confirm email" nas configurações.'; return; }
     if (!r.ok) {
       const t = String(r.d.msg || r.d.error_description || r.d.message || '');
-      m.textContent = /already|registered/i.test(t) ? 'Esse nome já existe.' : /invalid login/i.test(t) ? 'Nome ou senha incorretos. Se você vinculou um e-mail, entre com ele.' : 'Erro: ' + (t || 'tente de novo.');
+      m.textContent = /already|registered/i.test(t) ? 'Esse nome já existe.' : /invalid login/i.test(t) ? 'Nome ou senha incorretos.' : 'Erro: ' + (t || 'tente de novo.');
       return;
     }
-    const nm = isMail ? String((r.d.user.user_metadata || {}).nome || '') : nome;
-    if (!nm) { m.textContent = 'Esta conta não tem nome de jogador. Entre pelo nome de usuário.'; return; }
-    setSess(r.d, nm);
+    setSess(r.d, nome);
     await pullCloud();
     $('aPass').value = ''; $('aPass2').value = ''; m.textContent = '';
     $('auth').hidden = true; refreshAcct();
@@ -2154,9 +2181,8 @@ function setAMode(m) {
   for (const t of $('aTabs').children) t.classList.toggle('on', t.dataset.m === m);
   $('aPass2').hidden = m !== 'signup'; $('aGo').textContent = m === 'signup' ? 'Criar conta' : 'Entrar';
   $('aPass').autocomplete = m === 'signup' ? 'new-password' : 'current-password';
-  $('aNote').textContent = m === 'signup' ? 'Nome: 3 a 16 letras minúsculas, números ou _. Senha: mínimo 6. Depois de criar a conta, vincule um e-mail em Conta para poder recuperá-la.' : 'Entre para carregar seu progresso salvo (moedas, navios, melhorias e recorde).';
+  $('aNote').textContent = m === 'signup' ? 'Nome: 3 a 16 letras minúsculas, números ou _. Senha: mínimo 6. Não há e-mail: se esquecer a senha, não dá para recuperar a conta.' : 'Entre para carregar seu progresso salvo (moedas, navios, melhorias e recorde).';
   $('aMsg').textContent = '';
-  $('aForgot').hidden = m === 'signup'; $('aUser').placeholder = m === 'signup' ? 'Nome de usuário' : 'Nome de usuário ou e-mail';
 }
 function fillAcct() {
   $('pName').textContent = sess.nome;
@@ -2166,17 +2192,17 @@ function fillAcct() {
   $('pMsg').textContent = ''; $('pNew').value = '';
 }
 $('btnAcct').addEventListener('click', () => {
-  if (sess) { fillAcct(); loadMail(); loadVis(); $('acctEl').hidden = false; }
+  if (sess) { fillAcct(); $('acctEl').hidden = false; }
   else { setAMode('login'); $('auth').hidden = false; }
 });
 $('aTabs').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (b) setAMode(b.dataset.m); });
 $('aGo').addEventListener('click', () => doAuth(aMode === 'signup'));
 $('aShow').addEventListener('click', () => { const h = $('aPass').type === 'password'; $('aPass').type = h ? 'text' : 'password'; $('aPass2').type = $('aPass').type; $('aShow').textContent = h ? 'ocultar' : 'ver'; });
-for (const id of ['aUser', 'aPass', 'aPass2', 'pNew', 'pEmail', 'rPass']) {
-  $(id).addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { if (id === 'pNew') $('pPass').click(); else if (id === 'pEmail') $('pEmailBtn').click(); else if (id === 'rPass') $('rGo').click(); else $('aGo').click(); } });
+for (const id of ['aUser', 'aPass', 'aPass2', 'pNew']) {
+  $(id).addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { if (id === 'pNew') $('pPass').click(); else $('aGo').click(); } });
   $(id).addEventListener('keyup', e => e.stopPropagation());
 }
-$('aUser').addEventListener('input', e => { const v = e.target.value.toLowerCase(); e.target.value = aMode === 'signup' ? v.replace(/[^a-z0-9_]/g, '') : v.replace(/\s/g, ''); });
+$('aUser').addEventListener('input', e => { e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); });
 $('pBack').addEventListener('click', () => { $('acctEl').hidden = true; });
 $('pOut').addEventListener('click', () => { if (confirm('Sair da conta ' + sess.nome + '?')) { logout(); $('acctEl').hidden = true; } });
 $('pSyncBtn').addEventListener('click', async () => { $('pMsg').textContent = 'Sincronizando…'; const ok = await pushCloud(); fillAcct(); $('pMsg').textContent = ok ? 'Progresso sincronizado.' : 'Falha ao sincronizar. Verifique a internet.'; });
@@ -2251,6 +2277,7 @@ function rkTick() {
   c.innerHTML = 'A semana zera em <b>' + (d ? d + ' d ' : '') + h + ' h ' + String(mi).padStart(2, '0') + ' min</b> (domingo 00:00, Brasília)';
 }
 setInterval(() => { if (!rankEl.hidden && rankTab === 'semana') rkTick(); }, 30000);
+function topCheck(tab, items) { if (sess && items[0] && items[0].nome === sess.nome && !TOPNOW[tab]) { TOPNOW[tab] = 1; checkAch(); } }
 async function openRank() {
   rankEl.hidden = false; $('pMine').hidden = !sess;
   const tab = rankTab;
@@ -2267,6 +2294,7 @@ async function openRank() {
       inf.innerHTML = '<span id="rkCount"></span>' + (d.anterior ? '<span>Campeão da semana passada: <b>' + esc(d.anterior.nome) + '</b> · ' + fmt(+d.anterior.pontos || 0) + '</span>' : '');
       rkTick();
       items = d.lista.map(x => ({ nome: String(x.nome), val: +x.pontos || 0, txt: fmt(+x.pontos || 0), sub: 'onda ' + (x.onda || 0) }));
+      topCheck(tab, items);
       if (!items.length) { rkMsg('Ninguém pontuou nesta semana ainda. Seja o primeiro!'); rkMe(items, tab, d.eu); return; }
       rkRender(items, { rank: true }); rkMe(items, tab, d.eu); return;
     }
@@ -2279,6 +2307,7 @@ async function openRank() {
       if (!Array.isArray(d)) throw 0;
       items = d.map(x => ({ nome: String(x.nome), val: +x.valor || 0, txt: tab === 'horas' ? hh(x.valor) : fmt(+x.valor || 0), sub: tab === 'horas' ? '' : 'abates' }));
     }
+    topCheck(tab, items);
     if (tab !== rankTab) return;
     if (!items.length) { rkMsg('Ainda não há dados. Seja o primeiro a aparecer!'); return; }
     rkRender(items, { rank: true }); rkMe(items, tab);
@@ -2301,15 +2330,12 @@ async function openProfile(nome) {
     const r = await api('rpc/perfil_publico', { method: 'POST', body: JSON.stringify({ p_nome: nome }) });
     const d = await r.json();
     if (!d || !d.nome) { b.textContent = 'Jogador não encontrado.'; return; }
-    curProf = d.nome;
-    let vis = {};
-    try { const v = await (await api('rpc/visual_publico', { method: 'POST', body: JSON.stringify({ p_nome: d.nome }) })).json(); vis = (Array.isArray(v) ? v[0] : v) || {}; } catch (e) {}
-    $('profName').textContent = [AV[vis.avatar], d.nome, flagEmoji(vis.bandeira)].filter(Boolean).join(' ');
+    $('profName').textContent = d.nome; curProf = d.nome;
     const sv = d.save || {}, up = sv.up || {}, rk = d.ranking;
     const owned = (Array.isArray(sv.owned) ? sv.owned : ['corveta']).map(id => SHIPS.find(s => s.id === id)).filter(Boolean);
     const ship = SHIPS.find(s => s.id === sv.ship) || SHIPS[0];
     const ach = ACH.filter(a => sv.ach && sv.ach[a.id]);
-    b.innerHTML = (TT[vis.titulo] ? kv('Título', esc(TT[vis.titulo])) : '') +
+    b.innerHTML =
       kv('Membro desde', dia(d.desde)) + kv('Último salvamento', dia(d.atualizado)) +
       kv('Recorde de pontos', num(d.best)) +
       (rk ? kv('Posição no ranking', '#' + num(rk.pos)) + kv('Melhor onda', num(rk.onda)) : kv('Ranking', 'sem pontuação enviada')) +
@@ -2339,88 +2365,6 @@ $('pSearch').addEventListener('keyup', e => e.stopPropagation());
 $('pMine').addEventListener('click', () => { if (sess) openProfile(sess.nome); });
 $('profBack').addEventListener('click', () => { profEl.hidden = true; rankEl.hidden = false; });
 if (sess) { refreshAcct(); pullCloud().then(refreshAcct); }
-/* ---------- personalização de perfil ---------- */
-const AV = { ancora: '⚓', bussola: '🧭', caveira: '☠️', tubarao: '🦈', polvo: '🐙', baleia: '🐋', raio: '⚡', fogo: '🔥', coroa: '👑', estrela: '⭐' };
-const TT = { marujo: 'Marujo', capitao: 'Capitão', almirante: 'Almirante', lobo: 'Lobo do Mar', fantasma: 'Navio Fantasma', tempestade: 'Senhor da Tempestade' };
-const FLAGS = 'br pt us ar mx es fr de it jp gb ca cl co uy pe'.split(' ');
-const flagEmoji = c => /^[a-z]{2}$/.test(c || '') ? String.fromCodePoint(...[...c.toUpperCase()].map(x => 127397 + x.charCodeAt(0))) : '';
-let myVis = { avatar: null, bandeira: null, titulo: null };
-function paintCust() {
-  $('pAv').innerHTML = Object.entries(AV).map(([k, v]) => '<button type="button" class="ibtn" data-av="' + k + '" aria-label="' + k + '" style="font-size:22px' + (myVis.avatar === k ? ';border-color:var(--brass);background:rgba(224,169,60,.25)' : '') + '">' + v + '</button>').join('');
-  $('pFlag').innerHTML = '<option value="">Sem bandeira</option>' + FLAGS.map(c => '<option value="' + c + '"' + (myVis.bandeira === c ? ' selected' : '') + '>' + flagEmoji(c) + ' ' + c.toUpperCase() + '</option>').join('');
-  $('pTit').innerHTML = '<option value="">Sem título</option>' + Object.entries(TT).map(([k, v]) => '<option value="' + k + '"' + (myVis.titulo === k ? ' selected' : '') + '>' + v + '</option>').join('');
-  $('pName').textContent = [AV[myVis.avatar], sess.nome, flagEmoji(myVis.bandeira)].filter(Boolean).join(' ');
-}
-async function loadVis() {
-  try { const d = await (await api('visual?user_id=eq.' + sess.id + '&select=avatar,bandeira,titulo')).json(); myVis = (Array.isArray(d) && d[0]) || { avatar: null, bandeira: null, titulo: null }; } catch (e) {}
-  paintCust();
-}
-$('pAv').addEventListener('click', e => { const b = e.target.closest('[data-av]'); if (b) { myVis.avatar = myVis.avatar === b.dataset.av ? null : b.dataset.av; paintCust(); } });
-$('pCustBtn').addEventListener('click', async () => {
-  const m = $('pMsg'); m.textContent = 'Salvando…';
-  myVis.bandeira = $('pFlag').value || null; myVis.titulo = $('pTit').value || null;
-  try {
-    const r = await api('visual?on_conflict=user_id', { method: 'POST', body: JSON.stringify({ user_id: sess.id, avatar: myVis.avatar, bandeira: myVis.bandeira, titulo: myVis.titulo, atualizado: new Date().toISOString() }) });
-    m.textContent = r.ok ? 'Perfil atualizado.' : 'Não foi possível salvar o perfil.'; paintCust();
-  } catch (e) { m.textContent = 'Sem conexão. Tente de novo.'; }
-});
-/* ---------- e-mail verificado: vincular, recuperar senha ---------- */
-const MAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const backUrl = () => /^https?:/.test(location.href) ? '?redirect_to=' + encodeURIComponent(location.origin + location.pathname) : '';
-const maskMail = m => m.replace(/^(.).*(@.*)$/, '$1***$2');
-const userCall = (tk, method, body, q) => fetch(SUPABASE_URL + '/auth/v1/user' + (q || ''), { method, headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + tk, 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) });
-async function loadMail() {
-  const st = $('pEmailSt'), inp = $('pEmail'), btn = $('pEmailBtn');
-  st.textContent = 'Verificando e-mail…'; inp.hidden = true; btn.hidden = true;
-  try {
-    const r = await userCall(await token(), 'GET'), u = await r.json();
-    if (!r.ok) throw 0;
-    if (u.email && !/@marferro\.app$/i.test(u.email) && u.email_confirmed_at) { st.textContent = '✓ E-mail verificado: ' + maskMail(u.email) + '. Use-o para entrar e recuperar a senha.'; return; }
-    inp.hidden = false; btn.hidden = false;
-    if (u.new_email) { st.textContent = 'Aguardando confirmação de ' + maskMail(u.new_email) + '. Abra o link enviado (veja o spam).'; inp.value = u.new_email; btn.textContent = 'Reenviar link'; }
-    else { st.textContent = 'Sem e-mail vinculado: se esquecer a senha, a conta não pode ser recuperada.'; btn.textContent = 'Vincular e-mail'; }
-  } catch (e) { st.textContent = ''; }
-}
-$('pEmailBtn').addEventListener('click', async () => {
-  const mail = $('pEmail').value.trim().toLowerCase(), m = $('pMsg');
-  if (!MAIL_RE.test(mail)) { m.textContent = 'Digite um e-mail válido.'; return; }
-  m.textContent = 'Enviando…';
-  try {
-    const r = await userCall(await token(), 'PUT', { email: mail, data: { nome: sess.nome } }, backUrl());
-    const d = await r.json().catch(() => ({})), t = String(d.msg || d.message || d.error_description || '');
-    m.textContent = r.ok ? 'Enviamos um link de confirmação para ' + mail + '. Abra-o para concluir.' : /already|registered|exists/i.test(t) ? 'Esse e-mail já está em uso em outra conta.' : /rate|seconds|too many/i.test(t) ? 'Aguarde um pouco antes de pedir outro link.' : 'Não foi possível enviar agora. Tente de novo.';
-    if (r.ok) loadMail();
-  } catch (e) { m.textContent = 'Sem conexão. Tente de novo.'; }
-});
-$('aForgot').addEventListener('click', async () => {
-  const mail = $('aUser').value.trim().toLowerCase(), m = $('aMsg');
-  if (!MAIL_RE.test(mail)) { m.textContent = 'Digite o e-mail vinculado à conta no campo acima.'; return; }
-  m.textContent = 'Enviando…';
-  try { const r = await authCall('recover' + backUrl(), { email: mail }); m.textContent = r.ok ? 'Se esse e-mail estiver vinculado a uma conta, enviamos um link para criar nova senha.' : 'Não foi possível enviar agora. Tente mais tarde.'; }
-  catch (e) { m.textContent = 'Sem conexão. Tente de novo.'; }
-});
-let recTok = null;
-$('rGo').addEventListener('click', async () => {
-  const pw = $('rPass').value, m = $('rMsg');
-  if (pw.length < 6) { m.textContent = 'A nova senha precisa ter pelo menos 6 caracteres.'; return; }
-  m.textContent = 'Salvando…';
-  try {
-    const r = await userCall(recTok, 'PUT', { password: pw }), d = await r.json().catch(() => ({}));
-    if (r.ok) { recTok = null; $('rPass').value = ''; $('rec').hidden = true; setAMode('login'); $('aMsg').textContent = 'Senha alterada. Entre com seu e-mail e a nova senha.'; $('auth').hidden = false; }
-    else m.textContent = /different/i.test(String(d.msg || d.message)) ? 'Escolha uma senha diferente da anterior.' : 'O link expirou ou já foi usado. Peça um novo.';
-  } catch (e) { m.textContent = 'Sem conexão. Tente de novo.'; }
-});
-$('rBack').addEventListener('click', () => { recTok = null; $('rec').hidden = true; });
-(function authReturn() {
-  const p = new URLSearchParams(location.hash.slice(1)), type = p.get('type'), err = p.get('error_description'), msg = p.get('message');
-  if (!type && !err && !msg) return;
-  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
-  if (type === 'recovery' && p.get('access_token')) { recTok = p.get('access_token'); $('rec').hidden = false; return; }
-  const t = err || (type === 'email_change' ? 'E-mail confirmado! Agora você pode entrar com ele e recuperar a senha por ele.' : msg);
-  if (sess) { fillAcct(); loadMail(); $('pMsg').textContent = t; $('acctEl').hidden = false; }
-  else { setAMode('login'); $('aMsg').textContent = t; $('auth').hidden = false; }
-})();
-
 
 
 /* ---------- multiplayer (Supabase Realtime) ---------- */
