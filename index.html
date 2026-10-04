@@ -257,9 +257,11 @@ body:not(.touch) .help .only-touch { display: none; }
 
 /* ranking */
 .rk-tabs { display: flex; border: 1px solid var(--line); }
-.rk-tabs button { flex: 1; border: 0; background: transparent; color: var(--steel); padding: 8px 4px 6px; cursor: pointer; font-family: var(--font-display); font-weight: 900; font-size: 20px; letter-spacing: .12em; text-transform: uppercase; }
+.rk-tabs button { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--steel); padding: 8px 2px 6px; cursor: pointer; font-family: var(--font-display); font-weight: 900; font-size: 19px; letter-spacing: .07em; text-transform: uppercase; }
 .rk-tabs button + button { border-left: 1px solid var(--line); }
 .rk-tabs button.on { background: var(--brass); color: #1b1305; }
+.rk-info { display: flex; flex-direction: column; gap: 2px; font-size: 12px; line-height: 1.45; color: var(--steel); }
+.rk-info b { color: var(--brass); font-weight: 600; }
 .rk-meb { padding: 8px 12px; border-left: 3px solid var(--brass); background: rgba(224,169,60,.09); font-size: 13px; line-height: 1.4; color: var(--ink); }
 .rk-meb b { color: var(--brass); font-family: var(--font-display); font-size: 20px; }
 .rk-pod { display: grid; grid-template-columns: 1fr 1.14fr 1fr; gap: 8px; align-items: end; margin-bottom: 6px; }
@@ -433,8 +435,9 @@ body:not(.touch) .help .only-touch { display: none; }
 </div></div>
 <div class="overlay" id="rank" hidden><div class="panel">
   <h1 class="title sm">Ranking</h1>
-  <div id="rTabs" class="rk-tabs"><button data-tab="pontos" type="button">Pontos</button><button data-tab="kills" type="button">Abates</button><button data-tab="horas" type="button">Horas</button></div>
+  <div id="rTabs" class="rk-tabs"><button data-tab="semana" type="button">Semana</button><button data-tab="pontos" type="button">Recordes</button><button data-tab="kills" type="button">Abates</button><button data-tab="horas" type="button">Horas</button></div>
   <div style="display:flex;gap:6px"><input id="pSearch" maxlength="16" placeholder="Buscar jogador" autocomplete="off" autocapitalize="none" style="user-select:text;-webkit-user-select:text;flex:1;min-width:0;box-sizing:border-box;padding:10px;background:rgba(212,232,234,.08);border:1px solid var(--line);color:var(--ink);font:inherit"><button class="btn ghost" id="pGo" type="button" style="padding:6px 16px;font-size:16px">Buscar</button></div>
+  <div id="rankInfo" class="rk-info" hidden></div>
   <div id="rankMe" class="rk-meb" hidden></div>
   <div id="rankBody"></div>
   <p class="note" style="text-align:center">Toque em um jogador para ver o perfil.</p>
@@ -2176,13 +2179,14 @@ async function submitScore() {
   msg.textContent = 'Salvando…';
   try {
     pushCloud();
+    rpc('enviar_pontos_semana', { p_pontos: pontos, p_onda: G.wave }).catch(() => {});
     const cur = await (await api('ranking?user_id=eq.' + sess.id + '&select=pontos')).json();
     if (Array.isArray(cur) && cur.length && cur[0].pontos >= pontos) { msg.textContent = 'Progresso salvo.'; return; }
     const r = await api('ranking?on_conflict=user_id', { method: 'POST', body: JSON.stringify({ user_id: sess.id, nome: sess.nome, pontos, onda: G.wave }) });
     msg.textContent = r.ok ? 'Progresso salvo e pontuação enviada ao ranking.' : 'Não foi possível enviar ao ranking.';
   } catch (e) { msg.textContent = 'Sem conexão: não foi possível salvar.'; }
 }
-let rankTab = 'pontos';
+let rankTab = 'semana', rkFim = 0;
 const hh = v => { v = Math.floor(Number(v) || 0); return Math.floor(v / 3600) + ' h ' + Math.floor(v % 3600 / 60) + ' min'; };
 const MEDAL = ['#e0a93c', '#c9d8db', '#b9733a'];
 function rkMsg(t, retry) {
@@ -2204,11 +2208,12 @@ function rkRender(items, o) {
   h += '<div class="rk-list">' + items.slice(from).map((it, k) => row(it, from + k)).join('') + '</div>';
   $('rankBody').innerHTML = h;
 }
-async function rkMe(items, tab) {
+async function rkMe(items, tab, eu) {
   const el = $('rankMe');
   if (!sess) { el.hidden = false; el.textContent = 'Entre numa conta para aparecer no ranking.'; return; }
   const i = items.findIndex(x => x.nome === sess.nome);
   if (i >= 0) { el.hidden = false; el.innerHTML = 'Sua posição: <b>#' + (i + 1) + '</b> · ' + esc(items[i].txt) + (items[i].sub ? ' · ' + esc(items[i].sub) : ''); return; }
+  if (tab === 'semana') { el.hidden = false; if (eu) el.innerHTML = 'Sua posição: <b>#' + num(eu.pos) + '</b> · ' + fmt(+eu.pontos || 0) + ' · onda ' + num(eu.onda); else el.textContent = 'Você ainda não pontuou nesta semana. Jogue uma partida logado!'; return; }
   if (tab === 'pontos') {
     try {
       const d = await rpc('perfil_publico', { p_nome: sess.nome });
@@ -2218,13 +2223,33 @@ async function rkMe(items, tab) {
   }
   if (tab === rankTab) { el.hidden = false; el.textContent = tab === 'pontos' ? 'Você ainda não enviou pontuação. Jogue uma partida logado!' : 'Você ainda não está entre os primeiros desta lista.'; }
 }
+function rkTick() {
+  const c = $('rkCount'); if (!c || !rkFim) return;
+  let ms = rkFim - Date.now();
+  if (ms <= 0) { if (rankTab === 'semana' && !rankEl.hidden) openRank(); return; }
+  const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mi = m % 60;
+  c.innerHTML = 'A semana zera em <b>' + (d ? d + ' d ' : '') + h + ' h ' + String(mi).padStart(2, '0') + ' min</b> (domingo 00:00, Brasília)';
+}
+setInterval(() => { if (!rankEl.hidden && rankTab === 'semana') rkTick(); }, 30000);
 async function openRank() {
   rankEl.hidden = false; $('pMine').hidden = !sess;
   const tab = rankTab;
   for (const t of $('rTabs').children) t.classList.toggle('on', t.dataset.tab === tab);
-  $('rankMe').hidden = true; rkSkel();
+  $('rankMe').hidden = true; $('rankInfo').hidden = true; rkSkel();
   try {
     let items;
+    if (tab === 'semana') {
+      const d = await rpc('ranking_semana', { p_limit: 25 });
+      if (!d || !Array.isArray(d.lista)) throw 0;
+      if (tab !== rankTab) return;
+      rkFim = Date.parse(d.fim) || 0;
+      const inf = $('rankInfo'); inf.hidden = false;
+      inf.innerHTML = '<span id="rkCount"></span>' + (d.anterior ? '<span>Campeão da semana passada: <b>' + esc(d.anterior.nome) + '</b> · ' + fmt(+d.anterior.pontos || 0) + '</span>' : '');
+      rkTick();
+      items = d.lista.map(x => ({ nome: String(x.nome), val: +x.pontos || 0, txt: fmt(+x.pontos || 0), sub: 'onda ' + (x.onda || 0) }));
+      if (!items.length) { rkMsg('Ninguém pontuou nesta semana ainda. Seja o primeiro!'); rkMe(items, tab, d.eu); return; }
+      rkRender(items, { rank: true }); rkMe(items, tab, d.eu); return;
+    }
     if (tab === 'pontos') {
       const d = await (await api('ranking?select=nome,pontos,onda&order=pontos.desc&limit=25')).json();
       if (!Array.isArray(d)) throw 0;
