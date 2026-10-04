@@ -421,15 +421,24 @@ body:not(.touch) .help .only-touch { display: none; }
   <input class="fld" id="pNew" type="password" placeholder="Nova senha (mínimo 6)" autocomplete="new-password">
   <p class="note" id="pMsg"></p>
   <div class="actions">
+    <button class="btn ghost" id="pAdm" type="button" hidden>Painel admin</button>
     <button class="btn ghost" id="pPass" type="button">Alterar senha</button>
     <button class="btn ghost" id="pSyncBtn" type="button">Sincronizar agora</button>
     <button class="btn ghost" id="pOut" type="button">Sair da conta</button>
     <button class="btn ghost" id="pBack" type="button">Voltar</button>
   </div>
 </div></div>
+<div class="overlay" id="adm" hidden><div class="panel">
+  <div class="kicker">Administrador</div><h1 class="title sm">Contas</h1>
+  <p class="note" id="admMsg"></p>
+  <div id="admBody" style="font-size:13px"></div>
+  <div class="actions"><button class="btn ghost" id="admBack" type="button">Voltar</button></div>
+</div></div>
 <div class="overlay" id="achEl" hidden><div class="panel">
   <h1 class="title sm">Conquistas</h1>
   <p class="note" id="achCount"></p>
+  <div class="ac-bar"><i id="achBar"></i></div>
+  <div class="tabs" id="achTabs"><button type="button" data-f="all" class="on">Todas</button><button type="button" data-f="ok">Ganhas</button><button type="button" data-f="lock">Faltam</button></div>
   <div id="achBody" style="font-size:13px;line-height:1.5"></div>
   <div class="actions"><button class="btn ghost" id="achBack" type="button">Voltar</button></div>
 </div></div>
@@ -444,7 +453,18 @@ body:not(.touch) .help .only-touch { display: none; }
   <div class="actions"><button class="btn ghost" id="pMine" type="button" hidden>Meu perfil</button><button class="btn ghost" id="rankBack" type="button">Voltar</button></div>
 </div></div>
 <button class="ibtn" id="btnCfg" type="button" aria-label="Configurações" title="Configurações" style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;z-index:20"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-<style>body[data-state="playing"] #btnCfg { display: none; }</style>
+<style>
+.ac-bar{height:8px;border:1px solid var(--line);background:rgba(212,232,234,.1)}.ac-bar i{display:block;height:100%;width:0;background:var(--brass);transition:width .4s}
+.ac-cat{margin:18px 0 8px;display:flex;justify-content:space-between;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--steel)}
+.ac-card{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px;margin-bottom:6px;border:1px solid var(--line);background:rgba(212,232,234,.05)}
+.ac-card.ok{border-color:var(--brass);background:rgba(224,169,60,.1)}
+.ac-ico{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;border:2px solid var(--line);font-size:20px;filter:grayscale(1);opacity:.7}
+.ac-card.ok .ac-ico{border-color:var(--brass);background:rgba(224,169,60,.22);filter:none;opacity:1}
+.ac-n{font-weight:600;color:var(--ink)}.ac-d{color:var(--steel);font-size:12px}
+.ac-rw{font-size:11px;color:var(--brass);white-space:nowrap;text-align:right}.ac-card.ok .ac-rw{color:var(--good)}
+.ac-pb{height:4px;margin-top:6px;background:rgba(212,232,234,.12)}.ac-pb i{display:block;height:100%;background:var(--brass)}
+</style>
+<style>body[data-state="playing"] #btnCfg, body:has(#mpEl:not([hidden]), #auth:not([hidden]), #acctEl:not([hidden]), #achEl:not([hidden]), #rank:not([hidden]), #prof:not([hidden]), #shop:not([hidden]), #adm:not([hidden])) #btnCfg { display: none; }</style>
 <div class="overlay" id="cfg" hidden style="z-index:30"><div class="panel">
   <h1 class="title sm">Configurações</h1>
   <div class="kicker">Áudio</div>
@@ -561,7 +581,10 @@ const SHIPS = [
       turrets: [{ x: .34, r: 7, bl: 26 }, { x: .1, r: 7.5, bl: 28 }, { x: -.16, r: 7, bl: 26 }], cabin: { x: -.36, l: 16, w: 12 }, funnel: { x: -.28, r: 4.6 } }) },
   { id: 'espelho', name: 'Espelho', cost: 24000, clone: true, note: 'Cria 1 clone de si mesmo por 30 s: ele ataca os inimigos e atrai o fogo deles (recarga 40 s)', hp: 280, dmg: 24, rel: .58, speed: 150,
     spec: Object.assign({}, SPEC.player, { len: 96, wid: 28, turn: 1.5, hull: '#5a7f8c', deck: '#b9dde3', dark: '#1f3640', stroke: '#7fe3ff', accent: '#7fe3ff',
-      turrets: [{ x: .3, r: 7, bl: 24 }, { x: -.24, r: 7, bl: 24 }], cabin: { x: -.04, l: 18, w: 13 }, funnel: { x: -.2, r: 4.6 } }) }
+      turrets: [{ x: .3, r: 7, bl: 24 }, { x: -.24, r: 7, bl: 24 }], cabin: { x: -.04, l: 18, w: 13 }, funnel: { x: -.2, r: 4.6 } }) },
+  { id: 'furia', name: 'Fúria', cost: 36000, surge: true, note: 'Sobrecarga: fogo rápido por 10 s e escudo por 5 s (recarga 30 s)', hp: 300, dmg: 28, rel: .5, speed: 175,
+    spec: Object.assign({}, SPEC.player, { len: 100, wid: 26, turn: 1.7, hull: '#7a3b2e', deck: '#c2603f', dark: '#2e1612', stroke: '#e2552f', accent: '#e2552f',
+      turrets: [{ x: .32, r: 7, bl: 26 }, { x: .02, r: 7.5, bl: 28 }, { x: -.26, r: 7, bl: 26 }], cabin: { x: -.4, l: 14, w: 11 }, funnel: { x: -.32, r: 4.4 } }) }
 ];
 const ESC_LIFE = 30, ESC_CD = 40, CLONE_LIFE = 30, CLONE_CD = 40;
 const ESC_SPEC = Object.assign({}, SPEC.player, { len: 58, wid: 18, turn: 2.4, hull: '#3f8f78', deck: '#7fd1b4', dark: '#16362d', stroke: '#4fd1a5', accent: '#4fd1a5',
@@ -591,10 +614,19 @@ const ACH = [
   { id: 'fleetAll', c: 'Frota', n: 'Armada completa', d: 'Tenha todos os navios', r: 2000, f: () => save.owned.length >= SHIPS.length, p: () => [save.owned.length, SHIPS.length] },
   { id: 'yard', c: 'Frota', n: 'Estaleiro', d: 'Melhoria no nível máximo', r: 400, f: () => upsMax() >= 1, p: () => [upsMax(), 1] },
   { id: 'yardAll', c: 'Frota', n: 'Estaleiro completo', d: 'Todas as melhorias no máximo', r: 3000, f: () => upsMax() >= UPS.length, p: () => [upsMax(), UPS.length] },
-  { id: 'topSem', c: 'Ranking', n: 'Campeão da semana', d: 'Fique em 1º no ranking semanal', r: 2000, f: () => !!TOPNOW.semana },
-  { id: 'topPts', c: 'Ranking', n: 'Rei dos pontos', d: 'Fique em 1º no ranking de pontos', r: 2000, f: () => !!TOPNOW.pontos },
-  { id: 'topKills', c: 'Ranking', n: 'Rei dos abates', d: 'Fique em 1º no ranking de abates', r: 2000, f: () => !!TOPNOW.kills },
-  { id: 'topHoras', c: 'Ranking', n: 'Rei das horas', d: 'Fique em 1º no ranking de horas', r: 2000, f: () => !!TOPNOW.horas }
+  { id: 'play10h', c: 'Progresso', n: 'Marujo de verdade', d: 'Jogue por 10 horas', r: 3000, f: () => (save.play || 0) >= 36000, p: () => [Math.floor((save.play || 0) / 3600), 10] },
+  { id: 'topSem1', c: 'Ranking', n: 'Campeão da semana', d: 'Fique em 1º no ranking semanal', r: 2000, f: () => TOPNOW.semana <= 1 },
+  { id: 'topSem2', c: 'Ranking', n: 'Vice da semana', d: 'Fique entre os 2 primeiros no ranking semanal', r: 1200, f: () => TOPNOW.semana <= 2 },
+  { id: 'topSem3', c: 'Ranking', n: 'Pódio semanal', d: 'Fique entre os 3 primeiros no ranking semanal', r: 800, f: () => TOPNOW.semana <= 3 },
+  { id: 'topPts1', c: 'Ranking', n: 'Rei dos pontos', d: 'Fique em 1º no ranking de pontos', r: 2000, f: () => TOPNOW.pontos <= 1 },
+  { id: 'topPts2', c: 'Ranking', n: 'Vice em pontos', d: 'Fique entre os 2 primeiros no ranking de pontos', r: 1200, f: () => TOPNOW.pontos <= 2 },
+  { id: 'topPts3', c: 'Ranking', n: 'Pódio de pontos', d: 'Fique entre os 3 primeiros no ranking de pontos', r: 800, f: () => TOPNOW.pontos <= 3 },
+  { id: 'topKills1', c: 'Ranking', n: 'Rei dos abates', d: 'Fique em 1º no ranking de abates', r: 2000, f: () => TOPNOW.kills <= 1 },
+  { id: 'topKills2', c: 'Ranking', n: 'Vice em abates', d: 'Fique entre os 2 primeiros no ranking de abates', r: 1200, f: () => TOPNOW.kills <= 2 },
+  { id: 'topKills3', c: 'Ranking', n: 'Pódio de abates', d: 'Fique entre os 3 primeiros no ranking de abates', r: 800, f: () => TOPNOW.kills <= 3 },
+  { id: 'topHoras1', c: 'Ranking', n: 'Rei das horas', d: 'Fique em 1º no ranking de horas', r: 2000, f: () => TOPNOW.horas <= 1 },
+  { id: 'topHoras2', c: 'Ranking', n: 'Vice em horas', d: 'Fique entre os 2 primeiros no ranking de horas', r: 1200, f: () => TOPNOW.horas <= 2 },
+  { id: 'topHoras3', c: 'Ranking', n: 'Pódio de horas', d: 'Fique entre os 3 primeiros no ranking de horas', r: 800, f: () => TOPNOW.horas <= 3 }
 ];
 function checkAch() {
   let ch = false;
@@ -615,6 +647,8 @@ const UPS = [
   { k: 'rel', n: 'Carregador rápido', d: '−7% de recarga' },
   { k: 'eng', n: 'Motores', d: '+6% de velocidade' }
 ];
+let ADMIN = false; const ADMINS = new Set();
+const adm = n => ADMINS.has(n) ? '<em class="rk-you" style="color:var(--rust);border-color:var(--rust)">admin</em>' : '';
 const TEST_MODE = false; // true = dinheiro infinito para testes; mude para false antes de publicar de verdade
 const MAXLV = 5, KEY_SAVE = 'mar-de-ferro-save';
 const upCost = l => Math.round(150 * Math.pow(1.9, l) / 10) * 10;
@@ -639,14 +673,14 @@ try {
     loadExtra(sv);
   }
 } catch (e) {}
-function persist() { if (TEST_MODE) save.coins = 99999999; save.ts = Date.now(); try { localStorage.setItem(KEY_SAVE, JSON.stringify(save)); } catch (e) {} try { cloudSoon(); } catch (e) {} try { checkAch(); } catch (e) {} }
+function persist() { if (TEST_MODE || ADMIN) save.coins = 99999999; save.ts = Date.now(); try { localStorage.setItem(KEY_SAVE, JSON.stringify(save)); } catch (e) {} try { cloudSoon(); } catch (e) {} try { checkAch(); } catch (e) {} }
 if (TEST_MODE) save.coins = 99999999;
 else if (save.coins >= 99999999) { save.coins = 0; persist(); } // limpa o saldo falso do modo de teste
 function playerStats() {
   const sh = SHIPS.find(s => s.id === save.ship) || SHIPS[0], u = save.up;
   return {
     spec: Object.assign({}, sh.spec, { speed: sh.speed * (1 + .06 * u.eng) }),
-    auto: !!sh.auto, cloak: !!sh.cloak, air: !!sh.air, multi: sh.multi || 1, esc: !!sh.esc, clone: !!sh.clone,
+    auto: !!sh.auto, cloak: !!sh.cloak, air: !!sh.air, multi: sh.multi || 1, esc: !!sh.esc, clone: !!sh.clone, surge: !!sh.surge,
     hp: Math.round(sh.hp * (1 + .15 * u.hull)), dmg: Math.round(sh.dmg * (1 + .12 * u.gun)), rel: sh.rel * (1 - .07 * u.rel)
   };
 }
@@ -766,13 +800,13 @@ function setState(s) { state = s; document.body.dataset.state = s; }
 function newGame() {
   const st = playerStats();
   G = {
-    wx: null, wxNext: 50 + Math.random() * 40, t: 0, wave: 0, score: 0, kills: 0, coins: 0, queue: [], spawnT: 0, waveClearing: true, interlude: 1.3,
+    t: 0, wave: 0, score: 0, kills: 0, coins: 0, queue: [], spawnT: 0, waveClearing: true, interlude: 1.3,
     enemies: [], escorts: [], planes: [], balls: [], parts: [], wrecks: [], crates: [], buoys: [], allies: [], texts: [],
     shake: 0, flash: 0, deadT: 0, hpMul: 1, fireScale: 1, aimActive: false,
     camera: { x: 0, y: 0 },
     player: {
       spec: st.spec, max: st.hp, dmg: st.dmg, rel: st.rel, auto: st.auto, cloakAb: st.cloak, airAb: st.air, autoT: 0, autoAim: -Math.PI / 2, cloak: 0, cloakCd: 0, x: 0, y: 0, heading: -Math.PI / 2, speed: 0, vx: 0, vy: 0, aim: -Math.PI / 2,
-      multi: st.multi, escAb: st.esc, cloneAb: st.clone, shield: 0, triple: 0,
+      multi: st.multi, escAb: st.esc, cloneAb: st.clone, surgeAb: st.surge, shield: 0, triple: 0,
       hp: st.hp, reload: 0, rapid: 0, dead: false, wakeT: 0, smokeT: 0, hflash: 0, recoil: 0
     }
   };
@@ -1257,10 +1291,12 @@ function drawPlane(pl) {
   ctx.beginPath(); ctx.arc(-1, 0, 2.2, 0, TAU); ctx.fillStyle = '#e0a93c'; ctx.fill();
   ctx.restore();
 }
+function surge(q) { q.rapid = 10; q.shield = Math.max(q.shield || 0, 5); floatText(q.x, q.y - 30, 'sobrecarga', '#e2552f'); sfx.shieldUp(); }
 function useCloak() {
   if (state !== 'playing' || !G) return;
   const p = G.player;
-  if (!(p.cloakAb || p.airAb || p.escAb || p.cloneAb) || p.dead || p.cloak > 0 || p.cloakCd > 0) return;
+  if (!(p.cloakAb || p.airAb || p.escAb || p.cloneAb || p.surgeAb) || p.dead || p.cloak > 0 || p.cloakCd > 0) return;
+  if (p.surgeAb) { p.cloakCd = 30; if (MP.role === 'guest') { mpSend({ t: 'u', i: MP.pid }); sfx.shieldUp(); } else surge(p); return; }
   if (p.cloneAb) { p.cloakCd = CLONE_CD; if (MP.role === 'guest') { mpSend({ t: 'q', i: MP.pid }); sfx.clone(); } else summonClone(p); return; }
   if (p.escAb) { p.cloakCd = ESC_CD; if (MP.role === 'guest') { mpSend({ t: 'z', i: MP.pid }); tone(260, 420, .5, .3); } else summonEscort(p); return; }
   if (p.airAb) { p.cloakCd = 45; if (MP.role === 'guest') { mpSend({ t: 'a', i: MP.pid }); sfx.planes(); } else summonPlanes(); return; }
@@ -1443,49 +1479,8 @@ function updateParts(dt) {
 
 /* ---------- passo do jogo ---------- */
 let playAcc = 0;
-/* clima: aparece de vez em quando, só durante a partida, a partir da onda 2 */
-const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
-function stepWeather(dt) {
-  const w = G.wx;
-  if (state !== 'playing') { if (w) { w.k = Math.max(0, w.k - dt); if (!w.k) G.wx = null; } return; }
-  if (!w) {
-    if (G.wave < 2 || G.player.dead) return;
-    G.wxNext -= dt;
-    if (G.wxNext <= 0) {
-      const storm = Math.random() < .5;
-      G.wx = { type: storm ? 'storm' : 'fog', t: 0, dur: 25 + Math.random() * 20, k: 0, ang: Math.random() * TAU, fl: 0, nextL: 3 };
-      banner(storm ? 'Tempestade' : 'Nevoeiro', storm ? 'Ventos fortes empurram seu navio' : 'Visibilidade reduzida');
-    }
-    return;
-  }
-  w.t += dt;
-  if (w.t >= w.dur) { G.wx = null; G.wxNext = 80 + Math.random() * 100; return; }
-  w.k = Math.max(0, Math.min(1, w.t / 3, (w.dur - w.t) / 3));
-  if (w.type === 'storm') {
-    const p = G.player;
-    if (!p.dead) { p.x += Math.cos(w.ang) * 34 * w.k * dt; p.y += Math.sin(w.ang) * 34 * w.k * dt; }
-    w.nextL -= dt; if (w.nextL <= 0) { if (!REDUCED) w.fl = 1; w.nextL = 3 + Math.random() * 5; }
-    w.fl = Math.max(0, w.fl - dt * 3);
-  }
-}
-function drawWeather() {
-  const w = G && G.wx; if (!w || !w.k) return;
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  if (w.type === 'fog') {
-    const p = G.player, c = G.camera, px = W / 2 + (p.x - c.x) * zoom, py = H / 2 + (p.y - c.y) * zoom, r = 250 * zoom;
-    const g = ctx.createRadialGradient(px, py, r * .35, px, py, r * 1.5);
-    g.addColorStop(0, 'rgba(160,182,190,0)'); g.addColorStop(1, 'rgba(160,182,190,' + (.88 * w.k) + ')');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  } else {
-    ctx.fillStyle = 'rgba(4,12,20,' + (.3 * w.k) + ')'; ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = 'rgba(190,215,225,' + (.35 * w.k) + ')'; ctx.lineWidth = 1; ctx.beginPath();
-    for (let i = 0; i < 70; i++) { const x = ((i * 137.5 + G.t * 260) % (W + 80)) - 40, y = ((i * 89.3 + G.t * 620) % (H + 40)) - 20; ctx.moveTo(x, y); ctx.lineTo(x - 7, y - 18); }
-    ctx.stroke();
-    if (w.fl > 0) { ctx.fillStyle = 'rgba(235,245,255,' + (.4 * w.fl) + ')'; ctx.fillRect(0, 0, W, H); }
-  }
-}
 function step(dt) {
-  if (state === 'playing') { save.play = (save.play || 0) + dt; playAcc += dt; if (playAcc > 30) { playAcc = 0; persist(); } }
+  if (state === 'playing') { save.play = (save.play || 0) + dt; playAcc += dt; if (playAcc > 30) { playAcc = 0; persist(); checkAch(); } }
   if (MP.role === 'guest') { stepGuest(dt); return; }
   G.t += dt;
   const p = G.player;
@@ -1495,7 +1490,6 @@ function step(dt) {
   else inp = { mag: 0, ang: p.heading, aim: null, fire: false };
   G.aimActive = inp.aim != null;
   if (!p.dead) stepPlayer(dt, inp);
-  stepWeather(dt);
   if (state === 'playing' || state === 'over') {
     if (state === 'playing') runWaves(dt);
     for (let i = G.enemies.length - 1; i >= 0; i--) updateEnemy(G.enemies[i], dt);
@@ -1824,7 +1818,7 @@ function drawMateArrows() {
     ctx.fillText((q.nome || '') + ' ' + Math.round(Math.hypot(q.x - G.player.x, q.y - G.player.y) / 10) + 'm', ax - Math.cos(a) * 26, ay - Math.sin(a) * 26);
   }
 }
-function render() { render0(); drawWeather(); drawMateArrows(); }
+function render() { render0(); drawMateArrows(); }
 function render0() {
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.fillStyle = '#0a1f2c'; ctx.fillRect(0, 0, W, H);
@@ -1961,12 +1955,12 @@ function hud() {
   setText('wave', String(Math.max(1, G.wave)));
   setText('score', fmt(G.score));
   setText('coins', fmt(G.coins));
-  const showC = (p.cloakAb || p.airAb || p.escAb || p.cloneAb) && state === 'playing' && !p.dead;
+  const showC = (p.cloakAb || p.airAb || p.escAb || p.cloneAb || p.surgeAb) && state === 'playing' && !p.dead;
   if (el.cloak.hidden === showC) el.cloak.hidden = !showC;
   if (showC) {
     el.cloak.disabled = p.cloak > 0 || p.cloakCd > 0;
-    el.cloak.classList.toggle('on', p.cloak > 0 || (p.airAb && G.planes.length > 0) || (p.escAb && G.escorts.length > 0) || (p.cloneAb && G.escorts.some(z => z.clone)));
-    setText('cloak', p.cloneAb ? (G.escorts.some(z => z.clone) ? 'CLONE ATIVO' : p.cloakCd > 0 ? 'RECARGA ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'CRIAR CLONE' : 'CLONE · E')) : p.escAb ? (G.escorts.length ? 'ESCOLTA ATIVA' : p.cloakCd > 0 ? 'RECARGA ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'CHAMAR ESCOLTA' : 'ESCOLTA · E')) : (p.airAb && G.planes.length) ? 'ATACANDO' : (p.airAb && p.cloakCd <= 0) ? (touchMode ? 'CHAMAR AVIÕES' : 'AVIÕES · E') : p.cloak > 0 ? 'SUBMERSO ' + Math.ceil(p.cloak) + 's' : p.cloakCd > 0 ? 'RECARGA ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'SUBMERGIR' : 'SUBMERGIR · E'));
+    el.cloak.classList.toggle('on', p.cloak > 0 || (p.surgeAb && p.rapid > 0) || (p.airAb && G.planes.length > 0) || (p.escAb && G.escorts.length > 0) || (p.cloneAb && G.escorts.some(z => z.clone)));
+    setText('cloak', p.surgeAb ? (p.rapid > 0 ? 'SOBRECARGA ' + Math.ceil(p.rapid) + 's' : p.cloakCd > 0 ? 'RECARGA ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'SOBRECARGA' : 'SOBRECARGA · E')) : p.cloneAb ? (G.escorts.some(z => z.clone) ? 'CLONE ATIVO' : p.cloakCd > 0 ? 'RECARGA ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'CRIAR CLONE' : 'CLONE · E')) : p.escAb ? (G.escorts.length ? 'ESCOLTA ATIVA' : p.cloakCd > 0 ? 'RECARGA ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'CHAMAR ESCOLTA' : 'ESCOLTA · E')) : (p.airAb && G.planes.length) ? 'ATACANDO' : (p.airAb && p.cloakCd <= 0) ? (touchMode ? 'CHAMAR AVIÕES' : 'AVIÕES · E') : p.cloak > 0 ? 'SUBMERSO ' + Math.ceil(p.cloak) + 's' : p.cloakCd > 0 ? 'RECARGA ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'SUBMERGIR' : 'SUBMERGIR · E'));
   }
   const bl = [];
   if (p.rapid > 0) bl.push('FOGO RÁPIDO ' + Math.ceil(p.rapid) + 's');
@@ -2141,7 +2135,7 @@ async function pullCloud() {
 document.addEventListener('visibilitychange', () => { if (document.hidden) pushCloud(); });
 window.addEventListener('pagehide', () => { pushCloud(); });
 function logout() {
-  sess = null;
+  sess = null; ADMIN = false;
   try { localStorage.removeItem(SESS_KEY); localStorage.removeItem(KEY_SAVE); localStorage.removeItem(KEY_BEST); localStorage.removeItem('mf_dono'); } catch (e) {}
   Object.assign(save, { coins: 0, ship: 'corveta', owned: ['corveta'], up: { hull: 0, gun: 0, rel: 0, eng: 0 }, ach: {}, kills: 0, bosses: 0, ts: 0, play: 0, maxWave: 0, items: { shield: 0, triple: 0 } });
   best = 0; refreshAcct();
@@ -2170,7 +2164,7 @@ async function doAuth0(signup) {
       return;
     }
     setSess(r.d, nome);
-    await pullCloud();
+    await pullCloud(); checkAdmin();
     $('aPass').value = ''; $('aPass2').value = ''; m.textContent = '';
     $('auth').hidden = true; refreshAcct();
   } catch (e) { m.textContent = 'Sem conexão. Tente de novo.'; }
@@ -2185,7 +2179,7 @@ function setAMode(m) {
   $('aMsg').textContent = '';
 }
 function fillAcct() {
-  $('pName').textContent = sess.nome;
+  $('pName').textContent = sess.nome + (ADMIN ? ' ★ ADMIN' : ''); $('pAdm').hidden = !ADMIN;
   const kv = (k, v) => '<div><dt>' + k + '</dt><dd>' + v + '</dd></div>';
   $('pStats').innerHTML = kv('Recorde', fmt(best)) + kv('Navios afundados', fmt(save.kills)) + kv('Chefes', fmt(save.bosses)) + kv('Frota', save.owned.length + '/' + SHIPS.length) + kv('Conquistas', ACH.filter(x => save.ach[x.id]).length + '/' + ACH.length) + kv('Moedas', fmt(save.coins));
   $('pSync').textContent = lastSync ? 'Última sincronização: ' + new Date(lastSync).toLocaleTimeString() : 'Progresso salvo na nuvem automaticamente.';
@@ -2244,10 +2238,10 @@ function rkRender(items, o) {
   const me = sess && sess.nome, top = Math.max(1, items[0].val), pod = o.rank && items.length >= 3;
   const mine = it => it.nome === me;
   const row = (it, i) => '<div class="rk-row' + (mine(it) ? ' me' : '') + '" data-n="' + esc(it.nome) + '" style="--w:' + Math.round(clamp(it.val / top, 0, 1) * 100) + '%">' +
-    '<span class="rk-pos">' + (o.rank ? i + 1 : '·') + '</span><div style="min-width:0"><div class="rk-name">' + esc(it.nome) + (mine(it) ? '<em class="rk-you">você</em>' : '') + '</div>' +
+    '<span class="rk-pos">' + (o.rank ? i + 1 : '·') + '</span><div style="min-width:0"><div class="rk-name">' + esc(it.nome) + adm(it.nome) + (mine(it) ? '<em class="rk-you">você</em>' : '') + '</div>' +
     (it.sub ? '<div class="rk-sub">' + esc(it.sub) + '</div>' : '') + '</div><span class="rk-val">' + esc(it.txt) + '</span></div>';
   const card = (it, i) => '<div class="rk-card p' + (i + 1) + (mine(it) ? ' me' : '') + '" data-n="' + esc(it.nome) + '" style="--c:' + MEDAL[i] + '"><div class="rk-medal">' + (i + 1) + '</div>' +
-    '<div class="rk-name">' + esc(it.nome) + (mine(it) ? '<em class="rk-you">você</em>' : '') + '</div><div class="rk-val">' + esc(it.txt) + '</div><div class="rk-sub">' + esc(it.sub || '') + '</div></div>';
+    '<div class="rk-name">' + esc(it.nome) + adm(it.nome) + (mine(it) ? '<em class="rk-you">você</em>' : '') + '</div><div class="rk-val">' + esc(it.txt) + '</div><div class="rk-sub">' + esc(it.sub || '') + '</div></div>';
   let h = '';
   if (pod) h += '<div class="rk-pod">' + card(items[1], 1) + card(items[0], 0) + card(items[2], 2) + '</div>';
   const from = pod ? 3 : 0;
@@ -2277,7 +2271,7 @@ function rkTick() {
   c.innerHTML = 'A semana zera em <b>' + (d ? d + ' d ' : '') + h + ' h ' + String(mi).padStart(2, '0') + ' min</b> (domingo 00:00, Brasília)';
 }
 setInterval(() => { if (!rankEl.hidden && rankTab === 'semana') rkTick(); }, 30000);
-function topCheck(tab, items) { if (sess && items[0] && items[0].nome === sess.nome && !TOPNOW[tab]) { TOPNOW[tab] = 1; checkAch(); } }
+function topCheck(tab, items) { if (!sess) return; const i = items.slice(0, 3).findIndex(x => x.nome === sess.nome); if (i >= 0 && !(TOPNOW[tab] <= i + 1)) { TOPNOW[tab] = i + 1; checkAch(); } }
 async function openRank() {
   rankEl.hidden = false; $('pMine').hidden = !sess;
   const tab = rankTab;
@@ -2330,7 +2324,7 @@ async function openProfile(nome) {
     const r = await api('rpc/perfil_publico', { method: 'POST', body: JSON.stringify({ p_nome: nome }) });
     const d = await r.json();
     if (!d || !d.nome) { b.textContent = 'Jogador não encontrado.'; return; }
-    $('profName').textContent = d.nome; curProf = d.nome;
+    $('profName').textContent = d.nome + (ADMINS.has(d.nome) ? ' ★ ADMIN' : ''); curProf = d.nome;
     const sv = d.save || {}, up = sv.up || {}, rk = d.ranking;
     const owned = (Array.isArray(sv.owned) ? sv.owned : ['corveta']).map(id => SHIPS.find(s => s.id === id)).filter(Boolean);
     const ship = SHIPS.find(s => s.id === sv.ship) || SHIPS[0];
@@ -2364,7 +2358,7 @@ $('pSearch').addEventListener('keydown', e => { e.stopPropagation(); if (e.key =
 $('pSearch').addEventListener('keyup', e => e.stopPropagation());
 $('pMine').addEventListener('click', () => { if (sess) openProfile(sess.nome); });
 $('profBack').addEventListener('click', () => { profEl.hidden = true; rankEl.hidden = false; });
-if (sess) { refreshAcct(); pullCloud().then(refreshAcct); }
+if (sess) { refreshAcct(); pullCloud().then(() => { refreshAcct(); checkAdmin(); }); }
 
 
 /* ---------- multiplayer (Supabase Realtime) ---------- */
@@ -2519,6 +2513,8 @@ function mpOnMsg(m) {
       if (!(q.cloakCd > 0)) { q.cloakCd = 45; summonPlanes(q); }
     } else if (m.t === 'z') {
       if (!(q.cloakCd > 0)) { q.cloakCd = ESC_CD; summonEscort(q); }
+    } else if (m.t === 'u') {
+      if (!(q.cloakCd > 0)) { q.cloakCd = 30; surge(q); }
     } else if (m.t === 'q') {
       if (!(q.cloakCd > 0)) { q.cloakCd = CLONE_CD; summonClone(q); }
     } else if (m.t === 'g') {
@@ -2656,6 +2652,31 @@ function mpGuestEnd(m) {
 
 const rpc = (fn, args) => api('rpc/' + fn, { method: 'POST', body: JSON.stringify(args || {}) }).then(r => r.json());
 
+/* ---------- administrador ---------- */
+async function checkAdmin() {
+  try { ADMIN = (await rpc('eh_admin')) === true; } catch (e) { ADMIN = false; }
+  if (ADMIN) { ADMINS.add(sess.nome); save.owned = SHIPS.map(s => s.id); save.coins = 99999999; persist(); refreshAcct(); }
+}
+rpc('admins_nomes').then(a => { if (Array.isArray(a)) a.forEach(n => ADMINS.add(n)); }).catch(() => {});
+async function admLoad() {
+  const b = $('admBody'), m = $('admMsg'); m.textContent = 'Carregando…';
+  try {
+    const d = await rpc('admin_contas');
+    if (!Array.isArray(d)) throw 0;
+    m.textContent = d.length + ' contas';
+    b.innerHTML = d.map(x => '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)"><div style="min-width:0"><b>' + esc(x.nome) + '</b>' + adm(x.nome) + '<div style="color:var(--steel);font-size:11px">criada ' + dia(x.criado) + ' · último acesso ' + dia(x.ultimo) + (x.no_ranking ? ' · ' + fmt(+x.pontos || 0) + ' pts' : '') + '</div></div>' + (x.no_ranking ? '<button class="btn ghost" data-rm="' + esc(x.nome) + '" type="button" style="font-size:13px;padding:4px 10px;min-height:0">Remover do ranking</button>' : '') + '</div>').join('');
+  } catch (e) { m.textContent = 'Sem permissão ou sem conexão.'; }
+}
+$('pAdm').addEventListener('click', () => { $('adm').hidden = false; admLoad(); });
+$('admBack').addEventListener('click', () => { $('adm').hidden = true; });
+$('admBody').addEventListener('click', async e => {
+  const b = e.target.closest('[data-rm]'); if (!b) return;
+  const n = b.dataset.rm;
+  if (!confirm('Remover ' + n + ' do ranking (geral e semanal)?')) return;
+  try { await rpc('admin_remover_ranking', { p_nome: n }); } catch (err) {}
+  admLoad();
+});
+
 /* ---------- configurações ---------- */
 const cfgEl = $('cfg');
 function cfgRefresh() {
@@ -2678,22 +2699,28 @@ $('cfgFull').addEventListener('click', () => { try { if (document.fullscreenElem
 $('cfgAcct').addEventListener('click', () => { cfgEl.hidden = true; $('btnAcct').click(); });
 
 /* ---------- conquistas ---------- */
-$('btnAch').addEventListener('click', () => {
+let achF = 'all';
+const ACH_ICO = { Combate: '💥', Progresso: '🌊', Frota: '⚓', Ranking: '👑' };
+function renderAch() {
   const got = ACH.filter(a => save.ach[a.id]), earned = got.reduce((t, a) => t + (a.r || 0), 0);
   $('achCount').textContent = got.length + ' de ' + ACH.length + ' desbloqueadas · ' + fmt(earned) + ' moedas ganhas' + (sess ? '' : ' · entre numa conta para guardá-las');
+  $('achBar').style.width = (got.length / ACH.length * 100) + '%';
+  for (const t of $('achTabs').children) t.classList.toggle('on', t.dataset.f === achF);
   let h = '';
-  for (const c of ['Combate', 'Progresso', 'Frota']) {
-    const l = ACH.filter(a => a.c === c);
-    h += '<h2 style="margin:16px 0 4px;font-size:11px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--steel)">' + c + ' · ' + l.filter(a => save.ach[a.id]).length + '/' + l.length + '</h2>';
-    for (const a of l.sort((x, y) => (save.ach[y.id] ? 1 : 0) - (save.ach[x.id] ? 1 : 0))) {
-      const ok = !!save.ach[a.id], pr = a.p ? a.p() : [0, 1], pc = ok ? 100 : clamp(pr[0] / pr[1] * 100, 0, 100);
-      h += '<div style="padding:8px 0;border-top:1px solid var(--line);' + (ok ? '' : 'opacity:.8') + '"><div style="display:flex;justify-content:space-between;gap:10px"><b style="color:' + (ok ? 'var(--brass)' : 'var(--ink)') + '">' + (ok ? '★ ' : '☆ ') + esc(a.n) + '</b><span style="color:' + (ok ? 'var(--good)' : 'var(--brass)') + ';font-size:11px;white-space:nowrap">' + (ok ? 'resgatada' : '+' + fmt(a.r) + ' $') + '</span></div><span style="color:var(--steel)">' + esc(a.d) + '</span>' +
-        (ok ? '' : '<div class="sb" style="grid-template-columns:1fr auto"><i><u style="width:' + pc.toFixed(0) + '%"></u></i><em>' + fmt(Math.min(pr[0], pr[1])) + '/' + fmt(pr[1]) + '</em></div>') + '</div>';
+  for (const c of [...new Set(ACH.map(a => a.c))]) {
+    const all = ACH.filter(a => a.c === c), l = all.filter(a => achF === 'all' || (achF === 'ok') === !!save.ach[a.id]);
+    if (!l.length) continue;
+    h += '<div class="ac-cat"><span>' + esc(c) + '</span><span>' + all.filter(a => save.ach[a.id]).length + '/' + all.length + '</span></div>';
+    for (const a of l) {
+      const ok = !!save.ach[a.id], pr = a.p ? a.p() : [0, 1], pc = clamp(pr[0] / pr[1] * 100, 0, 100);
+      h += '<div class="ac-card' + (ok ? ' ok' : '') + '"><div class="ac-ico">' + (ok ? ACH_ICO[c] || '★' : '🔒') + '</div><div style="min-width:0"><div class="ac-n">' + esc(a.n) + '</div><div class="ac-d">' + esc(a.d) + '</div>' +
+        (ok || !a.p ? '' : '<div class="ac-pb"><i style="width:' + pc.toFixed(0) + '%"></i></div>') + '</div><div class="ac-rw">' + (ok ? '✓ resgatada' : '+' + fmt(a.r) + ' moedas') + (ok || !a.p ? '' : '<br><span style="color:var(--steel)">' + fmt(Math.min(pr[0], pr[1])) + '/' + fmt(pr[1]) + '</span>') + '</div></div>';
     }
   }
-  $('achBody').innerHTML = h;
-  $('achEl').hidden = false;
-});
+  $('achBody').innerHTML = h || '<p class="note">Nada por aqui ainda.</p>';
+}
+$('btnAch').addEventListener('click', () => { renderAch(); $('achEl').hidden = false; });
+$('achTabs').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (b) { achF = b.dataset.f; renderAch(); } });
 $('achBack').addEventListener('click', () => { $('achEl').hidden = true; });
 
 /* ---------- oficina ---------- */
