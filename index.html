@@ -1446,6 +1446,8 @@ function stepAllies(dt) {
     if (q.triple > 0) q.triple -= dt;
     if (q.cloak > 0) q.cloak -= dt;
     if (q.cloakCd > 0) q.cloakCd -= dt;
+    // Afundado, o convidado não envia posição ('g'); sem isto, lastIn ficava velho e ele era derrubado ao reviver.
+    if (q.dead) q.lastIn = performance.now();
     if (!q.dead) {
       q.x += q.vx * dt; q.y += q.vy * dt;
       wake(q, dt, q.spec.len, q.spec.wid); damageSmoke(q, dt, q.hp / q.max);
