@@ -472,7 +472,7 @@ const UPS = [
   { k: 'rel', n: 'Carregador rápido', d: '−7% de recarga' },
   { k: 'eng', n: 'Motores', d: '+6% de velocidade' }
 ];
-const TEST_MODE = true; // true = dinheiro infinito para testes; mude para false antes de publicar de verdade
+const TEST_MODE = false; // true = dinheiro infinito para testes; mude para false antes de publicar de verdade
 const MAXLV = 5, KEY_SAVE = 'mar-de-ferro-save';
 const upCost = l => Math.round(150 * Math.pow(1.9, l) / 10) * 10;
 let save = { coins: 0, ship: 'corveta', owned: ['corveta'], up: { hull: 0, gun: 0, rel: 0, eng: 0 }, ach: {}, kills: 0, bosses: 0 };
