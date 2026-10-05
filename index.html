@@ -410,6 +410,7 @@ body:not(.touch) .help .only-touch { display: none; }
 
 <button class="ability" id="btnCloak" type="button" hidden>SUBMERGIR</button>
 <div class="admmenu" id="admMenu" hidden></div>
+<div id="admBanner" hidden style="position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:60;text-align:center;font:600 12px var(--font-mono);padding:6px 10px;background:var(--rust);color:#fff"></div>
 
 <div class="banner" id="banner" aria-live="polite"></div>
 <div id="fpsEl" hidden style="position:fixed;left:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:25;pointer-events:none;font:600 11px var(--font-mono);letter-spacing:.1em;padding:2px 6px;background:rgba(6,18,26,.6);border:1px solid var(--line);color:var(--good);font-variant-numeric:tabular-nums">-- FPS</div>
@@ -451,6 +452,7 @@ body:not(.touch) .help .only-touch { display: none; }
         <button class="btn ghost" id="btnMp" type="button" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.8 0 4 2 4 5"/></svg><span>Esquadra</span></button>
         <button class="btn ghost" id="btnVs" type="button" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4l12 12M19 4L7 16M14 15l3 3M10 15l-3 3"/></svg><span>Versus</span></button>
         <button class="btn ghost" id="btnRank" type="button" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 20V10M12 20V4M18 20v-7"/></svg><span>Ranking</span></button>
+        <button class="btn ghost" id="btnAdm" type="button" hidden>★ Painel admin</button>
         <button class="btn ghost" id="btnAch" type="button" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg><span>Conquistas</span></button>
       </div>
       <button class="btn ghost acct" id="btnAcct" type="button" hidden>Entrar / Criar conta</button>
@@ -515,8 +517,10 @@ body:not(.touch) .help .only-touch { display: none; }
   </div>
 </div></div>
 <div class="overlay" id="adm" hidden><div class="panel">
-  <div class="kicker">Administrador</div><h1 class="title sm">Contas</h1>
+  <div class="kicker">Administrador</div><h1 class="title sm">Painel admin</h1>
+  <div class="tabs" id="admTabs"><button type="button" data-t="contas" class="on">Contas</button><button type="button" data-t="stats">Stats</button><button type="button" data-t="avisos">Avisos</button><button type="button" data-t="log">Log</button></div>
   <p class="note" id="admMsg"></p>
+  <input id="admQ" type="search" placeholder="Buscar conta pelo nome" autocomplete="off" style="width:100%;box-sizing:border-box;min-height:40px;margin-bottom:8px;padding:0 10px;background:transparent;border:1px solid var(--line);color:inherit;font:inherit">
   <div id="admBody" style="font-size:13px"></div>
   <div class="actions"><button class="btn ghost" id="admBack" type="button">Voltar</button></div>
 </div></div>
@@ -779,7 +783,7 @@ function playerStats() {
     hp: Math.round(sh.hp * (1 + .15 * u.hull)), dmg: Math.round(sh.dmg * (1 + .12 * u.gun)), rel: sh.rel * (1 - .07 * u.rel)
   };
 }
-function addCoins(n) { G.coins += n; save.coins += n; persist(); return n; }
+function addCoins(n) { if (typeof EVT !== "undefined" && EVT && EVT.mult > 1 && Date.parse(EVT.ate) > Date.now()) n = Math.round(n * EVT.mult); G.coins += n; save.coins += n; persist(); return n; }
 
 /* ---------- perigos do mar: icebergs e redemoinhos (gerados por células, iguais em todos os clientes) ---------- */
 const HZ_CELL = 900, HZ = new Map(), VW = [], VI = [];
@@ -2568,6 +2572,7 @@ function showOverlay(mode) {
   $('btnRank').hidden = !RANK_ON || mode === 'paused';
   $('btnAcct').hidden = mode === 'paused';
   $('btnAch').hidden = mode === 'paused';
+  $('btnAdm').hidden = !ADMIN || mode === 'paused';
   $('btnMp').hidden = mode === 'paused';
   $('btnVs').hidden = mode === 'paused';
   refreshAcct();
@@ -2740,7 +2745,7 @@ async function pullCloud() {
 document.addEventListener('visibilitychange', () => { if (document.hidden) pushCloud(); });
 window.addEventListener('pagehide', () => { pushCloud(); });
 function logout() {
-  sess = null; ADMIN = false;
+  sess = null; ADMIN = false; $('btnAdm').hidden = true;
   try { localStorage.removeItem(SESS_KEY); localStorage.removeItem(KEY_SAVE); localStorage.removeItem(KEY_BEST); localStorage.removeItem('mf_dono'); } catch (e) {}
   Object.assign(save, { coins: 0, ship: 'corveta', owned: ['corveta'], up: { hull: 0, gun: 0, rel: 0, eng: 0 }, ach: {}, kills: 0, bosses: 0, ts: 0, play: 0, maxWave: 0, items: { shield: 0, triple: 0 } });
   best = 0; refreshAcct();
@@ -2822,6 +2827,7 @@ async function submitScore() {
   if (!sess) { msg.textContent = 'Entre numa conta para salvar o progresso e aparecer no ranking.'; return; }
   const pontos = Math.floor(G.score);
   msg.textContent = 'Salvando…';
+  if (ADMIN) { try { pushCloud(); msg.textContent = 'Progresso salvo. Contas de admin não entram no ranking.'; } catch (e) { msg.textContent = 'Sem conexão: não foi possível salvar.'; } return; }
   try {
     pushCloud();
     rpc('enviar_pontos_semana', { p_pontos: pontos, p_onda: G.wave }).catch(() => {});
@@ -2856,6 +2862,7 @@ function rkRender(items, o) {
 async function rkMe(items, tab, eu) {
   const el = $('rankMe');
   if (!sess) { el.hidden = false; el.textContent = 'Entre numa conta para aparecer no ranking.'; return; }
+  if (ADMIN) { el.hidden = false; el.textContent = 'Contas de admin não aparecem no ranking.'; return; }
   const i = items.findIndex(x => x.nome === sess.nome);
   if (i >= 0) { el.hidden = false; el.innerHTML = 'Sua posição: <b>#' + (i + 1) + '</b> · ' + esc(items[i].txt) + (items[i].sub ? ' · ' + esc(items[i].sub) : ''); return; }
   if (tab === 'semana') { el.hidden = false; if (eu) el.innerHTML = 'Sua posição: <b>#' + num(eu.pos) + '</b> · ' + fmt(+eu.pontos || 0) + ' · onda ' + num(eu.onda); else el.textContent = 'Você ainda não pontuou nesta semana. Jogue uma partida logado!'; return; }
@@ -2876,7 +2883,8 @@ function rkTick() {
   c.innerHTML = 'A semana zera em <b>' + (d ? d + ' d ' : '') + h + ' h ' + String(mi).padStart(2, '0') + ' min</b> (domingo 00:00, Brasília)';
 }
 setInterval(() => { if (!rankEl.hidden && rankTab === 'semana') rkTick(); }, 30000);
-function topCheck(tab, items) { if (!sess) return; const i = items.slice(0, 3).findIndex(x => x.nome === sess.nome); if (i >= 0 && !(TOPNOW[tab] <= i + 1)) { TOPNOW[tab] = i + 1; checkAch(); } }
+function topCheck(tab, items) { if (!sess || ADMIN) return; const i = items.slice(0, 3).findIndex(x => x.nome === sess.nome); if (i >= 0 && !(TOPNOW[tab] <= i + 1)) { TOPNOW[tab] = i + 1; checkAch(); } }
+const rkNoAdm = l => l.filter(x => !ADMINS.has(x.nome)).slice(0, 25);
 async function openRank() {
   rankEl.hidden = false; $('pMine').hidden = !sess;
   const tab = rankTab;
@@ -2884,27 +2892,28 @@ async function openRank() {
   $('rankMe').hidden = true; $('rankInfo').hidden = true; rkSkel();
   try {
     let items;
+    await ADMINS_READY;
     if (tab === 'semana') {
-      const d = await rpc('ranking_semana', { p_limit: 25 });
+      const d = await rpc('ranking_semana', { p_limit: 60 });
       if (!d || !Array.isArray(d.lista)) throw 0;
       if (tab !== rankTab) return;
       rkFim = Date.parse(d.fim) || 0;
       const inf = $('rankInfo'); inf.hidden = false;
       inf.innerHTML = '<span id="rkCount"></span>' + (d.anterior ? '<span>Campeão da semana passada: <b>' + esc(d.anterior.nome) + '</b> · ' + fmt(+d.anterior.pontos || 0) + '</span>' : '');
       rkTick();
-      items = d.lista.map(x => ({ nome: String(x.nome), val: +x.pontos || 0, txt: fmt(+x.pontos || 0), sub: 'onda ' + (x.onda || 0) }));
+      items = rkNoAdm(d.lista.map(x => ({ nome: String(x.nome), val: +x.pontos || 0, txt: fmt(+x.pontos || 0), sub: 'onda ' + (x.onda || 0) })));
       topCheck(tab, items);
       if (!items.length) { rkMsg('Ninguém pontuou nesta semana ainda. Seja o primeiro!'); rkMe(items, tab, d.eu); return; }
       rkRender(items, { rank: true }); rkMe(items, tab, d.eu); return;
     }
     if (tab === 'pontos') {
-      const d = await (await api('ranking?select=nome,pontos,onda&order=pontos.desc&limit=25')).json();
+      const d = await (await api('ranking?select=nome,pontos,onda&order=pontos.desc&limit=60')).json();
       if (!Array.isArray(d)) throw 0;
-      items = d.map(x => ({ nome: String(x.nome), val: +x.pontos || 0, txt: fmt(+x.pontos || 0), sub: 'onda ' + (x.onda || 0) }));
+      items = rkNoAdm(d.map(x => ({ nome: String(x.nome), val: +x.pontos || 0, txt: fmt(+x.pontos || 0), sub: 'onda ' + (x.onda || 0) })));
     } else {
       const d = await rpc('ranking_tipo', { p_tipo: tab });
       if (!Array.isArray(d)) throw 0;
-      items = d.map(x => ({ nome: String(x.nome), val: +x.valor || 0, txt: tab === 'horas' ? hh(x.valor) : fmt(+x.valor || 0), sub: tab === 'horas' ? '' : 'abates' }));
+      items = rkNoAdm(d.map(x => ({ nome: String(x.nome), val: +x.valor || 0, txt: tab === 'horas' ? hh(x.valor) : fmt(+x.valor || 0), sub: tab === 'horas' ? '' : 'abates' })));
     }
     topCheck(tab, items);
     if (tab !== rankTab) return;
@@ -3329,28 +3338,85 @@ const rpc = (fn, args) => api('rpc/' + fn, { method: 'POST', body: JSON.stringif
 
 /* ---------- administrador ---------- */
 async function checkAdmin() {
+  try { const bn = await rpc('esta_banido'); if (bn && bn.motivo !== undefined) { alert('Conta banida' + (bn.ate ? ' até ' + dia(bn.ate) : '') + (bn.motivo ? ': ' + bn.motivo : '') + '.'); logout(); return; } } catch (e) {}
   try { ADMIN = (await rpc('eh_admin')) === true; } catch (e) { ADMIN = false; }
+  $('btnAdm').hidden = !ADMIN || !$('btnAlt').hidden;
   if (ADMIN) { ADMINS.add(sess.nome); save.owned = SHIPS.map(s => s.id); save.coins = 99999999; persist(); refreshAcct(); }
 }
-rpc('admins_nomes').then(a => { if (Array.isArray(a)) a.forEach(n => ADMINS.add(n)); }).catch(() => {});
-async function admLoad() {
-  const b = $('admBody'), m = $('admMsg'); m.textContent = 'Carregando…';
-  try {
-    const d = await rpc('admin_contas');
-    if (!Array.isArray(d)) throw 0;
-    m.textContent = d.length + ' contas';
-    b.innerHTML = d.map(x => '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)"><div style="min-width:0"><b>' + esc(x.nome) + '</b>' + adm(x.nome) + '<div style="color:var(--steel);font-size:11px">criada ' + dia(x.criado) + ' · último acesso ' + dia(x.ultimo) + (x.no_ranking ? ' · ' + fmt(+x.pontos || 0) + ' pts' : '') + '</div></div>' + (x.no_ranking ? '<button class="btn ghost" data-rm="' + esc(x.nome) + '" type="button" style="font-size:13px;padding:4px 10px;min-height:0">Remover do ranking</button>' : '') + '</div>').join('');
-  } catch (e) { m.textContent = 'Sem permissão ou sem conexão.'; }
+const ADMINS_READY = rpc('admins_nomes').then(a => { if (Array.isArray(a)) a.forEach(n => ADMINS.add(n)); }).catch(() => {});
+let admTab = 'contas', admData = [];
+const admBs = 'style="min-height:30px;padding:3px 8px;font-size:11px"';
+const admSay = t => { $('admMsg').textContent = t; };
+async function admCall(fn, args, ok) {
+  try { const r = await rpc(fn, args); admSay(r === 'ok' ? ok : r === 'nao_encontrado' ? 'Conta não encontrada.' : r === 'e_admin' ? 'Não dá para banir um admin.' : r === 'proprio' ? 'Não dá para alterar a própria conta.' : String(r)); }
+  catch (e) { admSay('Sem permissão ou sem conexão.'); }
 }
-$('pAdm').addEventListener('click', () => { $('adm').hidden = false; admLoad(); });
+function admRows() {
+  const q = $('admQ').value.trim().toLowerCase();
+  const l = admData.filter(x => !q || x.nome.toLowerCase().includes(q));
+  $('admBody').innerHTML = l.map(x => { const n = esc(x.nome); const bt = (a, t) => '<button class="btn ghost" ' + admBs + ' data-a="' + a + '" data-n="' + n + '" type="button">' + t + '</button>';
+    return '<div style="padding:8px 0;border-top:1px solid var(--line)"><b>' + n + '</b>' + adm(x.nome) + (x.banido ? '<em class="rk-you" style="color:var(--rust);border-color:var(--rust)">banido</em>' : '') +
+      '<div style="color:var(--steel);font-size:11px;margin:2px 0 6px">criada ' + dia(x.criado) + ' · último acesso ' + dia(x.ultimo) + (x.no_ranking ? ' · ' + fmt(+x.pontos || 0) + ' pts' : '') + '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px">' + (x.no_ranking ? bt('rm', 'Tirar do ranking') : '') + (x.eh_adm ? bt('rmadm', 'Remover admin') : bt('mkadm', 'Tornar admin') + (x.banido ? bt('unban', 'Desbanir') : bt('ban', 'Banir'))) + bt('coins', 'Moedas') + bt('ship', 'Navio') + bt('ach', 'Conquista') + bt('perfil', 'Perfil') + '</div></div>'; }).join('') || '<p class="note">Nenhuma conta encontrada.</p>';
+}
+async function admLoad() {
+  const b = $('admBody'); $('admQ').hidden = admTab !== 'contas';
+  for (const t of $('admTabs').children) t.classList.toggle('on', t.dataset.t === admTab);
+  admSay('Carregando…');
+  try {
+    if (admTab === 'contas') { const d = await rpc('admin_contas'); if (!Array.isArray(d)) throw 0; admData = d; admSay(d.length + ' contas'); admRows(); }
+    else if (admTab === 'stats') {
+      const d = await rpc('admin_stats'); if (!d || typeof d !== 'object') throw 0; admSay('');
+      const nm = id => { const s = SHIPS.find(x => x.id === id); return s ? s.name : id; };
+      b.innerHTML = kv('Contas', num(d.contas)) + kv('Ativas nas últimas 24h', num(d.ativos24)) + kv('Ativas em 7 dias', num(d.ativos7)) + kv('Novas em 7 dias', num(d.novos7)) + kv('Pontuaram na semana', num(d.rank_sem)) + kv('Onda média (ranking)', d.onda_media == null ? '—' : String(d.onda_media)) + kv('Pontos médios (ranking)', num(d.pontos_media)) + kv('Banidos agora', num(d.banidos)) +
+        '<div style="margin-top:10px;color:var(--steel);font-size:11px">NAVIOS MAIS USADOS</div>' + ((d.navios || []).map(x => kv(esc(nm(x.id)), num(x.n))).join('') || '<p class="note">Sem dados.</p>');
+    } else if (admTab === 'avisos') {
+      admSay('Avisos aparecem no topo para todos os jogadores. Eventos multiplicam as moedas ganhas.');
+      const inp = 'style="width:100%;box-sizing:border-box;min-height:38px;padding:0 8px;background:transparent;border:1px solid var(--line);color:inherit;font:inherit;margin:4px 0"';
+      b.innerHTML = '<div style="color:var(--steel);font-size:11px">AVISO GLOBAL</div><input id="admAviso" maxlength="200" placeholder="Ex.: manutenção às 22h" ' + inp + '><div style="display:flex;gap:6px"><button class="btn ghost" ' + admBs + ' data-a="aviso" type="button">Publicar</button><button class="btn ghost" ' + admBs + ' data-a="avisoclr" type="button">Limpar aviso</button></div>' +
+        '<div style="color:var(--steel);font-size:11px;margin-top:14px">EVENTO DE MOEDAS</div><div style="display:flex;gap:6px"><select id="admEvM" ' + inp + '><option value="2">2x moedas</option><option value="3">3x moedas</option><option value="5">5x moedas</option></select><select id="admEvH" ' + inp + '><option value="1">1 hora</option><option value="6">6 horas</option><option value="24">24 horas</option><option value="72">3 dias</option></select></div><div style="display:flex;gap:6px"><button class="btn ghost" ' + admBs + ' data-a="evt" type="button">Iniciar evento</button><button class="btn ghost" ' + admBs + ' data-a="evtstop" type="button">Encerrar evento</button></div>';
+    } else {
+      const d = await rpc('admin_log_lista'); if (!Array.isArray(d)) throw 0; admSay(d.length ? 'Últimas ' + d.length + ' ações' : 'Nenhuma ação registrada ainda.');
+      b.innerHTML = d.map(x => '<div style="padding:7px 0;border-top:1px solid var(--line)"><b>' + esc(x.acao) + '</b> ' + esc(x.alvo || '') + '<div style="color:var(--steel);font-size:11px">' + esc(x.admin) + ' · ' + new Date(x.criado).toLocaleString('pt-BR') + (x.detalhe ? ' · ' + esc(x.detalhe) : '') + '</div></div>').join('');
+    }
+  } catch (e) { admSay('Sem permissão ou sem conexão.'); b.innerHTML = ''; }
+}
+const admOpen = () => { $('adm').hidden = false; admLoad(); };
+$('pAdm').addEventListener('click', admOpen);
+$('btnAdm').addEventListener('click', admOpen);
 $('admBack').addEventListener('click', () => { $('adm').hidden = true; });
+$('admQ').addEventListener('input', admRows);
+$('admTabs').addEventListener('click', e => { const t = e.target.closest('[data-t]'); if (t) { admTab = t.dataset.t; admLoad(); } });
 $('admBody').addEventListener('click', async e => {
-  const b = e.target.closest('[data-rm]'); if (!b) return;
-  const n = b.dataset.rm;
-  if (!confirm('Remover ' + n + ' do ranking (geral e semanal)?')) return;
-  try { await rpc('admin_remover_ranking', { p_nome: n }); } catch (err) {}
-  admLoad();
+  const b = e.target.closest('[data-a]'); if (!b) return;
+  const a = b.dataset.a, n = b.dataset.n;
+  if (a === 'rm') { if (!confirm('Remover ' + n + ' do ranking (geral e semanal)?')) return; await admCall('admin_remover_ranking', { p_nome: n }, 'Removido do ranking.'); }
+  else if (a === 'ban') { const m = prompt('Motivo do banimento de ' + n + ':'); if (m === null) return; const d = prompt('Dias de banimento (0 = permanente):', '0'); if (d === null) return; await admCall('admin_banir', { p_nome: n, p_motivo: m, p_dias: Math.max(0, parseInt(d) || 0) }, 'Conta banida e removida do ranking.'); }
+  else if (a === 'unban') await admCall('admin_desbanir', { p_nome: n }, 'Conta desbanida.');
+  else if (a === 'coins') { const q = parseInt(prompt('Moedas para dar a ' + n + ' (negativo tira):', '1000')); if (!q) return; await admCall('admin_moedas', { p_nome: n, p_qtd: q }, 'Moedas atualizadas (valem no próximo login da conta).'); }
+  else if (a === 'ship') { const id = (prompt('Navio para dar a ' + n + ':\n' + SHIPS.filter(x => !x.adminOnly).map(x => x.id + ' — ' + x.name).join('\n')) || '').trim(); if (!SHIPS.some(x => x.id === id && !x.adminOnly)) return; await admCall('admin_dar_navio', { p_nome: n, p_navio: id }, 'Navio entregue.'); }
+  else if (a === 'ach') { const id = (prompt('Conquista para dar a ' + n + ':\n' + ACH.map(x => x.id + ' — ' + x.n).join('\n')) || '').trim(); if (!ACH.some(x => x.id === id)) return; await admCall('admin_dar_conquista', { p_nome: n, p_id: id }, 'Conquista entregue.'); }
+  else if (a === 'mkadm') { if (!confirm('Tornar ' + n + ' administrador? Ele sai do ranking.')) return; await admCall('admin_set_admin', { p_nome: n, p_valor: true }, n + ' agora é admin.'); }
+  else if (a === 'rmadm') { if (!confirm('Remover o admin de ' + n + '?')) return; ADMINS.delete(n); await admCall('admin_set_admin', { p_nome: n, p_valor: false }, 'Admin removido.'); }
+  else if (a === 'perfil') { $('adm').hidden = true; if (typeof openProfile === 'function') openProfile(n); return; }
+  else if (a === 'aviso') { const t = $('admAviso').value.trim(); if (!t) return; await admCall('admin_aviso', { p_texto: t }, 'Aviso publicado.'); loadNotices(); return; }
+  else if (a === 'avisoclr') { await admCall('admin_aviso', { p_texto: '' }, 'Aviso removido.'); loadNotices(); return; }
+  else if (a === 'evt') { await admCall('admin_evento', { p_tipo: 'moedas', p_mult: +$('admEvM').value, p_horas: +$('admEvH').value }, 'Evento iniciado.'); loadNotices(); return; }
+  else if (a === 'evtstop') { await admCall('admin_evento', { p_tipo: 'moedas', p_mult: 1, p_horas: 0 }, 'Evento encerrado.'); loadNotices(); return; }
+  const m = $('admMsg').textContent; await admLoad(); admSay(m);
 });
+let EVT = null;
+async function loadNotices() {
+  try {
+    const [t, ev] = await Promise.all([rpc('aviso_atual'), rpc('evento_atual')]);
+    EVT = ev && ev.mult ? ev : null; const parts = [];
+    if (EVT) parts.push('Evento: moedas x' + EVT.mult + ' até ' + new Date(EVT.ate).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }));
+    if (t) parts.push(t);
+    const bn = $('admBanner'); bn.textContent = parts.join(' · '); bn.hidden = !parts.length;
+  } catch (e) {}
+}
+loadNotices(); setInterval(loadNotices, 300000);
+$('admBanner').addEventListener('click', () => { $('admBanner').hidden = true; });
 
 /* ---------- configurações ---------- */
 const cfgEl = $('cfg');
