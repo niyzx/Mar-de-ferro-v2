@@ -221,6 +221,110 @@ body:not(.touch) .help .only-touch { display: none; }
 .mtiles .btn.ghost svg { width: 22px; height: 22px; }
 .mtiles .btn.ghost:hover { background: rgba(224,169,60,.08); }
 #ov[data-m="menu"] { background: radial-gradient(ellipse at 50% 35%, rgba(6,18,26,.5), rgba(6,18,26,.9)); }
+/* Esquadra / Versus */
+.mpp { gap: 12px; }
+.mpt { display: flex; flex-direction: column; gap: 4px; }
+.mpstat { margin: 0; display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; font-size: 12px; line-height: 1.5; color: var(--ink); background: rgba(6,18,26,.55); border: 1px solid var(--line); border-left: 3px solid var(--brass); }
+.mpstat:empty { display: none; }
+.mpmode { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mpmode[hidden], .mpmode:has(#mpMode[hidden]) { display: none; }
+.mpcard .mpmodebtn { min-height: 40px; font-size: 16px; }
+.mpcard .mpmodebtn[hidden] { display: none; }
+.mpjoin { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mpcard { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); background: rgba(212,232,234,.04); min-width: 0; }
+.mpcard b { font: 900 22px/1 var(--font-display); letter-spacing: .06em; text-transform: uppercase; }
+.mpcard small { font-size: 11px; line-height: 1.45; color: var(--steel); flex: 1; }
+.mpcard .btn { min-height: 46px; width: 100%; font-size: 20px; padding: 6px 10px; }
+.mpcard .btn:not(.ghost) { padding-right: 30px; }
+.mpcard input { width: 100%; box-sizing: border-box; padding: 8px; user-select: text; -webkit-user-select: text; text-transform: uppercase; text-align: center; letter-spacing: .4em; text-indent: .4em; font: 700 22px var(--font-mono); color: var(--brass); background: rgba(6,18,26,.6); border: 1px solid var(--line); border-radius: 0; }
+.mpcard input::placeholder { color: var(--steel); opacity: .6; font-size: 13px; letter-spacing: .2em; text-indent: 0; }
+.mpcard input:focus { outline: 2px solid var(--brass); outline-offset: 1px; }
+.mpp:has(#mpBig:not(:empty)) .mpjoin, .mpp:has(#mpList:not(:empty)) .mpjoin { display: none; }
+.mplobby { display: flex; flex-direction: column; gap: 10px; }
+.mplobby:not(:has(#mpBig:not(:empty), #mpList:not(:empty))) { display: none; }
+.mpticket { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border: 1px dashed var(--brass); background: rgba(224,169,60,.07); }
+.mpticket:not(:has(#mpBig:not(:empty))) { display: none; }
+#mpBig { font: 900 52px/1 var(--font-display); letter-spacing: .22em; color: var(--brass); margin-top: 2px; text-indent: .05em; }
+.mpticket .btn { min-height: 44px; padding: 4px 14px; font-size: 17px; flex: none; }
+.mplbl { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--steel); }
+.mplbl b { font-weight: 600; color: var(--ink); letter-spacing: .08em; }
+#mpList { display: grid; gap: 6px; }
+.mps { --pc: var(--brass); display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-left: 3px solid var(--pc); background: rgba(212,232,234,.05); min-width: 0; }
+.mpav { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; font: 900 17px/1 var(--font-display); color: #0a1f2c; background: var(--pc); }
+.mpn { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mpn b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; }
+.mpn small { font-size: 11px; color: var(--steel); letter-spacing: .06em; }
+.mptag { flex: none; padding: 0 7px; border: 1px solid var(--pc); color: var(--pc); font-size: 9px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.mps .ibtn { flex: none; width: 34px; height: 34px; }
+.mps.empty { border-left-color: var(--line); border-style: dashed; background: transparent; opacity: .75; }
+.mps.empty .mpav { background: transparent; border: 1px dashed var(--steel); color: var(--steel); }
+.mps.empty .mpn b { color: var(--steel); font-weight: 400; }
+.mps.empty .mpn b::after { content: ''; display: inline-block; width: 4px; height: 4px; margin-left: 2px; border-radius: 50%; background: var(--steel); animation: mpdot 1.2s steps(3, end) infinite; }
+@keyframes mpdot { 0% { box-shadow: 6px 0 0 transparent, 12px 0 0 transparent; } 33% { box-shadow: 6px 0 0 var(--steel), 12px 0 0 transparent; } 66%, 100% { box-shadow: 6px 0 0 var(--steel), 12px 0 0 var(--steel); } }
+.mpact .btn:not(.ghost) { flex: 1 1 100%; min-height: 56px; font-size: 28px; }
+.mptabs button { display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
+.mptabs button i { margin-left: 0; }
+.mpp:has(#mpBig:not(:empty), #mpList:not(:empty)) .mptabs button:not(.on) { opacity: .4; cursor: not-allowed; }
+@media (max-width: 420px) { .mpjoin { grid-template-columns: 1fr; } #mpBig { font-size: 44px; } }
+@media (orientation: landscape) and (max-height: 520px) {
+  .mpp { width: min(820px, 100%); gap: 6px; }
+  .mpstat { padding: 6px 10px; }
+  .mpcard { padding: 8px 10px; gap: 5px; } .mpcard small { display: none; } .mpcard b { font-size: 18px; }
+  .mpcard .btn { min-height: 38px; font-size: 17px; }
+  #mpBig { font-size: 36px; }
+  #mpList { grid-template-columns: 1fr 1fr; }
+  .mpact .btn:not(.ghost) { min-height: 44px; font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) { .mps.empty .mpn b::after { animation: none; box-shadow: 6px 0 0 var(--steel), 12px 0 0 var(--steel); } }
+/* Ranking renovado */
+.rkp { gap: 12px; }
+.rkh { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.rkh .btn.ghost { min-height: 40px; padding: 4px 14px; font-size: 16px; flex: none; }
+.rk-tabs { gap: 6px; border: 0; }
+.rk-tabs button { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 7px 2px 6px; font-size: 17px; border: 1px solid var(--line); background: rgba(212,232,234,.04); transition: background .15s, border-color .15s; }
+.rk-tabs button + button { border-left: 1px solid var(--line); }
+.rk-tabs button { gap: 3px; padding: 9px 2px 8px; }
+.rk-tabs button svg { width: 22px; height: 22px; color: var(--steel); }
+.rk-tabs button b { font-weight: 900; font-size: 18px; line-height: 1; letter-spacing: .07em; }
+.rk-tabs button small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 9px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
+.rk-tabs button:hover:not(.on) { border-color: var(--steel); color: var(--ink); }
+.rk-tabs button.on { background: var(--brass); border-color: var(--brass); color: #1b1305; box-shadow: 0 2px 14px rgba(224,169,60,.3); }
+.rk-tabs button.on svg { color: #1b1305; }
+.rk-tabs button:focus-visible, .rk-card:focus-visible, .rk-row:focus-visible { outline: 2px solid var(--foam); outline-offset: 2px; }
+.rk-search { display: flex; align-items: center; gap: 8px; padding: 0 0 0 12px; border: 1px solid var(--line); background: rgba(6,18,26,.55); color: var(--steel); }
+.rk-search:focus-within { border-color: var(--brass); }
+.rk-search svg { flex: none; }
+.rk-search input { flex: 1; min-width: 0; box-sizing: border-box; padding: 11px 0; border: 0; border-radius: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px; user-select: text; -webkit-user-select: text; }
+.rk-search input:focus { outline: none; }
+.rk-search .btn { min-height: 40px; padding: 4px 14px; margin: 3px; font-size: 16px; }
+.rk-info { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+.rk-info span { padding: 4px 10px; border: 1px solid var(--line); background: rgba(6,18,26,.5); }
+.rk-info span { display: inline-flex; align-items: center; gap: 6px; }
+.rk-info svg { flex: none; color: var(--brass); }
+.rk-crown svg { color: var(--c); }
+.rk-meb { padding: 8px 12px; }
+.rk-meb.pos { display: flex; align-items: center; gap: 14px; padding: 8px 14px; background: linear-gradient(90deg, rgba(224,169,60,.2), rgba(224,169,60,.05)); border: 1px solid rgba(224,169,60,.5); border-left: 3px solid var(--brass); }
+.rk-meb .mp-n { font: 900 38px/1 var(--font-display); color: var(--brass); font-variant-numeric: tabular-nums; }
+.rk-meb.pos small { display: block; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--steel); margin-bottom: 1px; }
+.rk-av { --h: 200; flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font: 900 16px/1 var(--font-display); color: #0a1f2c; background: hsl(var(--h) 45% 62%); }
+.rk-pod { gap: 8px; margin-bottom: 8px; animation: rkIn .35s ease both; }
+.rk-card { position: relative; padding: 14px 6px 12px; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 14%, transparent), rgba(212,232,234,.03)); border-color: color-mix(in srgb, var(--c) 45%, transparent); }
+.rk-card.p1 { padding-top: 22px; padding-bottom: 16px; border-color: var(--c); background: linear-gradient(180deg, color-mix(in srgb, var(--c) 24%, transparent), rgba(224,169,60,.04)); box-shadow: 0 0 24px color-mix(in srgb, var(--c) 22%, transparent); }
+.rk-crown { position: absolute; top: 4px; left: 0; right: 0; line-height: 0; text-align: center; }
+.rk-avw { position: relative; width: 48px; margin: 0 auto 10px; }
+.rk-card.p1 .rk-avw { width: 58px; }
+.rk-avw .rk-av { width: 100%; height: auto; aspect-ratio: 1; font-size: 24px; box-shadow: 0 0 0 2px var(--c); }
+.rk-card.p1 .rk-avw .rk-av { font-size: 29px; }
+.rk-avw .rk-medal { position: absolute; right: -7px; bottom: -6px; width: 22px; height: 22px; margin: 0; font-size: 13px; box-shadow: 0 0 0 2px #0c2433; }
+.rk-card.p1 .rk-avw .rk-medal { width: 24px; height: 24px; font-size: 14px; }
+.rk-list { animation: rkIn .35s ease both; }
+.rk-row { grid-template-columns: 26px 30px minmax(0, 1fr) auto; gap: 10px; border-color: rgba(212,232,234,.06); }
+.rk-row:nth-child(-n+7) .rk-pos { color: var(--ink); }
+.rk-hint { margin: 0; text-align: center; font-size: 11px; color: var(--steel); }
+@keyframes rkIn { from { opacity: 0; transform: translateY(6px); } }
+@media (max-width: 380px) { .rk-tabs button b { font-size: 16px; } .rk-tabs button small { font-size: 8px; letter-spacing: .04em; } .rk-card .rk-val { font-size: 20px; } .rk-card.p1 .rk-val { font-size: 23px; } .rk-avw { width: 40px; } .rk-card.p1 .rk-avw { width: 48px; } }
+@media (orientation: landscape) and (max-height: 520px) { .rkp { width: min(760px, 100%); gap: 6px; } .rk-tabs button { flex-direction: row; justify-content: center; gap: 6px; padding: 4px 2px; } .rk-tabs button small { display: none; } .rk-tabs button svg { width: 18px; height: 18px; } .rk-meb.pos .mp-n { font-size: 28px; } .rk-hint { display: none; } }
+@media (prefers-reduced-motion: reduce) { .rk-pod, .rk-list { animation: none; } }
 /* Oficina */
 .title.sm { font-size: clamp(40px, 10vw, 64px); }
 .shophead { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
@@ -530,7 +634,7 @@ body:not(.touch) .help .only-touch { display: none; }
         <button class="btn ghost" id="btnHow" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg><span>Como jogar</span></button>
         <button class="btn ghost" id="btnShop" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><span>Oficina</span></button>
         <button class="btn ghost evtbtn" id="btnEvt" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg><span>Evento</span></button>
-        <button class="btn ghost" id="btnMp" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.8 0 4 2 4 5"/></svg><span>Esquadra</span></button>
+        <button class="btn ghost" id="btnMp" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.8 0 4 2 4 5"/></svg><span>Multijogador</span></button>
         <button class="btn ghost" id="btnVs" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4l12 12M19 4L7 16M14 15l3 3M10 15l-3 3"/></svg><span>Versus</span></button>
         <button class="btn ghost" id="btnRank" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 20V10M12 20V4M18 20v-7"/></svg><span>Ranking</span></button>
         <button class="btn ghost" id="btnAdm" type="button" hidden>★ Painel admin</button>
@@ -588,19 +692,26 @@ body:not(.touch) .help .only-touch { display: none; }
 
 <div id="mate" hidden style="position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);z-index:5;pointer-events:none;width:min(170px,34vw);font-size:11px;letter-spacing:.14em;color:var(--steel);text-align:center;display:flex;flex-direction:column;gap:5px"></div>
 <div id="pings" hidden><button type="button" data-k="0">1 · Ajuda!</button><button type="button" data-k="1">2 · Vem aqui</button><button type="button" data-k="2">3 · Cuidado!</button><button type="button" data-k="3">4 · Valeu!</button></div>
-<div class="overlay" id="mpEl" hidden><div class="panel">
-  <h1 class="title sm" id="mpTitle">Esquadra</h1>
-  <p class="note" id="mpMsg">Um cria a sala e manda o código; até 3 amigos entram com ele (4 jogadores). Todos enfrentam as mesmas ondas.</p>
-  <div id="mpList"></div>
-  <div class="giftrow" id="mpGift" hidden><span class="mlbl">Presentear com moedas (toque no 🎁 do amigo)</span><div class="ushp" id="mpAmts"></div></div>
-  <div id="mpBig" style="font-family:var(--font-display);font-weight:900;font-size:54px;letter-spacing:.25em;color:var(--brass)"></div>
-  <input id="mpCode" maxlength="4" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters" style="user-select:text;-webkit-user-select:text;width:100%;box-sizing:border-box;padding:10px;background:rgba(212,232,234,.08);border:1px solid var(--line);color:var(--ink);font:inherit;text-transform:uppercase;letter-spacing:.3em;text-align:center">
-  <div class="actions">
+<div class="overlay" id="mpEl" hidden><div class="panel mpp">
+  <div class="mpt"><div class="kicker" id="mpKicker">Cooperativo · até 4 jogadores</div><h1 class="title sm" id="mpTitle">Multijogador</h1></div>
+  <div class="tabs mptabs" id="mpTabs" role="tablist" aria-label="Tipo de partida"><button type="button" role="tab" data-vs="0" class="on" aria-selected="true">Esquadra<i>até 4 · coop</i></button><button type="button" role="tab" data-vs="1" aria-selected="false">Versus<i>1×1</i></button></div>
+  <p class="mpstat" id="mpMsg" role="status" aria-live="polite"></p>
+  <div class="mpjoin">
+    <div class="mpcard"><b>Criar sala</b><small>Você é o anfitrião e manda o código aos amigos.</small>
+      <button class="btn ghost mpmodebtn" id="mpMode" type="button" title="Toque para alternar entre Normal e Hardcore">Modo: Normal</button>
+      <button class="btn" id="mpCreate" type="button">Criar sala</button></div>
+    <div class="mpcard"><b>Entrar numa sala</b><small>Digite o código de 4 letras que o anfitrião mandou.</small>
+      <input id="mpCode" maxlength="4" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <button class="btn ghost" id="mpJoin" type="button">Entrar na sala</button></div>
+  </div>
+  <div class="mplobby">
+    <div class="mpticket"><div><span class="mlbl">Código da sala</span><div id="mpBig"></div></div><button class="btn ghost" id="mpShare" type="button" hidden>Copiar código</button></div>
+    <div class="mplbl"><span>Jogadores</span><b id="mpCount"></b></div>
+    <div id="mpList"></div>
+    <div class="giftrow" id="mpGift" hidden><span class="mlbl">Presentear com moedas: toque no 🎁 de um jogador</span><div class="ushp" id="mpAmts"></div></div>
+  </div>
+  <div class="actions mpact">
     <button class="btn" id="mpGo" type="button" hidden>Zarpar</button>
-    <button class="btn ghost" id="mpShare" type="button" hidden>Copiar código</button>
-    <button class="btn ghost" id="mpMode" type="button">Modo: Normal</button>
-    <button class="btn ghost" id="mpCreate" type="button">Criar sala</button>
-    <button class="btn ghost" id="mpJoin" type="button">Entrar na sala</button>
     <button class="btn ghost" id="mpBack" type="button">Voltar</button>
   </div>
 </div></div>
@@ -655,15 +766,15 @@ body:not(.touch) .help .only-touch { display: none; }
   <div id="achBody"></div>
   <div class="actions"><button class="btn ghost" id="achBack" type="button">Voltar</button></div>
 </div></div>
-<div class="overlay" id="rank" hidden><div class="panel">
-  <h1 class="title sm">Ranking</h1>
-  <div id="rTabs" class="rk-tabs"><button data-tab="semana" type="button">Semana</button><button data-tab="pontos" type="button">Pontos</button><button data-tab="kills" type="button">Abates</button><button data-tab="horas" type="button">Horas</button></div>
-  <div style="display:flex;gap:6px"><input id="pSearch" maxlength="16" placeholder="Buscar jogador" autocomplete="off" autocapitalize="none" style="user-select:text;-webkit-user-select:text;flex:1;min-width:0;box-sizing:border-box;padding:10px;background:rgba(212,232,234,.08);border:1px solid var(--line);color:var(--ink);font:inherit"><button class="btn ghost" id="pGo" type="button" style="padding:6px 16px;font-size:16px">Buscar</button></div>
+<div class="overlay" id="rank" hidden><div class="panel rkp">
+  <div class="rkh"><div><div class="kicker">Classificação</div><h1 class="title sm">Ranking</h1></div><button class="btn ghost" id="pMine" type="button" hidden>Meu perfil</button></div>
+  <div id="rTabs" class="rk-tabs" role="tablist" aria-label="Tipo de ranking"><button data-tab="semana" type="button" role="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="1"/><path d="M4 10h16M8 3v4M16 3v4"/></svg><b>Semana</b><small>Zera domingo</small></button><button data-tab="pontos" type="button" role="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg><b>Pontos</b><small>Recorde</small></button><button data-tab="kills" type="button" role="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><b>Abates</b><small>Navios</small></button><button data-tab="horas" type="button" role="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><b>Horas</b><small>Tempo</small></button></div>
+  <div class="rk-search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="pSearch" maxlength="16" placeholder="Buscar jogador" autocomplete="off" autocapitalize="none" spellcheck="false"><button class="btn ghost" id="pGo" type="button">Buscar</button></div>
   <div id="rankInfo" class="rk-info" hidden></div>
   <div id="rankMe" class="rk-meb" hidden></div>
   <div id="rankBody"></div>
-  <p class="note" style="text-align:center">Toque em um jogador para ver o perfil.</p>
-  <div class="actions"><button class="btn ghost" id="pMine" type="button" hidden>Meu perfil</button><button class="btn ghost" id="rankBack" type="button">Voltar</button></div>
+  <p class="rk-hint">Toque em um jogador para ver o perfil.</p>
+  <div class="actions"><button class="btn ghost" id="rankBack" type="button">Voltar</button></div>
 </div></div>
 <button class="ibtn" id="btnCfg" type="button" aria-label="Configurações" title="Configurações" style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;z-index:20"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 <style>
@@ -3011,7 +3122,7 @@ function showOverlay(mode) {
   $('btnAch').hidden = mode === 'paused';
   $('btnAdm').hidden = !ADMIN || mode === 'paused';
   $('btnMp').hidden = mode === 'paused';
-  $('btnVs').hidden = mode === 'paused';
+  $('btnVs').hidden = true;
   refreshAcct();
   $('sendMsg').textContent = '';
   $('bal').textContent = '$ ' + fmt(save.coins);
@@ -3325,13 +3436,18 @@ function rkMsg(t, retry) {
     (retry ? '<div style="text-align:center"><button class="btn ghost" data-retry="1" type="button" style="font-size:15px;padding:6px 16px">Tentar de novo</button></div>' : '');
 }
 function rkSkel() { $('rankBody').innerHTML = '<div class="rk-list">' + '<div class="rk-sk"></div>'.repeat(7) + '</div>'; }
+const rkIc = (d, z) => '<svg viewBox="0 0 24 24" width="' + z + '" height="' + z + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
+const IC_CROWN = '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>', IC_CLOCK = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
+const avH = n => ([...String(n)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0) % 360;
+const avEl = (n, extra) => '<span class="rk-av' + (extra ? ' ' + extra : '') + '" style="--h:' + avH(n) + '" aria-hidden="true">' + esc(String(n).charAt(0).toUpperCase()) + '</span>';
 function rkRender(items, o) {
   const me = sess && sess.nome, top = Math.max(1, items[0].val), pod = o.rank && items.length >= 3;
   const mine = it => it.nome === me;
-  const row = (it, i) => '<div class="rk-row' + (mine(it) ? ' me' : '') + '" data-n="' + esc(it.nome) + '" style="--w:' + Math.round(clamp(it.val / top, 0, 1) * 100) + '%">' +
-    '<span class="rk-pos">' + (o.rank ? i + 1 : '·') + '</span><div style="min-width:0"><div class="rk-name">' + esc(it.nome) + adm(it.nome) + (mine(it) ? '<em class="rk-you">você</em>' : '') + '</div>' +
+  const row = (it, i) => '<div class="rk-row' + (mine(it) ? ' me' : '') + '" data-n="' + esc(it.nome) + '" tabindex="0" role="button" style="--w:' + Math.round(clamp(it.val / top, 0, 1) * 100) + '%">' +
+    '<span class="rk-pos">' + (o.rank ? i + 1 : '·') + '</span>' + avEl(it.nome) + '<div style="min-width:0"><div class="rk-name">' + esc(it.nome) + adm(it.nome) + (mine(it) ? '<em class="rk-you">você</em>' : '') + '</div>' +
     (it.sub ? '<div class="rk-sub">' + esc(it.sub) + '</div>' : '') + '</div><span class="rk-val">' + esc(it.txt) + '</span></div>';
-  const card = (it, i) => '<div class="rk-card p' + (i + 1) + (mine(it) ? ' me' : '') + '" data-n="' + esc(it.nome) + '" style="--c:' + MEDAL[i] + '"><div class="rk-medal">' + (i + 1) + '</div>' +
+  const card = (it, i) => '<div class="rk-card p' + (i + 1) + (mine(it) ? ' me' : '') + '" data-n="' + esc(it.nome) + '" tabindex="0" role="button" style="--c:' + MEDAL[i] + '">' + (i === 0 ? '<div class="rk-crown">' + rkIc(IC_CROWN, 18) + '</div>' : '') +
+    '<div class="rk-avw">' + avEl(it.nome) + '<b class="rk-medal">' + (i + 1) + '</b></div>' +
     '<div class="rk-name">' + esc(it.nome) + adm(it.nome) + (mine(it) ? '<em class="rk-you">você</em>' : '') + '</div><div class="rk-val">' + esc(it.txt) + '</div><div class="rk-sub">' + esc(it.sub || '') + '</div></div>';
   let h = '';
   if (pod) h += '<div class="rk-pod">' + card(items[1], 1) + card(items[0], 0) + card(items[2], 2) + '</div>';
@@ -3341,26 +3457,28 @@ function rkRender(items, o) {
 }
 async function rkMe(items, tab, eu) {
   const el = $('rankMe');
-  if (!sess) { el.hidden = false; el.textContent = 'Entre numa conta para aparecer no ranking.'; return; }
-  if (ADMIN) { el.hidden = false; el.textContent = 'Contas de admin não aparecem no ranking.'; return; }
+  const msg = t => { el.hidden = false; el.className = 'rk-meb'; el.textContent = t; };
+  const box = (pos, txt) => { el.hidden = false; el.className = 'rk-meb pos'; el.innerHTML = '<b class="mp-n">#' + pos + '</b><span><small>Sua posição</small>' + txt + '</span>'; };
+  if (!sess) { msg('Entre numa conta para aparecer no ranking.'); return; }
+  if (ADMIN) { msg('Contas de admin não aparecem no ranking.'); return; }
   const i = items.findIndex(x => x.nome === sess.nome);
-  if (i >= 0) { el.hidden = false; el.innerHTML = 'Sua posição: <b>#' + (i + 1) + '</b> · ' + esc(items[i].txt) + (items[i].sub ? ' · ' + esc(items[i].sub) : ''); return; }
-  if (tab === 'semana') { el.hidden = false; if (eu) el.innerHTML = 'Sua posição: <b>#' + num(eu.pos) + '</b> · ' + fmt(+eu.pontos || 0) + ' · onda ' + num(eu.onda); else el.textContent = 'Você ainda não pontuou nesta semana. Jogue uma partida logado!'; return; }
+  if (i >= 0) { box(i + 1, esc(items[i].txt) + (items[i].sub ? ' · ' + esc(items[i].sub) : '')); return; }
+  if (tab === 'semana') { if (eu) box(num(eu.pos), fmt(+eu.pontos || 0) + ' · onda ' + num(eu.onda)); else msg('Você ainda não pontuou nesta semana. Jogue uma partida logado!'); return; }
   if (tab === 'pontos') {
     try {
       const d = await rpc('perfil_publico', { p_nome: sess.nome });
       if (tab !== rankTab) return;
-      if (d && d.ranking) { el.hidden = false; el.innerHTML = 'Sua posição: <b>#' + num(d.ranking.pos) + '</b> · melhor onda ' + num(d.ranking.onda); return; }
+      if (d && d.ranking) { box(num(d.ranking.pos), 'melhor onda ' + num(d.ranking.onda)); return; }
     } catch (e) {}
   }
-  if (tab === rankTab) { el.hidden = false; el.textContent = tab === 'pontos' ? 'Você ainda não enviou pontuação. Jogue uma partida logado!' : 'Você ainda não está entre os primeiros desta lista.'; }
+  if (tab === rankTab) msg(tab === 'pontos' ? 'Você ainda não enviou pontuação. Jogue uma partida logado!' : 'Você ainda não está entre os primeiros desta lista.');
 }
 function rkTick() {
   const c = $('rkCount'); if (!c || !rkFim) return;
   let ms = rkFim - Date.now();
   if (ms <= 0) { if (rankTab === 'semana' && !rankEl.hidden) openRank(); return; }
   const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mi = m % 60;
-  c.innerHTML = 'A semana zera em <b>' + (d ? d + ' d ' : '') + h + ' h ' + String(mi).padStart(2, '0') + ' min</b> (domingo 00:00, Brasília)';
+  c.innerHTML = rkIc(IC_CLOCK, 14) + '<span>A semana zera em <b>' + (d ? d + ' d ' : '') + h + ' h ' + String(mi).padStart(2, '0') + ' min</b> (domingo 00:00, Brasília)</span>';
 }
 setInterval(() => { if (!rankEl.hidden && rankTab === 'semana') rkTick(); }, 30000);
 function topCheck(tab, items) { if (!sess || ADMIN) return; const i = items.slice(0, 3).findIndex(x => x.nome === sess.nome); if (i >= 0 && !(TOPNOW[tab] <= i + 1)) { TOPNOW[tab] = i + 1; checkAch(); } }
@@ -3379,7 +3497,7 @@ async function openRank() {
       if (tab !== rankTab) return;
       rkFim = Date.parse(d.fim) || 0;
       const inf = $('rankInfo'); inf.hidden = false;
-      inf.innerHTML = '<span id="rkCount"></span>' + (d.anterior ? '<span>Campeão da semana passada: <b>' + esc(d.anterior.nome) + '</b> · ' + fmt(+d.anterior.pontos || 0) + '</span>' : '');
+      inf.innerHTML = '<span id="rkCount"></span>' + (d.anterior ? '<span>' + rkIc(IC_CROWN, 14) + '<span>Campeão da semana passada: <b>' + esc(d.anterior.nome) + '</b> · ' + fmt(+d.anterior.pontos || 0) + '</span></span>' : '');
       rkTick();
       items = rkNoAdm(d.lista.map(x => ({ nome: String(x.nome), val: +x.pontos || 0, txt: fmt(+x.pontos || 0), sub: 'onda ' + (x.onda || 0) })));
       topCheck(tab, items);
@@ -3447,6 +3565,7 @@ async function searchProf() {
 }
 rankEl.addEventListener('click', e => { if (e.target.closest('[data-retry]')) openRank(); });
 rankEl.addEventListener('click', e => { const a = e.target.closest('[data-n]'); if (a) openProfile(a.dataset.n); });
+rankEl.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-n]')) { e.preventDefault(); openProfile(e.target.dataset.n); } });
 $('pGo').addEventListener('click', searchProf);
 $('pSearch').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') searchProf(); });
 $('pSearch').addEventListener('keyup', e => e.stopPropagation());
@@ -3525,14 +3644,19 @@ function mpModeUi() { const b = $('mpMode'); b.textContent = 'Modo: ' + (hardMod
 $('mpMode').addEventListener('click', () => { if (MP.role === 'guest') return; hardMode = !hardMode; mpModeUi(); });
 function openMp(vs) {
   vsMode = !!vs;
-  mpLeave(); hardMode = false; mpModeUi(); $('mpTitle').textContent = vs ? 'Versus 1×1' : 'Esquadra';
+  mpLeave(); hardMode = false; mpModeUi(); $('mpTitle').textContent = 'Multijogador'; for (const t of $('mpTabs').children) { const on = (t.dataset.vs === '1') === !!vs; t.classList.toggle('on', on); t.setAttribute('aria-selected', on); } $('mpKicker').textContent = vs ? 'Duelo · 1 contra 1' : 'Cooperativo · até 4 jogadores'; $('mpCount').textContent = '';
   $('mpList').innerHTML = ''; $('mpGift').hidden = true; $('mpBig').textContent = ''; $('mpShare').hidden = true; $('mpGo').hidden = true; $('mpCode').hidden = false; mpBusy(false);
-  mpSay(vs ? 'Um cria a sala e manda o código; o amigo entra com ele. Duelo 1 contra 1, sem robôs, só vocês dois. Cada um joga com o navio que tem equipado e com os poderes dele (stats base, sem melhorias).' : 'Um cria a sala e manda o código; até 3 amigos entram com ele (4 jogadores). Todos enfrentam as mesmas ondas.');
+  mpSay(vs ? 'Duelo sem robôs: cada um joga com o navio equipado e seus poderes (stats base, sem melhorias).' : 'Todos enfrentam as mesmas ondas. Crie uma sala ou entre com o código de um amigo.');
   mpEl.hidden = false;
 }
 $('btnHow').addEventListener('click', () => { $('helpEl').hidden = false; });
 $('helpBack').addEventListener('click', () => { $('helpEl').hidden = true; });
-$('btnMp').addEventListener('click', () => openMp(false));
+$('btnMp').addEventListener('click', () => openMp(vsMode));
+$('mpTabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-vs]'); if (!b || (b.dataset.vs === '1') === vsMode) return;
+  if (MP.role) { mpSay('Saia da sala (Voltar) para trocar de tipo de partida.'); return; }
+  openMp(b.dataset.vs === '1');
+});
 $('btnVs').addEventListener('click', () => openMp(true));
 $('mpBack').addEventListener('click', () => { mpLeave(); mpEl.hidden = true; });
 $('mpCreate').addEventListener('click', async () => {
@@ -3624,13 +3748,24 @@ function mpBegin() {
   last = performance.now();
 }
 function mpList(r) {
-  $('mpGift').hidden = (r || []).length < 2; giftUi();
-  $('mpList').innerHTML = (r || []).map(a => { const sh = SHIPS.find(z => z.id === a[2]); return '<div class="rrow"><i style="background:' + PCOL[a[0] % 4] + '"></i><b>' + esc(a[1]) + (a[0] === 0 ? ' · anfitrião' : '') + (a[0] === MP.pid ? ' (você)' : '') + '</b><small>' + esc(sh ? sh.name : '') + '</small>' + (a[0] !== MP.pid ? '<button class="ibtn" data-gift="' + a[0] + '" type="button" aria-label="Presentear" style="width:30px;height:30px">🎁</button>' : '') + (MP.role === 'host' && a[0] > 0 ? '<button class="ibtn" data-k="' + a[0] + '" type="button" aria-label="Expulsar" style="width:30px;height:30px">✕</button>' : '') + '</div>'; }).join('');
+  r = r || [];
+  const cap = vsMode ? 2 : MAXP, n = r.length;
+  $('mpGift').hidden = n < 2; giftUi();
+  $('mpCount').textContent = n + '/' + cap;
+  const rows = r.map(a => {
+    const sh = SHIPS.find(z => z.id === a[2]), me = a[0] === MP.pid, nm = String(a[1] || '?'), c = PCOL[a[0] % 4];
+    return '<div class="mps" style="--pc:' + c + '"><span class="mpav">' + esc(nm.charAt(0).toUpperCase()) + '</span><span class="mpn"><b>' + esc(nm) + '</b><small>' + esc(sh ? sh.name : '') + '</small></span>' +
+      (a[0] === 0 ? '<span class="mptag">anfitrião</span>' : '') + (me ? '<span class="mptag">você</span>' : '') +
+      (!me ? '<button class="ibtn" data-gift="' + a[0] + '" type="button" aria-label="Presentear">🎁</button>' : '') +
+      (MP.role === 'host' && a[0] > 0 ? '<button class="ibtn" data-k="' + a[0] + '" type="button" aria-label="Expulsar">✕</button>' : '') + '</div>';
+  });
+  for (let i = n; i < cap && n; i++) rows.push('<div class="mps empty"><span class="mpav">+</span><span class="mpn"><b>Aguardando jogador</b></span></div>');
+  $('mpList').innerHTML = rows.join('');
 }
 function mpRoster() {
   const r = [[0, sess ? sess.nome : 'anfitrião', effShipId()]].concat(MP.guests.map(g => [g.pid, g.n, g.id]));
   mpList(r); mpSend({ t: 'ro', r });
-  mpSay(vsMode ? (MP.guests.length ? 'Oponente na sala! Toque em Zarpar para o duelo (cada um com o navio equipado).' : 'Mande o código ao amigo e espere ele entrar. Duelo 1×1, sem robôs.')
+  mpSay(vsMode ? (MP.guests.length ? 'Oponente na sala! Toque em Zarpar para o duelo.' : 'Mande o código ao amigo e espere ele entrar.')
     : MP.guests.length ? (MP.guests.length + 1) + '/' + MAXP + ' na esquadra. Toque em Zarpar quando todos entrarem.' : 'Mande o código ao amigo e espere ele entrar.');
 }
 $('mpList').addEventListener('click', e => {
