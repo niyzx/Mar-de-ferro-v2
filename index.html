@@ -1382,6 +1382,8 @@ function stepPlayer(dt, inp) {
 function shotCount(multi, triple) { return multi >= 3 ? (triple > 0 ? 5 : 3) : (triple > 0 ? 3 : 1); }
 function fan(n) { const o = []; for (let i = 0; i < n; i++) o.push((i - (n - 1) / 2) * .13); return o; }
 /* cada torreta atira do próprio cano. n = tiros por salva (leque); se houver mais torretas que tiros, cada torreta atira e o dano é dividido */
+function vsFoe(pid) { const f = (pid || 0) === 0 ? G.allies[0] : G.player; return f && !f.dead && !(f.cloak > 0) ? f : null; }
+function vsMark(n0, pid) { if (G.vs && (pid || 0) !== 0) for (let i = n0; i < G.balls.length; i++) G.balls[i].vs = 1; }
 function turretShots(o, a, n, dmg, vel, life, own, ang, fd) {
   const T = o.spec.turrets, L = o.spec.len, shots = Math.max(n, T.length), f = n > 1 ? fan(n) : [0];
   const d1 = n >= T.length ? dmg : Math.max(1, Math.round(dmg * n / T.length)), out = [];
@@ -1494,7 +1496,8 @@ function autoGun(dt) {
   const p = G.player;
   p.autoT -= dt;
   let tgt = null, bd = RANGE * .9;
-  for (const e of G.enemies) { const d = Math.hypot(e.x - p.x, e.y - p.y); if (d < bd) { bd = d; tgt = e; } }
+  const cand = G.vs ? (G.allies[0] && !G.allies[0].dead && !(G.allies[0].cloak > 0) ? [G.allies[0]] : []) : G.enemies;
+  for (const e of cand) { const d = Math.hypot(e.x - p.x, e.y - p.y); if (d < bd) { bd = d; tgt = e; } }
   if (!tgt) { p.autoAim += clamp(angDiff(p.autoAim, p.heading), -4 * dt, 4 * dt); return; }
   const lead = bd / BALL_V * .8;
   const want = Math.atan2(tgt.y + tgt.vy * lead - p.y, tgt.x + tgt.vx * lead - p.x);
@@ -1519,7 +1522,7 @@ function summonPlanes(who) {
   const p = who || G.player, r = Math.hypot(W, H) / zoom / 2 + 80, base = rand(0, TAU);
   for (let i = 0; i < 5; i++) {
     const a = base + (i - 2) * .22;
-    G.planes.push({ x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, h: a + Math.PI, v: 480, tgt: null, retarget: 0, life: 10, trail: 0 });
+    G.planes.push({ pid: p.pid || 0, x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r, h: a + Math.PI, v: 480, tgt: null, retarget: 0, life: 10, trail: 0 });
   }
   banner('Ataque aéreo', '5 aviões a caminho');
   sfx.planes();
@@ -1570,13 +1573,15 @@ function updateEscorts(dt) {
     z.speed = clamp(d * 2.2, 0, z.clone ? o.spec.speed * 1.1 : 210); z.vx = Math.cos(z.heading) * z.speed; z.vy = Math.sin(z.heading) * z.speed;
     z.x += z.vx * dt; z.y += z.vy * dt; hazShip(z, dt);
     let tgt = null, bd = 560;
-    for (const e of G.enemies) { const dd = Math.hypot(e.x - z.x, e.y - z.y); if (dd < bd) { bd = dd; tgt = e; } }
+    for (const e of (G.vs ? [vsFoe(z.pid)].filter(Boolean) : G.enemies)) { const dd = Math.hypot(e.x - z.x, e.y - z.y); if (dd < bd) { bd = dd; tgt = e; } }
     if (tgt) {
       const lead = bd / BALL_V * .7, w2 = Math.atan2(tgt.y + tgt.vy * lead - z.y, tgt.x + tgt.vx * lead - z.x);
       z.aim += clamp(angDiff(z.aim, w2), -5 * dt, 5 * dt);
       if (z.reload <= 0 && Math.abs(angDiff(z.aim, w2)) < .15) {
         const a = z.aim;
+        const n0 = G.balls.length;
         for (const m of turretShots(z, a, 1, z.dmg || 16, BALL_V, RANGE * .9 / BALL_V, 'p', 0, bd)) muzzle(m[0], m[1], m[2], .6);
+        vsMark(n0, z.pid);
         z.reload = z.rel || 1.1; z.recoil = 1; sfx.enemy();
       }
     } else z.aim += clamp(angDiff(z.aim, z.heading), -5 * dt, 5 * dt);
@@ -1585,13 +1590,13 @@ function updateEscorts(dt) {
 }
 function updatePlanes(dt) {
   for (let i = G.planes.length - 1; i >= 0; i--) {
-    const pl = G.planes[i];
-    pl.life -= dt * (G.enemies.length ? 1 : 2.5);
-    if (pl.tgt && !G.enemies.includes(pl.tgt)) pl.tgt = null;
+    const pl = G.planes[i], TG = G.vs ? [vsFoe(pl.pid)].filter(Boolean) : G.enemies;
+    pl.life -= dt * (TG.length ? 1 : 2.5);
+    if (pl.tgt && !TG.includes(pl.tgt)) pl.tgt = null;
     pl.retarget -= dt;
     if (!pl.tgt && pl.retarget <= 0) {
       let best = null, bd = 1e9;
-      for (const e of G.enemies) {
+      for (const e of TG) {
         const d = Math.hypot(e.x - pl.x, e.y - pl.y) + (G.planes.some(o => o !== pl && o.tgt === e) ? 600 : 0);
         if (d < bd) { bd = d; best = e; }
       }
@@ -1600,7 +1605,13 @@ function updatePlanes(dt) {
     if (pl.tgt) {
       const e = pl.tgt, d = Math.hypot(e.x - pl.x, e.y - pl.y);
       pl.h += clamp(angDiff(pl.h, Math.atan2(e.y - pl.y, e.x - pl.x)), -(d < 150 ? 7.5 : 4.5) * dt, (d < 150 ? 7.5 : 4.5) * dt);
-      if (d < 40 + e.spec.len * .3) {
+      if (G.vs && d < 40 + e.spec.len * .3) {
+        const dm = Math.round(e.max * .14);
+        explosion(pl.x, pl.y, .6); sfx.boom();
+        if (e === G.player) hurtPlayer(dm, pl.x, pl.y); else hurtAlly(e, dm, pl.x, pl.y);
+        G.planes.splice(i, 1); continue;
+      }
+      if (!G.vs && d < 40 + e.spec.len * .3) {
         const j = G.enemies.indexOf(e);
         if (j >= 0) { G.enemies.splice(j, 1); e.hp = 0; sinkEnemy(e); }
         pl.tgt = null; pl.retarget = .9;
@@ -1968,8 +1979,10 @@ function updateBalls(dt) {
         continue;
       }
       if (G.vs) {
-        if (b.vs === 1) { if (!p.dead && hitShip(b.x, b.y, p)) { hit = true; hurtPlayer(b.dmg, b.x, b.y); } }
-        else { const vq = G.allies[0]; if (vq && !vq.dead && hitShip(b.x, b.y, vq)) { hit = true; hurtAlly(vq, b.dmg, b.x, b.y); } }
+        const g = b.vs === 1, vq = G.allies[0], tg = g ? p : vq;
+        const es = G.escorts.find(z => ((z.pid || 0) === 0) === g && hitShip(b.x, b.y, z));
+        if (es) { hit = true; es.hp -= b.dmg; es.flash = .12; sparks(b.x, b.y, 6, 160); }
+        else if (tg && !tg.dead && !(tg.cloak > 0) && hitShip(b.x, b.y, tg)) { hit = true; if (g) hurtPlayer(b.dmg, b.x, b.y); else hurtAlly(vq, b.dmg, b.x, b.y); }
         continue;
       }
       if (b.own === 'p') {
@@ -2453,7 +2466,7 @@ function render0() {
     ctx.fillStyle = z.clone ? '#7fe3ff' : '#4fd1a5'; ctx.fillRect(z.x - bw / 2, by, bw * clamp(z.hp / z.max, 0, 1), 3);
   }
   for (const q2 of G.allies) {
-  if (!q2.dead) {
+  if (!q2.dead && !(G.vs && q2.cloak > 0)) {
     drawShip(q2.x, q2.y, q2.heading, q2.spec, q2.aim, { flash: q2.hflash, recoil: q2.recoil, aux: q2.auto ? q2.autoAim : null, alpha: q2.cloak > 0 ? .35 : undefined });
     if (q2.shield > 0) drawShield(q2.x, q2.y, q2.spec, q2.shield);
     const fs = 11 / zoom, bw = 44, by = q2.y - q2.spec.len * .5 - 10;
@@ -3021,7 +3034,7 @@ function openMp(vs) {
   vsMode = !!vs;
   mpLeave(); hardMode = false; mpModeUi(); $('mpTitle').textContent = vs ? 'Versus 1×1' : 'Esquadra';
   $('mpList').innerHTML = ''; $('mpBig').textContent = ''; $('mpShare').hidden = true; $('mpGo').hidden = true; $('mpCode').hidden = false; mpBusy(false);
-  mpSay(vs ? 'Um cria a sala e manda o código; o amigo entra com ele. Duelo 1 contra 1, sem robôs, só vocês dois. Cada um joga com o navio que tem equipado (stats base, sem melhorias e sem habilidades especiais).' : 'Um cria a sala e manda o código; até 3 amigos entram com ele (4 jogadores). Todos enfrentam as mesmas ondas.');
+  mpSay(vs ? 'Um cria a sala e manda o código; o amigo entra com ele. Duelo 1 contra 1, sem robôs, só vocês dois. Cada um joga com o navio que tem equipado e com os poderes dele (stats base, sem melhorias).' : 'Um cria a sala e manda o código; até 3 amigos entram com ele (4 jogadores). Todos enfrentam as mesmas ondas.');
   mpEl.hidden = false;
 }
 $('btnMp').addEventListener('click', () => openMp(false));
@@ -3062,13 +3075,13 @@ $('mpCode').addEventListener('keydown', e => { e.stopPropagation(); if (e.key ==
 $('mpCode').addEventListener('keyup', e => e.stopPropagation());
 $('mpCode').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ''); });
 $('mpGo').addEventListener('click', () => { if (MP.role === 'host' && MP.guests.length) mpStartHost(); });
-/* ---------- modo versus 1×1: cada um com o navio equipado (stats base, sem melhorias nem habilidades), sem robôs, caixas no centro ---------- */
+/* ---------- modo versus 1×1: cada um com o navio equipado e seus poderes (stats base, sem melhorias), sem robôs, caixas no centro ---------- */
 function vsStd(o, x, id) {
   let sh = SHIPS.find(s => s.id === id) || SHIPS[0];
-  if (sh.adminOnly && o !== G.player) sh = SHIPS[0];
+  if (sh.adminOnly || sh.adm) sh = SHIPS[0];
   o.spec = Object.assign({}, sh.spec, { speed: sh.speed });
   o.max = o.hp = sh.hp; o.dmg = sh.dmg; o.rel = sh.rel;
-  o.auto = false; o.cloakAb = o.airAb = o.escAb = o.cloneAb = o.surgeAb = false; o.multi = sh.multi || 1; o.shipId = sh.id;
+  o.auto = !!sh.auto; o.cloakAb = !!sh.cloak; o.airAb = !!sh.air; o.escAb = !!sh.esc; o.cloneAb = !!sh.clone; o.surgeAb = !!sh.surge; o.admin = false; o.cloak = o.cloakCd = o.rapid = 0; o.multi = sh.multi || 1; o.shipId = sh.id;
   o.x = x; o.y = 0; o.heading = x < 0 ? 0 : Math.PI; o.aim = o.heading; o.speed = 0; o.vx = o.vy = 0;
   o.shield = 0; o.triple = 0; o.rapid = 0; o.dead = false;
   if (G && o === G.player) { G.camera.x = x; G.camera.y = 0; }
