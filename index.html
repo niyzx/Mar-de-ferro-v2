@@ -68,6 +68,9 @@ body[data-state="menu"] .hud { visibility: hidden; }
 .ibtn .slash { display: none; }
 .ibtn.off .slash { display: block; }
 .stat { display: flex; align-items: baseline; gap: 10px; font-size: 10px; letter-spacing: .22em; color: var(--steel); }
+.lstats { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.stat.sm b { font-size: 22px; }
+.stat.sm.warn b { color: var(--brass); }
 .stat b {
   font-family: var(--font-display); font-weight: 900; font-size: 30px; line-height: 1;
   letter-spacing: .02em; color: var(--ink); font-variant-numeric: tabular-nums;
@@ -135,6 +138,9 @@ body:not(.touch) .help .only-touch { display: none; }
 
 .ability { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); z-index: 2; min-width: 160px; min-height: 44px; padding: 6px 16px;
   background: rgba(10, 31, 44, .7); border: 1px solid var(--brass); color: var(--brass); font: 600 12px var(--font-mono); letter-spacing: .18em; cursor: pointer; }
+.admmenu { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 118px); z-index: 2; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 94vw; }
+.admmenu button { min-height: 34px; padding: 4px 10px; cursor: pointer; background: rgba(10, 31, 44, .7); border: 1px solid var(--line); color: var(--ink); font: 600 11px var(--font-mono); letter-spacing: .06em; white-space: nowrap; }
+.admmenu button.on { background: var(--brass); border-color: var(--brass); color: #1b1305; }
 .ability:disabled { border-color: var(--line); color: var(--steel); cursor: default; }
 .ability.on { background: var(--brass); color: #1b1305; }
 #modeHard { border-color: var(--rust); color: var(--rust); }
@@ -375,6 +381,11 @@ body:not(.touch) .help .only-touch { display: none; }
       <div class="gauge"><span>CASCO</span><div class="bar" id="hpBar"><i id="hpFill"></i></div><span class="num" id="hpNum">100</span></div>
       <div class="gauge thin"><span>RECARGA</span><div class="bar"><i id="rlFill"></i></div><span class="num"></span></div>
       <div class="readout"><span>RUMO <b id="rumo">000°</b></span><span><b id="knots">0</b> NÓS</span></div>
+      <div class="lstats">
+        <div class="stat sm warn"><span>FALTAM</span><b id="remain">0</b></div>
+        <div class="stat sm"><span>ABATES</span><b id="killsHud">0</b></div>
+        <div class="stat sm"><span>TEMPO</span><b id="ptime">0:00</b></div>
+      </div>
       <div class="tag" id="buff" hidden>FOGO RÁPIDO</div>
     </div>
     <div class="right">
@@ -392,11 +403,13 @@ body:not(.touch) .help .only-touch { display: none; }
       <div class="stat"><span>ONDA</span><b id="wave">1</b></div>
       <div class="stat"><span>PONTOS</span><b id="score">0</b></div>
       <div class="stat"><span>MOEDAS</span><b id="coins">0</b></div>
+
     </div>
   </div>
 </div>
 
 <button class="ability" id="btnCloak" type="button" hidden>SUBMERGIR</button>
+<div class="admmenu" id="admMenu" hidden></div>
 
 <div class="banner" id="banner" aria-live="polite"></div>
 <div id="fpsEl" hidden style="position:fixed;left:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:25;pointer-events:none;font:600 11px var(--font-mono);letter-spacing:.1em;padding:2px 6px;background:rgba(6,18,26,.6);border:1px solid var(--line);color:var(--good);font-variant-numeric:tabular-nums">-- FPS</div>
@@ -658,7 +671,12 @@ const SHIPS = [
   { id: 'espelho', name: 'Mirage 3', cost: 67000, clone: true, note: 'Cria clones de si mesmo (até 3) que atacam e atraem o fogo inimigo e só somem se forem destruídos. Recarga de 40 s a cada clone; com 3 clones, trava até um morrer', hp: 280, dmg: 24, rel: .58, speed: 150,
     spec: Object.assign({}, SPEC.player, { len: 96, wid: 28, turn: 1.5, hull: '#5a7f8c', deck: '#b9dde3', dark: '#1f3640', stroke: '#7fe3ff', accent: '#7fe3ff',
       turrets: [{ x: .3, r: 7, bl: 24 }, { x: -.24, r: 7, bl: 24 }], cabin: { x: -.04, l: 18, w: 13 }, funnel: { x: -.2, r: 4.6 } }) }
+,
+  { id: 'n77', name: 'N-77', cost: 0, adminOnly: true, adm: true, multi: 3, note: 'Exclusivo de administradores. Menu de poderes: usa o poder de qualquer navio, sem recarga e sem limite. Poderes exclusivos: Buraco negro (puxa todos os inimigos para um ponto até você desligar) e Meteoro (afunda todos os inimigos). Dispara 3 tiros por salva', hp: 1500, dmg: 45, rel: .35, speed: 210,
+    spec: Object.assign({}, SPEC.player, { len: 132, wid: 30, turn: 1.7, hull: '#1b1b2a', deck: '#34344d', dark: '#0c0c16', stroke: '#b44cff', accent: '#b44cff',
+      turrets: [{ x: .34, r: 7.5, bl: 28 }, { x: .08, r: 8, bl: 30 }, { x: -.2, r: 7.5, bl: 28 }], cabin: { x: -.38, l: 16, w: 12 }, funnel: null }) }
 ];
+const PUB_N = SHIPS.filter(x => !x.adminOnly).length;
 const ESC_LIFE = 30, ESC_CD = 40, CLONE_LIFE = 1e6, CLONE_CD = 40, CLONE_MAX = 3;
 function cloneCount(pid) { return G ? G.escorts.filter(z => z.clone && (z.pid || 0) === pid).length : 0; }
 function myCloneCount() { return cloneCount(MP.role === 'guest' ? MP.pid : 0); }
@@ -686,7 +704,7 @@ const ACH = [
   { id: 's40k', c: 'Progresso', n: 'Quarenta mil', d: '40.000 pontos numa partida', r: 1500, f: () => ms() >= 40000, p: () => [ms(), 40000] },
   { id: 'fleet', c: 'Frota', n: 'Frota própria', d: 'Compre um novo navio', r: 100, f: () => save.owned.length >= 2, p: () => [save.owned.length - 1, 1] },
   { id: 'fleet3', c: 'Frota', n: 'Esquadrão', d: 'Tenha 3 navios', r: 300, f: () => save.owned.length >= 3, p: () => [save.owned.length, 3] },
-  { id: 'fleetAll', c: 'Frota', n: 'Armada completa', d: 'Tenha todos os navios', r: 2000, f: () => save.owned.length >= SHIPS.length, p: () => [save.owned.length, SHIPS.length] },
+  { id: 'fleetAll', c: 'Frota', n: 'Armada completa', d: 'Tenha todos os navios', r: 2000, f: () => save.owned.filter(id => id !== 'n77').length >= PUB_N, p: () => [save.owned.filter(id => id !== 'n77').length, PUB_N] },
   { id: 'yard', c: 'Frota', n: 'Estaleiro', d: 'Melhoria no nível máximo', r: 400, f: () => upsMax() >= 1, p: () => [upsMax(), 1] },
   { id: 'yardAll', c: 'Frota', n: 'Estaleiro completo', d: 'Todas as melhorias no máximo', r: 3000, f: () => upsMax() >= UPS.length, p: () => [upsMax(), UPS.length] },
   { id: 'play10h', c: 'Progresso', n: 'Marujo de verdade', d: 'Jogue por 10 horas', r: 3000, f: () => (save.play || 0) >= 36000, p: () => [Math.floor((save.play || 0) / 3600), 10] },
@@ -751,11 +769,13 @@ try {
 function persist() { if (TEST_MODE || ADMIN) save.coins = 99999999; save.ts = Date.now(); try { localStorage.setItem(KEY_SAVE, JSON.stringify(save)); } catch (e) {} try { cloudSoon(); } catch (e) {} try { checkAch(); } catch (e) {} }
 if (TEST_MODE) save.coins = 99999999;
 else if (save.coins >= 99999999) { save.coins = 0; persist(); } // limpa o saldo falso do modo de teste
+const effShipId = () => { const sh = SHIPS.find(x => x.id === save.ship) || SHIPS[0]; return sh.adminOnly && !ADMIN ? SHIPS[0].id : sh.id; };
 function playerStats() {
-  const sh = SHIPS.find(s => s.id === save.ship) || SHIPS[0], u = save.up;
+  let sh = SHIPS.find(s => s.id === save.ship) || SHIPS[0]; const u = save.up;
+  if (sh.adminOnly && !ADMIN) sh = SHIPS[0];
   return {
     spec: Object.assign({}, sh.spec, { speed: sh.speed * (1 + .06 * u.eng) }),
-    auto: !!sh.auto, cloak: !!sh.cloak, air: !!sh.air, multi: sh.multi || 1, esc: !!sh.esc, clone: !!sh.clone, surge: !!sh.surge,
+    id: sh.id, admin: !!sh.adm, auto: !!sh.auto, cloak: !!sh.cloak, air: !!sh.air, multi: sh.multi || 1, esc: !!sh.esc, clone: !!sh.clone, surge: !!sh.surge,
     hp: Math.round(sh.hp * (1 + .15 * u.hull)), dmg: Math.round(sh.dmg * (1 + .12 * u.gun)), rel: sh.rel * (1 - .07 * u.rel)
   };
 }
@@ -1053,13 +1073,13 @@ function newGame() {
   setSeed(Math.floor(Math.random() * 2147483647));
   const st = playerStats();
   G = {
-    t: 0, vs: 0, hc: hardMode && MP.role !== 'guest', wave: 0, score: 0, kills: 0, coins: 0, queue: [], spawnT: 0, waveClearing: true, interlude: 1.3,
+    t: 0, pt: 0, vs: 0, hc: hardMode && MP.role !== 'guest', wave: 0, score: 0, kills: 0, coins: 0, queue: [], spawnT: 0, waveClearing: true, interlude: 1.3,
     enemies: [], escorts: [], planes: [], balls: [], parts: [], wrecks: [], crates: [], buoys: [], allies: [], texts: [],
     shake: 0, flash: 0, deadT: 0, hpMul: 1, fireScale: 1, aimActive: false,
     camera: { x: 0, y: 0 },
     player: {
       spec: st.spec, max: st.hp, dmg: st.dmg, rel: st.rel, auto: st.auto, cloakAb: st.cloak, airAb: st.air, autoT: 0, autoAim: -Math.PI / 2, cloak: 0, cloakCd: 0, x: 0, y: 0, heading: -Math.PI / 2, speed: 0, vx: 0, vy: 0, aim: -Math.PI / 2,
-      multi: st.multi, escAb: st.esc, cloneAb: st.clone, surgeAb: st.surge, shield: 0, triple: 0,
+      admin: st.admin, apow: 'cloak', multi: st.multi, escAb: st.esc, cloneAb: st.clone, surgeAb: st.surge, shield: 0, triple: 0,
       hp: st.hp, reload: 0, rapid: 0, dead: false, wakeT: 0, smokeT: 0, hflash: 0, recoil: 0
     }
   };
@@ -1500,23 +1520,24 @@ function summonPlanes(who) {
   banner('Ataque aéreo', '5 aviões a caminho');
   sfx.planes();
 }
-function summonEscort(o) {
+function summonEscort(o, multi) {
   const pid = o === G.player ? 0 : o.pid;
-  G.escorts = G.escorts.filter(z => z.pid !== pid);
+  if (!multi) G.escorts = G.escorts.filter(z => z.pid !== pid || z.clone);
   const a = o.heading + Math.PI / 2, x = o.x + Math.cos(a) * 90, y = o.y + Math.sin(a) * 90;
-  G.escorts.push({ pid, x, y, heading: o.heading, aim: o.heading, hp: 120, max: 120, life: ESC_LIFE, reload: .6, flash: 0, recoil: 0, vx: 0, vy: 0, speed: 0, spec: ESC_SPEC, wakeT: 0, smokeT: 0 });
+  G.escorts.push({ pid, sa: multi ? rand(0, TAU) : Math.PI / 2, so: multi ? rand(80, 150) : 100, x, y, heading: o.heading, aim: o.heading, hp: 120, max: 120, life: ESC_LIFE, reload: .6, flash: 0, recoil: 0, vx: 0, vy: 0, speed: 0, spec: ESC_SPEC, wakeT: 0, smokeT: 0 });
   splash(x, y); floatText(o.x, o.y - 30, 'escolta', '#4fd1a5'); tone(260, 420, .5, .3);
   if (MP.role === 'host') evp(['sp', Math.round(x), Math.round(y)]);
 }
 const CLONE_SLOTS = [Math.PI / 2, -Math.PI / 2, Math.PI];
-function summonClone(o) {
+const cloneAng = k => k < 3 ? CLONE_SLOTS[k] : k * 1.1, cloneOff = k => 130 + 38 * Math.floor(k / 3);
+function summonClone(o, unl) {
   const pid = o === G.player ? 0 : o.pid;
   const mine = G.escorts.filter(z => z.clone && z.pid === pid);
-  if (mine.length >= CLONE_MAX) return;
+  if (!unl && mine.length >= CLONE_MAX) return;
   let slot = 0; while (mine.some(z => z.slot === slot)) slot++;
-  const a = o.heading + CLONE_SLOTS[slot], x = o.x + Math.cos(a) * 130, y = o.y + Math.sin(a) * 130;
+  const a = o.heading + cloneAng(slot), x = o.x + Math.cos(a) * cloneOff(slot), y = o.y + Math.sin(a) * cloneOff(slot);
   const hp = Math.round(o.max * .7);
-  G.escorts.push({ pid, slot, clone: true, shipId: o === G.player ? save.ship : o.shipId, x, y, heading: o.heading, aim: o.aim, hp, max: hp, dmg: Math.max(1, Math.round((o.dmg || 20) * .8)), rel: Math.max(.4, (o.rel || .6) * 1.25),
+  G.escorts.push({ pid, slot, clone: true, shipId: o === G.player ? effShipId() : o.shipId, x, y, heading: o.heading, aim: o.aim, hp, max: hp, dmg: Math.max(1, Math.round((o.dmg || 20) * .8)), rel: Math.max(.4, (o.rel || .6) * 1.25),
     life: CLONE_LIFE, reload: .6, flash: 0, recoil: 0, vx: 0, vy: 0, speed: 0, cloak: 0, spec: o.spec, wakeT: 0, smokeT: 0 });
   splash(x, y); cloneFx(x, y, 0, o.spec.len); floatText(o.x, o.y - 30, 'clone', '#7fe3ff'); sfx.clone();
   if (MP.role === 'host') evp(['sp', Math.round(x), Math.round(y)]);
@@ -1539,7 +1560,7 @@ function updateEscorts(dt) {
         if (Math.random() < .5) { const a = rand(0, TAU), r = rand(0, z.spec.len * .4); addP({ t: 'mote', x: z.x + Math.cos(a) * r, y: z.y + Math.sin(a) * r * .6, vx: rand(-6, 6), vy: rand(-26, -10), life: rand(.5, .9), size: rand(1.2, 2.2) }); }
       }
     }
-    const off = z.clone ? 130 : 100, side = o.heading + (z.clone ? CLONE_SLOTS[z.slot || 0] : Math.PI / 2), tx = o.x + Math.cos(side) * off, ty = o.y + Math.sin(side) * off, d = Math.hypot(tx - z.x, ty - z.y);
+    const off = z.clone ? cloneOff(z.slot || 0) : (z.so || 100), side = o.heading + (z.clone ? cloneAng(z.slot || 0) : (z.sa === undefined ? Math.PI / 2 : z.sa)), tx = o.x + Math.cos(side) * off, ty = o.y + Math.sin(side) * off, d = Math.hypot(tx - z.x, ty - z.y);
     const want = d > 25 ? Math.atan2(ty - z.y, tx - z.x) : o.heading;
     z.heading += clamp(angDiff(z.heading, want), -(z.clone ? z.spec.turn : 2.4) * dt, (z.clone ? z.spec.turn : 2.4) * dt);
     z.speed = clamp(d * 2.2, 0, z.clone ? o.spec.speed * 1.1 : 210); z.vx = Math.cos(z.heading) * z.speed; z.vy = Math.sin(z.heading) * z.speed;
@@ -1596,9 +1617,136 @@ function drawPlane(pl) {
   ctx.restore();
 }
 function surge(q) { q.rapid = 10; q.shield = Math.max(q.shield || 0, 5); floatText(q.x, q.y - 30, 'sobrecarga', '#e2552f'); sfx.shieldUp(); }
+const APOW = [['cloak', 'Submersão'], ['air', 'Aviões'], ['surge', 'Sobrecarga'], ['clone', 'Clones'], ['esc', 'Escolta'], ['auto', 'Torre auto'], ['hole', 'Buraco negro'], ['meteor', 'Meteoro']];
+function admLabel(p) {
+  const k = p.apow || 'cloak';
+  const t = k === 'cloak' ? (p.cloak > 0 ? 'EMERGIR' : 'SUBMERGIR') : k === 'air' ? 'AVIÕES' : k === 'surge' ? 'SOBRECARGA' : k === 'clone' ? 'CLONE (' + myCloneCount() + ')' : k === 'esc' ? 'ESCOLTA' : k === 'hole' ? (G && G.hole ? 'DESLIGAR BURACO NEGRO' : 'BURACO NEGRO') : k === 'meteor' ? (G && G.meteor ? 'METEORO CAINDO...' : 'METEORO') : (p.auto ? 'TORRE: DESLIGAR' : 'TORRE: LIGAR');
+  return touchMode ? t : t + ' · E';
+}
+function admCycle(dir) {
+  const p = G.player; let i = APOW.findIndex(a => a[0] === p.apow); i = (i + (dir || 1) + APOW.length) % APOW.length;
+  p.apow = APOW[i][0]; sfx.click();
+}
+function adminUse() {
+  const p = G.player, k = p.apow || 'cloak', g = MP.role === 'guest';
+  if (k === 'auto') { p.auto = !p.auto; if (g) mpSend({ t: 'au', i: MP.pid, v: p.auto ? 1 : 0 }); floatText(p.x, p.y - 30, p.auto ? 'torre ligada' : 'torre desligada', '#e0a93c'); sfx.pick(); }
+  else if (k === 'cloak') {
+    if (p.cloak > 0) { p.cloak = 0; if (g) mpSend({ t: 'c', i: MP.pid, off: 1 }); sfx.surface(); }
+    else { p.cloak = 9; if (g) mpSend({ t: 'c', i: MP.pid }); floatText(p.x, p.y - 30, 'submerso', '#8aa3ab'); sfx.dive(); }
+  }
+  else if (k === 'air') { if (g) { mpSend({ t: 'a', i: MP.pid }); sfx.planes(); } else summonPlanes(); }
+  else if (k === 'surge') { if (g) { mpSend({ t: 'u', i: MP.pid }); sfx.shieldUp(); } else surge(p); }
+  else if (k === 'clone') { if (g) { mpSend({ t: 'q', i: MP.pid }); sfx.clone(); } else summonClone(p, true); }
+  else if (k === 'esc') { if (g) { mpSend({ t: 'z', i: MP.pid }); tone(260, 420, .5, .3); } else summonEscort(p, true); }
+  else if (k === 'hole') { if (g) mpSend({ t: 'bh', i: MP.pid }); else holeToggle(p); }
+  else if (k === 'meteor') { if (g) mpSend({ t: 'mt', i: MP.pid }); else startMeteor(p); }
+}
+/* ---------- poderes exclusivos do N-77: buraco negro e meteoro ---------- */
+const HOLE_PULL = 560, HOLE_FRONT = 380, MET_T = 1.6;
+function holeToggle(o) {
+  if (!G) return;
+  if (G.hole) {
+    G.hole = null; if (MP.role === 'host') evp(['bh', 0, 0, 0]);
+    floatText(o.x, o.y - 30, 'buraco negro desfeito', '#b44cff'); sfx.surface(); return;
+  }
+  const x = o.x + Math.cos(o.heading) * HOLE_FRONT, y = o.y + Math.sin(o.heading) * HOLE_FRONT;
+  G.hole = { x, y, t: 0, sp: 0 };
+  if (MP.role === 'host') evp(['bh', Math.round(x), Math.round(y), 1]);
+  floatText(o.x, o.y - 30, 'buraco negro', '#b44cff'); tone(150, 38, 1, .3, 'sawtooth'); tone(90, 30, 1.2, .22, 'sine');
+}
+function updateHole(dt, fxOnly) {
+  const h = G.hole; if (!h) return;
+  h.t += dt; h.sp -= dt;
+  if (!fxOnly) {
+    if (G.player.dead) { G.hole = null; return; }
+    for (const e of G.enemies) {
+      const dx = h.x - e.x, dy = h.y - e.y, d = Math.hypot(dx, dy);
+      if (d < 4) continue;
+      const v = Math.min(HOLE_PULL, d * 3 + 40), m = Math.min(v * dt, d);
+      e.x += dx / d * m; e.y += dy / d * m;
+    }
+  }
+  if (h.sp <= 0) {
+    h.sp = .035;
+    const a = rand(0, TAU), r = rand(150, 340), ca = Math.cos(a), sa = Math.sin(a);
+    addP({ t: 'mote', x: h.x + ca * r, y: h.y + sa * r, vx: -ca * r * 1.2 - sa * 110, vy: -sa * r * 1.2 + ca * 110, life: rand(.5, .9), size: rand(1.6, 3), c: '190,110,255' });
+  }
+}
+function drawHole(h) {
+  const a = Math.min(1, h.t * 2.5), R = 64 * a, t = h.t;
+  ctx.save(); ctx.translate(h.x, h.y);
+  const g = ctx.createRadialGradient(0, 0, R * .2, 0, 0, R * 3);
+  g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(.3, 'rgba(8,0,20,.95)'); g.addColorStop(.55, 'rgba(110,40,190,.35)'); g.addColorStop(1, 'rgba(180,76,255,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R * 3, 0, TAU); ctx.fill();
+  ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+  for (let i = 0; i < 5; i++) {
+    const rr = R * (1.05 + i * .34), s0 = t * (2.6 - i * .4) * (i % 2 ? -1 : 1);
+    ctx.strokeStyle = 'rgba(190,110,255,' + (.6 - i * .1).toFixed(2) + ')'; ctx.lineWidth = 3.2 - i * .4;
+    ctx.beginPath(); ctx.arc(0, 0, rr, s0, s0 + Math.PI * 1.2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, rr, s0 + Math.PI, s0 + Math.PI * 1.5); ctx.stroke();
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.lineCap = 'butt';
+  ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 0, R * .66, 0, TAU); ctx.fill();
+  ctx.strokeStyle = 'rgba(225,170,255,.9)'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.restore();
+}
+function startMeteor(o) {
+  if (!G || G.meteor) return;
+  const x = o.x + Math.cos(o.heading) * 260, y = o.y + Math.sin(o.heading) * 260;
+  G.meteor = { t: 0, x, y, fx: 0 };
+  if (MP.role === 'host') evp(['mt', Math.round(x), Math.round(y)]);
+  floatText(o.x, o.y - 30, 'meteoro', '#ff9a4a'); tone(1100, 110, MET_T, .22, 'sawtooth');
+}
+function metPos(m) {
+  const k = m.t / MET_T, r = 1 - k * k, D = Math.max(W, H) / zoom * 1.1;
+  return [m.x - D * .55 * r, m.y - D * r];
+}
+function updateMeteor(dt) {
+  const m = G.meteor; if (!m) return;
+  m.t += dt;
+  if (m.t >= MET_T) { G.meteor = null; meteorImpact(m); return; }
+  const q = metPos(m);
+  for (let i = 0; i < 2; i++) addP({ t: 'fire', x: q[0] + rand(-8, 8), y: q[1] + rand(-8, 8), vx: rand(-30, 30), vy: rand(-30, 30), life: rand(.35, .7), size: rand(10, 22), drag: 2.5 });
+  addP({ t: 'smoke', x: q[0], y: q[1], vx: rand(-20, 20), vy: rand(-20, 20), life: rand(.8, 1.4), size: rand(10, 16), grow: 20, drag: 1.2 });
+}
+function meteorImpact(m) {
+  explosion(m.x, m.y, 4.5);
+  for (let i = 0; i < 3; i++) addP({ t: 'cring', x: m.x, y: m.y, life: .9 + i * .25, size: 10, grow: 1500 + i * 500, w: 6 - i * 1.5, c: i ? '255,170,80' : '255,230,170' });
+  addP({ t: 'flash', x: m.x, y: m.y, life: .5, size: 320 });
+  G.flash = 1; G.shake = 16; sfx.boom(); setTimeout(sfx.boom, 140);
+  if (MP.role === 'guest') return;
+  const list = G.enemies.splice(0);
+  for (const e of list) { e.hp = 0; sinkEnemy(e); }
+  G.balls = G.balls.filter(b => !(b.own === 'e' || b.vs === 1));
+  if (list.length) banner('Meteoro', list.length + (list.length === 1 ? ' navio afundado' : ' navios afundados'));
+}
+function drawMeteor(m) {
+  const k = m.t / MET_T, q = metPos(m);
+  ctx.save();
+  const sr = 40 + k * 110;
+  ctx.globalAlpha = .25 + .35 * k; ctx.fillStyle = '#2a0a05';
+  ctx.beginPath(); ctx.arc(m.x, m.y, sr, 0, TAU); ctx.fill();
+  ctx.globalAlpha = .5 + .4 * Math.abs(Math.sin(m.t * 12)); ctx.strokeStyle = '#ff5a2a'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(m.x, m.y, sr, 0, TAU); ctx.stroke();
+  ctx.globalAlpha = 1;
+  const R = 14 + k * 34, ang = Math.atan2(m.y - q[1], m.x - q[0]), tl = R * 9;
+  ctx.globalCompositeOperation = 'lighter';
+  const tg = ctx.createLinearGradient(q[0], q[1], q[0] - Math.cos(ang) * tl, q[1] - Math.sin(ang) * tl);
+  tg.addColorStop(0, 'rgba(255,170,70,.85)'); tg.addColorStop(1, 'rgba(255,90,30,0)');
+  ctx.strokeStyle = tg; ctx.lineWidth = R * 1.7; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(q[0], q[1]); ctx.lineTo(q[0] - Math.cos(ang) * tl, q[1] - Math.sin(ang) * tl); ctx.stroke();
+  const gl = ctx.createRadialGradient(q[0], q[1], R * .3, q[0], q[1], R * 2.4);
+  gl.addColorStop(0, 'rgba(255,220,150,.9)'); gl.addColorStop(1, 'rgba(255,100,40,0)');
+  ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(q[0], q[1], R * 2.4, 0, TAU); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#3a1d12'; ctx.beginPath(); ctx.arc(q[0], q[1], R, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#ff9a4a'; ctx.beginPath(); ctx.arc(q[0] + R * .25, q[1] + R * .2, R * .55, 0, TAU); ctx.fill();
+  ctx.restore();
+}
 function useCloak() {
   if (state !== 'playing' || !G) return;
   const p = G.player;
+  if (p.admin) { if (!p.dead) adminUse(); return; }
   if (!(p.cloakAb || p.airAb || p.escAb || p.cloneAb || p.surgeAb) || p.dead || p.cloak > 0 || p.cloakCd > 0) return;
   if (p.surgeAb) { p.cloakCd = 30; if (MP.role === 'guest') { mpSend({ t: 'u', i: MP.pid }); sfx.shieldUp(); } else surge(p); return; }
   if (p.cloneAb) { if (myCloneCount() >= CLONE_MAX) return; p.cloakCd = CLONE_CD; if (MP.role === 'guest') { mpSend({ t: 'q', i: MP.pid }); sfx.clone(); } else summonClone(p); return; }
@@ -1891,7 +2039,7 @@ function updateParts(dt) {
 /* ---------- passo do jogo ---------- */
 let playAcc = 0;
 function step(dt) {
-  if (state === 'playing') { save.play = (save.play || 0) + dt; playAcc += dt; if (playAcc > 30) { playAcc = 0; persist(); checkAch(); } }
+  if (state === 'playing') { G.pt = (G.pt || 0) + dt; save.play = (save.play || 0) + dt; playAcc += dt; if (playAcc > 30) { playAcc = 0; persist(); checkAch(); } }
   if (MP.role === 'guest') { stepGuest(dt); return; }
   G.t += dt;
   const p = G.player;
@@ -1904,10 +2052,11 @@ function step(dt) {
   if (state === 'playing' || state === 'over') {
     if (state === 'playing' && !G.vs) runWaves(dt);
     for (let i = G.enemies.length - 1; i >= 0; i--) { const en = G.enemies[i]; updateEnemy(en, dt); hazShip(en, dt); if (en.expire) { G.enemies.splice(i, 1); cloneFx(en.x, en.y, 1, en.spec.len); } }
+    updateHole(dt);
     separate();
   }
   if (MP.role === 'host' && state === 'playing') { stepAllies(dt); stepBuoys(dt); }
-  updatePlanes(dt); updateEscorts(dt); updateBalls(dt); updateCrates(dt); updateParts(dt);
+  updatePlanes(dt); updateEscorts(dt); updateBalls(dt); updateCrates(dt); updateMeteor(dt); updateParts(dt);
   if (MP.role === 'host' && G.vs) vsTick(dt);
   if (MP.role === 'host') mpHostTick(dt);
   if (p.dead && state === 'playing' && !G.vs && !(MP.role === 'host' && G.allies.some(a => !a.dead))) { G.deadT += dt; if (G.deadT > 1.6) gameOver(); }
@@ -2242,6 +2391,7 @@ function render0() {
   drawWater(c.x - W / 2 / zoom - 20, c.y - H / 2 / zoom - 20, W / zoom + 40, H / zoom + 40, G.t);
   hzVisible(c);
   for (const w of VW) drawWhirl(w, G.t);
+  if (G.hole) drawHole(G.hole);
 
   if (state !== 'menu' && !p.dead) drawRing(p);
   for (const q of G.parts) drawUnder(q);
@@ -2324,6 +2474,7 @@ function render0() {
     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(b.x, b.y, 1.9, 0, TAU); ctx.fill();
   }
   for (const pl of G.planes) drawPlane(pl);
+  if (G.meteor) drawMeteor(G.meteor);
   for (const q of G.parts) drawPart(q);
 
   ctx.font = '600 ' + (13 / zoom) + 'px "IBM Plex Mono", monospace';
@@ -2353,7 +2504,7 @@ function render0() {
 /* ---------- HUD ---------- */
 const el = {
   hpFill: $('hpFill'), hpBar: $('hpBar'), hpNum: $('hpNum'), rlFill: $('rlFill'), rumo: $('rumo'), knots: $('knots'),
-  wave: $('wave'), score: $('score'), coins: $('coins'), buff: $('buff'), cloak: $('btnCloak')
+  wave: $('wave'), score: $('score'), coins: $('coins'), remain: $('remain'), killsHud: $('killsHud'), ptime: $('ptime'), buff: $('buff'), cloak: $('btnCloak')
 };
 const cache = {};
 function setText(k, v) { if (cache[k] !== v) { cache[k] = v; el[k].textContent = v; } }
@@ -2368,6 +2519,9 @@ function hud() {
   }
   if (!G || state === 'menu') return;
   const p = G.player;
+  const am = $('admMenu'), showA = !!p.admin && state === 'playing' && !p.dead;
+  if (am.hidden === showA) am.hidden = !showA;
+  if (showA && cache.apow !== p.apow) { cache.apow = p.apow; am.innerHTML = APOW.map(a => '<button type="button" data-k="' + a[0] + '"' + (a[0] === p.apow ? ' class="on"' : '') + '>' + a[1] + '</button>').join(''); }
   const hp = Math.max(0, Math.ceil(p.hp));
   el.hpFill.style.transform = 'scaleX(' + clamp(p.hp / p.max, 0, 1).toFixed(3) + ')';
   el.hpBar.classList.toggle('low', p.hp < p.max * .3);
@@ -2378,16 +2532,21 @@ function hud() {
   setText('rumo', String(brg).padStart(3, '0') + '°');
   setText('knots', String(Math.round(p.speed / 7)));
   setText('wave', String(Math.max(1, G.wave)));
-  for (const k of ['wave', 'score', 'coins']) { const pn = el[k].parentNode; if (pn.hidden !== !!G.vs) pn.hidden = !!G.vs; }
+  for (const k of ['wave', 'score', 'coins', 'remain', 'killsHud']) { const pn = el[k].parentNode; if (pn.hidden !== !!G.vs) pn.hidden = !!G.vs; }
   setText('score', fmt(G.score));
   setText('coins', fmt(G.coins));
-  const showC = (p.cloakAb || p.airAb || p.escAb || p.cloneAb || p.surgeAb) && state === 'playing' && !p.dead;
+  const qLeft = MP.role === 'guest' ? (G.qn || 0) : G.queue.length;
+  setText('remain', String(G.waveClearing ? 0 : qLeft + G.enemies.filter(e => !e.fake).length));
+  setText('killsHud', fmt(G.kills));
+  const tt = Math.floor(G.pt || 0), th = Math.floor(tt / 3600), tm = Math.floor(tt % 3600 / 60), ts = tt % 60;
+  setText('ptime', (th ? th + ':' + String(tm).padStart(2, '0') : tm) + ':' + String(ts).padStart(2, '0'));
+  const showC = (p.cloakAb || p.airAb || p.escAb || p.cloneAb || p.surgeAb || p.admin) && state === 'playing' && !p.dead;
   if (el.cloak.hidden === showC) el.cloak.hidden = !showC;
   if (showC) {
     const ncl = p.cloneAb ? myCloneCount() : 0;
-    el.cloak.disabled = p.cloak > 0 || p.cloakCd > 0 || ncl >= CLONE_MAX;
+    el.cloak.disabled = !p.admin && (p.cloak > 0 || p.cloakCd > 0 || ncl >= CLONE_MAX);
     el.cloak.classList.toggle('on', p.cloak > 0 || (p.surgeAb && p.rapid > 0) || (p.airAb && G.planes.length > 0) || (p.escAb && G.escorts.length > 0) || (p.cloneAb && ncl >= CLONE_MAX));
-    setText('cloak', p.surgeAb ? (p.rapid > 0 ? 'SOBRECARGA ' + Math.ceil(p.rapid) + 's' : p.cloakCd > 0 ? 'RECARGA ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'SOBRECARGA' : 'SOBRECARGA · E')) : p.cloneAb ? (ncl >= CLONE_MAX ? 'CLONES ' + ncl + '/' + CLONE_MAX : p.cloakCd > 0 ? 'CLONE ' + ncl + '/' + CLONE_MAX + ' · ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'CRIAR CLONE ' : 'CLONE · E ') + ncl + '/' + CLONE_MAX) : p.escAb ? (G.escorts.length ? 'ESCOLTA ATIVA' : p.cloakCd > 0 ? 'RECARGA ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'CHAMAR ESCOLTA' : 'ESCOLTA · E')) : (p.airAb && G.planes.length) ? 'ATACANDO' : (p.airAb && p.cloakCd <= 0) ? (touchMode ? 'CHAMAR AVIÕES' : 'AVIÕES · E') : p.cloak > 0 ? 'SUBMERSO ' + Math.ceil(p.cloak) + 's' : p.cloakCd > 0 ? 'RECARGA ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'SUBMERGIR' : 'SUBMERGIR · E'));
+    setText('cloak', p.admin ? admLabel(p) : p.surgeAb ? (p.rapid > 0 ? 'SOBRECARGA ' + Math.ceil(p.rapid) + 's' : p.cloakCd > 0 ? 'RECARGA ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'SOBRECARGA' : 'SOBRECARGA · E')) : p.cloneAb ? (ncl >= CLONE_MAX ? 'CLONES ' + ncl + '/' + CLONE_MAX : p.cloakCd > 0 ? 'CLONE ' + ncl + '/' + CLONE_MAX + ' · ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'CRIAR CLONE ' : 'CLONE · E ') + ncl + '/' + CLONE_MAX) : p.escAb ? (G.escorts.length ? 'ESCOLTA ATIVA' : p.cloakCd > 0 ? 'RECARGA ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'CHAMAR ESCOLTA' : 'ESCOLTA · E')) : (p.airAb && G.planes.length) ? 'ATACANDO' : (p.airAb && p.cloakCd <= 0) ? (touchMode ? 'CHAMAR AVIÕES' : 'AVIÕES · E') : p.cloak > 0 ? 'SUBMERSO ' + Math.ceil(p.cloak) + 's' : p.cloakCd > 0 ? 'RECARGA ' + Math.ceil(p.cloakCd) + 's' : (touchMode ? 'SUBMERGIR' : 'SUBMERGIR · E'));
   }
   const bl = [];
   if (p.rapid > 0) bl.push('FOGO RÁPIDO ' + Math.ceil(p.rapid) + 's');
@@ -2627,7 +2786,7 @@ function setAMode(m) {
 function fillAcct() {
   $('pName').textContent = sess.nome + (ADMIN ? ' ★ ADMIN' : ''); $('pAdm').hidden = !ADMIN;
   const kv = (k, v) => '<div><dt>' + k + '</dt><dd>' + v + '</dd></div>';
-  $('pStats').innerHTML = kv('Recorde', fmt(best)) + kv('Navios afundados', fmt(save.kills)) + kv('Chefes', fmt(save.bosses)) + kv('Frota', save.owned.length + '/' + SHIPS.length) + kv('Conquistas', ACH.filter(x => save.ach[x.id]).length + '/' + ACH.length) + kv('Moedas', fmt(save.coins));
+  $('pStats').innerHTML = kv('Recorde', fmt(best)) + kv('Navios afundados', fmt(save.kills)) + kv('Chefes', fmt(save.bosses)) + kv('Frota', save.owned.filter(id => ADMIN || id !== 'n77').length + '/' + (ADMIN ? SHIPS.length : PUB_N)) + kv('Conquistas', ACH.filter(x => save.ach[x.id]).length + '/' + ACH.length) + kv('Moedas', fmt(save.coins));
   $('pSync').textContent = lastSync ? 'Última sincronização: ' + new Date(lastSync).toLocaleTimeString() : 'Progresso salvo na nuvem automaticamente.';
   $('pMsg').textContent = ''; $('pNew').value = '';
 }
@@ -2878,7 +3037,7 @@ $('mpJoin').addEventListener('click', async () => {
     await mpConnect(code, 'guest');
     const st = playerStats();
     MP.uid = Math.random().toString(36).slice(2, 8);
-    const info = { t: 'join', u: MP.uid, n: sess ? sess.nome : 'amigo', id: save.ship, hp: st.hp, dmg: st.dmg, rel: st.rel, speed: st.spec.speed, au: st.auto ? 1 : 0 };
+    const info = { t: 'join', u: MP.uid, n: sess ? sess.nome : 'amigo', id: effShipId(), hp: st.hp, dmg: st.dmg, rel: st.rel, speed: st.spec.speed, au: st.auto ? 1 : 0 };
     MP.acked = false;
     const send = () => mpSend(info);
     send(); MP.joinI = setInterval(send, 1200);
@@ -2951,7 +3110,7 @@ function mpList(r) {
   $('mpList').innerHTML = (r || []).map(a => { const sh = SHIPS.find(z => z.id === a[2]); return '<div class="rrow"><i style="background:' + PCOL[a[0] % 4] + '"></i><b>' + esc(a[1]) + (a[0] === 0 ? ' · anfitrião' : '') + (a[0] === MP.pid ? ' (você)' : '') + '</b><small>' + esc(sh ? sh.name : '') + '</small>' + (MP.role === 'host' && a[0] > 0 ? '<button class="ibtn" data-k="' + a[0] + '" type="button" aria-label="Expulsar" style="width:30px;height:30px">✕</button>' : '') + '</div>'; }).join('');
 }
 function mpRoster() {
-  const r = [[0, sess ? sess.nome : 'anfitrião', save.ship]].concat(MP.guests.map(g => [g.pid, g.n, g.id]));
+  const r = [[0, sess ? sess.nome : 'anfitrião', effShipId()]].concat(MP.guests.map(g => [g.pid, g.n, g.id]));
   mpList(r); mpSend({ t: 'ro', r });
   mpSay(vsMode ? (MP.guests.length ? 'Oponente na sala! Toque em Zarpar para o duelo (navios iguais para os dois).' : 'Mande o código ao amigo e espere ele entrar. Duelo 1×1, sem robôs.')
     : MP.guests.length ? (MP.guests.length + 1) + '/' + MAXP + ' na esquadra. Toque em Zarpar quando todos entrarem.' : 'Mande o código ao amigo e espere ele entrar.');
@@ -2971,7 +3130,7 @@ function mpStartHost() {
   const hn = sess ? sess.nome : 'anfitrião';
   G.allies = MP.guests.map(g => { const q = mkOther(g.id, g.speed, g.pid); Object.assign(q, { nome: g.n, auto: !!g.au, max: g.hp, hp: g.hp, dmg: g.dmg, rel: g.rel }); return q; });
   if (vs) { vsStd(G.player, -300); vsStd(G.allies[0], 300); }
-  mpSend({ t: 'go', hc: G.hc ? 1 : 0, vs: G.vs, sd: HZ_SEED, r: [[0, hn, save.ship, playerStats().spec.speed]].concat(MP.guests.map(g => [g.pid, g.n, g.id, g.speed])) });
+  mpSend({ t: 'go', hc: G.hc ? 1 : 0, vs: G.vs, sd: HZ_SEED, r: [[0, hn, effShipId(), playerStats().spec.speed]].concat(MP.guests.map(g => [g.pid, g.n, g.id, g.speed])) });
   mpBegin();
   if (vs) banner('Duelo 1×1', 'Afunde o oponente');
 }
@@ -3008,17 +3167,25 @@ function mpOnMsg(m) {
     }
     const q = allyBy(pid);
     if (!q || q.dead || state !== 'playing') return;
+    const adm = q.shipId === 'n77';
     if (m.t === 'e') { const k = clamp(Math.round(+m.k) || 0, 0, 3); q.chat = { k, until: performance.now() + 3000 }; evp(['e', pid, k]); }
     else if (m.t === 'c') {
-      if (!(q.cloak > 0 || q.cloakCd > 0)) { q.cloak = 9; q.cloakCd = 25; MP.mute = 1; floatText(q.x, q.y - 30, 'submerso', '#8aa3ab'); MP.mute = 0; }
+      if (adm && m.off) q.cloak = 0;
+      else if (adm || !(q.cloak > 0 || q.cloakCd > 0)) { q.cloak = 9; q.cloakCd = adm ? 0 : 25; MP.mute = 1; floatText(q.x, q.y - 30, 'submerso', '#8aa3ab'); MP.mute = 0; }
     } else if (m.t === 'a') {
-      if (!(q.cloakCd > 0)) { q.cloakCd = 45; summonPlanes(q); }
+      if (adm || !(q.cloakCd > 0)) { q.cloakCd = adm ? 0 : 45; summonPlanes(q); }
     } else if (m.t === 'z') {
-      if (!(q.cloakCd > 0)) { q.cloakCd = ESC_CD; summonEscort(q); }
+      if (adm || !(q.cloakCd > 0)) { q.cloakCd = adm ? 0 : ESC_CD; summonEscort(q, adm); }
     } else if (m.t === 'u') {
-      if (!(q.cloakCd > 0)) { q.cloakCd = 30; surge(q); }
+      if (adm || !(q.cloakCd > 0)) { q.cloakCd = adm ? 0 : 30; surge(q); }
     } else if (m.t === 'q') {
-      if (!(q.cloakCd > 0) && cloneCount(q.pid) < CLONE_MAX) { q.cloakCd = CLONE_CD; summonClone(q); }
+      if (adm || (!(q.cloakCd > 0) && cloneCount(q.pid) < CLONE_MAX)) { q.cloakCd = adm ? 0 : CLONE_CD; summonClone(q, adm); }
+    } else if (m.t === 'bh') {
+      if (adm) holeToggle(q);
+    } else if (m.t === 'mt') {
+      if (adm) startMeteor(q);
+    } else if (m.t === 'au') {
+      if (adm) q.auto = !!m.v;
     } else if (m.t === 'g') {
       q.lastIn = performance.now(); q.autoAim = +m.u || 0;
       { const nx = +m.x, ny = +m.y, k = Math.hypot(nx - q.x, ny - q.y) < 160 ? .6 : 1; q.x += (nx - q.x) * k; q.y += (ny - q.y) * k; } q.heading = +m.h; q.aim = +m.a; q.speed = +m.s;
@@ -3049,8 +3216,8 @@ function mpHostTick(dt) {
   if (MP.acc < .066 || !G.allies.length || state !== 'playing') return;
   MP.acc = 0;
   const p = G.player;
-  mpSend({ t: 's', w: G.wave, sc: Math.floor(G.score), k: G.kills, c: G.coins,
-    h: [r1(p.x), r1(p.y), r3(p.heading), r3(p.aim), Math.round(p.speed), p.dead ? 1 : 0, Math.round(p.hp), p.max, p.cloak > 0 ? 1 : 0, G.vs ? 'corveta' : save.ship, p.auto ? 1 : 0, r3(p.autoAim || 0), 0, r1(Math.max(0, p.shield)), r1(Math.max(0, p.triple))],
+  mpSend({ t: 's', q: G.queue.length, w: G.wave, sc: Math.floor(G.score), k: G.kills, c: G.coins,
+    h: [r1(p.x), r1(p.y), r3(p.heading), r3(p.aim), Math.round(p.speed), p.dead ? 1 : 0, Math.round(p.hp), p.max, p.cloak > 0 ? 1 : 0, G.vs ? 'corveta' : effShipId(), p.auto ? 1 : 0, r3(p.autoAim || 0), 0, r1(Math.max(0, p.shield)), r1(Math.max(0, p.triple))],
     al: G.allies.map(q => [q.pid, r1(q.x), r1(q.y), r3(q.heading), r3(q.aim), Math.round(q.speed), q.dead ? 1 : 0, Math.round(q.hp), q.max, q.cloak > 0 ? 1 : 0, q.shipId, q.auto ? 1 : 0, r3(q.autoAim || 0), r1(Math.max(0, q.rapid)), r1(Math.max(0, q.shield)), r1(Math.max(0, q.triple))]),
     e: G.enemies.map(e => [e.id, e.type, r1(e.x), r1(e.y), r3(e.heading), r3(e.aim), Math.round(e.hp), Math.round(e.max), Math.round(e.vx), Math.round(e.vy), e.pw ? HC_POWERS.indexOf(e.pw) + 1 : 0, e.cloak > 0 ? 1 : 0, e.fake ? 1 : 0]),
     b: G.balls.map(b => [G.vs ? (b.vs === 1 ? 0 : 1) : (b.own === 'p' ? 0 : 1), r1(b.x), r1(b.y), Math.round(b.vx), Math.round(b.vy), r3(b.life)]),
@@ -3063,7 +3230,7 @@ function mpHostTick(dt) {
 }
 function mpApply(m) {
   MP.lastIn = performance.now();
-  G.wave = m.w; G.score = m.sc; G.kills = m.k; G.coins = m.c;
+  G.wave = m.w; G.score = m.sc; G.kills = m.k; G.coins = m.c; G.qn = m.q || 0;
   const h = m.h, p = G.player, al = m.al || [], me = al.find(a => a[0] === MP.pid), seen = new Set();
   for (const a of [[0].concat(h)].concat(al.filter(a => a[0] !== MP.pid))) {
     let o = allyBy(a[0]);
@@ -3108,6 +3275,8 @@ function mpApply(m) {
     else if (v[0] === 'p') sparks(v[1], v[2], v[3], v[4]);
     else if (v[0] === 'sp') splash(v[1], v[2]);
     else if (v[0] === 'cl') cloneFx(v[1], v[2], v[3], v[4]);
+    else if (v[0] === 'bh') G.hole = v[3] ? { x: v[1], y: v[2], t: 0, sp: 0 } : null;
+    else if (v[0] === 'mt') { if (!G.meteor) G.meteor = { t: 0, x: v[1], y: v[2], fx: 0 }; }
     else if (v[0] === 'e') { if (v[1] !== MP.pid) { const oo = allyBy(v[1]); if (oo) oo.chat = { k: v[2], until: performance.now() + 3000 }; } }
     else if (v[0] === 'k') {
       if (v[1] === 'e') { sfx.enemy(); const e = G.enemies.find(z => z.id === v[2]); if (e) e.recoil = 1; }
@@ -3134,6 +3303,7 @@ function stepGuest(dt) {
   }
   for (const o of G.allies) { o.hflash = Math.max(0, o.hflash - dt); o.recoil = Math.max(0, o.recoil - dt * 6); }
   for (const c of G.crates) { c.t += dt; c.life -= dt; }
+  updateHole(dt, true); updateMeteor(dt);
   for (const o of G.allies) if (!o.dead) { o.x += o.vx * dt; o.y += o.vy * dt; wake(o, dt, o.spec.len, o.spec.wid); }
   updateParts(dt);
   G.shake *= Math.exp(-dt * 7); if (G.shake < .1) G.shake = 0;
@@ -3239,7 +3409,7 @@ function sbar(l, v, mx, ref) {
   const d = ref == null ? 0 : Math.round(v) - Math.round(ref);
   return '<div class="sb"><span>' + l + '</span><i><u style="width:' + clamp(v / mx * 100, 4, 100).toFixed(0) + '%"></u></i><em>' + Math.round(v) + (d ? '<span class="dl ' + (d > 0 ? 'up' : 'dn') + '">' + (d > 0 ? '+' : '−') + Math.abs(d) + '</span>' : '') + '</em></div>';
 }
-const AB_TAG = { auto: 'torre', cloak: 'submersão', air: 'aviões', multi: 'tiro triplo', clone: 'clones', surge: 'sobrecarga', esc: 'escolta' };
+const AB_TAG = { adm: 'admin', auto: 'torre', cloak: 'submersão', air: 'aviões', multi: 'tiro triplo', clone: 'clones', surge: 'sobrecarga', esc: 'escolta' };
 function abTag(s) { for (const k in AB_TAG) if (s[k] && !(k === 'multi' && !(s.multi > 1))) return '<span class="tagab">' + AB_TAG[k] + '</span>'; return ''; }
 /* miniatura: desenha o navio no canvas principal e copia (o laço de render repinta em seguida) */
 function shipThumb(c, s) {
@@ -3251,21 +3421,22 @@ function shipThumb(c, s) {
   const g = c.getContext('2d'); g.clearRect(0, 0, w, h); g.drawImage(cv, 0, 0, w, h, 0, 0, w, h);
   ctx.clearRect(0, 0, w, h);
 }
+const shopShips = () => SHIPS.filter(x => !x.adminOnly || ADMIN);
 function renderShop() {
   const sc = shopEl.scrollTop;
   const st = playerStats(), it = save.items || (save.items = { shield: 0, triple: 0 });
   const eq = SHIPS.find(x => x.id === save.ship) || SHIPS[0], eD = eq.dmg * (eq.multi || 1) / eq.rel;
   $('shopCoins').textContent = fmt(save.coins);
-  const cnt = { ships: save.owned.length + '/' + SHIPS.length, ups: UPS.reduce((n, u) => n + save.up[u.k], 0) + '/' + UPS.length * MAXLV };
+  const cnt = { ships: save.owned.filter(id => shopShips().some(x => x.id === id)).length + '/' + shopShips().length, ups: UPS.reduce((n, u) => n + save.up[u.k], 0) + '/' + UPS.length * MAXLV };
   for (const t of $('shopTabs').children) { t.classList.toggle('on', t.dataset.t === shopTab); t.querySelector('i').textContent = cnt[t.dataset.t]; }
   $('shopCur').innerHTML = [['Casco', st.hp], ['Dano', st.dmg + (st.multi > 1 ? '×' + st.multi : '')], ['Recarga', st.rel.toFixed(2) + ' s'], ['Nós', Math.round(st.spec.speed / 7)]].map(x => '<div><small>' + x[0] + '</small><b>' + x[1] + '</b></div>').join('');
   const need = c => save.coins < c ? '<div class="w-need">Faltam $ ' + fmt(c - save.coins) + '<i><u style="width:' + clamp(save.coins / c * 100, 2, 100).toFixed(0) + '%"></u></i></div>' : '';
   const btn = (a, id, c, l) => '<button class="w-btn" data-a="' + a + '" data-id="' + id + '"' + (c && save.coins < c ? ' disabled' : '') + '>' + (c ? '<b>$ ' + fmt(c) + '</b>' : l) + '</button>';
   let h = '';
   if (shopTab === 'ships') {
-    const mH = Math.max(...SHIPS.map(x => x.hp)), mD = Math.max(...SHIPS.map(x => x.dmg * (x.multi || 1) / x.rel)), mS = Math.max(...SHIPS.map(x => x.speed / 7));
+    const VS_ = shopShips(), mH = Math.max(...VS_.map(x => x.hp)), mD = Math.max(...VS_.map(x => x.dmg * (x.multi || 1) / x.rel)), mS = Math.max(...VS_.map(x => x.speed / 7));
     const has = id => save.owned.includes(id) ? 1 : 0;
-    const list = [...SHIPS].sort((x, y) => (y.id === save.ship) - (x.id === save.ship) || has(y.id) - has(x.id) || x.cost - y.cost);
+    const list = [...VS_].sort((x, y) => (y.id === save.ship) - (x.id === save.ship) || has(y.id) - has(x.id) || x.cost - y.cost);
     const nx = (list.find(x => !has(x.id)) || {}).id;
     for (const s of list) {
       const own = has(s.id), cur = s.id === save.ship, ref = !cur;
@@ -3298,6 +3469,7 @@ shopBody.addEventListener('click', e => {
   if (!b || b.disabled) return;
   const a = b.dataset.a, id = b.dataset.id;
   initAudio();
+  if ((SHIPS.find(x => x.id === id) || {}).adminOnly && !ADMIN) return;
   if (a === 'eq' && save.owned.includes(id)) save.ship = id;
   else if (a === 'buy') {
     const s = SHIPS.find(x => x.id === id);
@@ -3318,6 +3490,7 @@ $('btnShop').addEventListener('click', () => { shopTab = 'ships'; shopEl.hidden 
 $('shopBack').addEventListener('click', () => { shopEl.hidden = true; showOverlay(state === 'over' ? 'over' : 'menu'); });
 $('pings').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b) { sendPing(+b.dataset.k); b.blur(); } });
 $('btnCloak').addEventListener('click', e => { useCloak(); e.currentTarget.blur(); });
+$('admMenu').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b && G && G.player.admin) { G.player.apow = b.dataset.k; sfx.click(); b.blur(); } });
 
 /* ---------- entrada ---------- */
 cv.addEventListener('contextmenu', e => e.preventDefault());
@@ -3357,6 +3530,7 @@ cv.addEventListener('pointercancel', endPointer);
 window.addEventListener('pointerup', e => { if (e.pointerType === 'mouse') mouse.down = false; });
 window.addEventListener('keydown', e => {
   if (/^Digit[1-4]$/.test(e.code) && !e.repeat && G && G.allies.length && state === 'playing') { sendPing(+e.code.slice(5) - 1); return; }
+  if (e.code === 'KeyQ' && !e.repeat && G && G.player.admin && state === 'playing') { admCycle(); return; }
   if ((e.code === 'KeyE' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !e.repeat) { useCloak(); return; }
   if (e.code === 'KeyP' || e.code === 'Escape') { if (!e.repeat) togglePause(); return; }
   const nav = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code);
