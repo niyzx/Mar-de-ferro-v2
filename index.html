@@ -203,6 +203,24 @@ body:not(.touch) .help .only-touch { display: none; }
   .lact .btn { min-height: 42px; font-size: 20px; padding-top: 4px; padding-bottom: 4px; }
 }
 @media (prefers-reduced-motion: reduce) { .lcard, .lmode, .lstat .bar i { transition: none; } }
+/* Menu principal */
+.note:empty { display: none; }
+.menu { gap: 12px; }
+.ovtop { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.menu .kicker { display: flex; align-items: center; gap: 8px; }
+.menu .kicker::before { content: ''; flex: none; width: 7px; height: 7px; background: var(--rust); box-shadow: 0 0 10px var(--rust); animation: ping 1.6s ease-in-out infinite; }
+@keyframes ping { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .menu .kicker::before { animation: none; } }
+.menu .title { text-shadow: 0 4px 28px rgba(4,14,22,.8); }
+.menu .lead:empty { display: none; }
+.menu .chip { flex: none; padding: 3px 10px; border-color: var(--brass); background: rgba(224,169,60,.08); font-weight: 600; }
+.mprimary .btn:not(.ghost) { flex: 1 1 100%; min-height: 58px; font-size: 30px; }
+.mprimary .btn.ghost { flex: 1 1 0; }
+.mtiles { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); }
+.mtiles .btn.ghost { flex-direction: column; gap: 6px; min-height: 70px; padding: 10px 6px; font-size: 14px; letter-spacing: .08em; background: rgba(212,232,234,.04); }
+.mtiles .btn.ghost svg { width: 22px; height: 22px; }
+.mtiles .btn.ghost:hover { background: rgba(224,169,60,.08); }
+#ov[data-m="menu"] { background: radial-gradient(ellipse at 50% 35%, rgba(6,18,26,.5), rgba(6,18,26,.9)); }
 /* Oficina */
 .title.sm { font-size: clamp(40px, 10vw, 64px); }
 .shophead { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
@@ -252,7 +270,7 @@ body:not(.touch) .help .only-touch { display: none; }
 .mtiles .evtbtn { border-color: #c1121f; color: #ff5a5a; } .mtiles .evtbtn svg { color: #ff5a5a; }
 .mmenu .btn.acct { align-self: center; min-height: 32px; padding: 4px 10px; border-color: transparent; color: var(--steel); font-size: 13px; letter-spacing: .06em; text-decoration: underline; text-underline-offset: 3px; }
 .mmenu .btn.acct:hover { color: var(--ink); border-color: transparent; }
-@media (orientation: landscape) and (max-height: 520px) { .mtiles .btn.ghost { min-height: 36px; } .mhead .mlbl { display: none; } .mhead { padding-top: 6px; justify-content: flex-end; } }
+@media (orientation: landscape) and (max-height: 520px) { .mtiles .btn.ghost { min-height: 36px; } }
 .fld { user-select: text; -webkit-user-select: text; width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 8px; background: rgba(212, 232, 234, .08); border: 1px solid var(--line); color: var(--ink); font: inherit; }
 .fld[hidden] { display: none; }
 .crow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; border-top: 1px solid var(--line); }
@@ -490,8 +508,8 @@ body:not(.touch) .help .only-touch { display: none; }
 <div id="fpsEl" hidden style="position:fixed;left:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:25;pointer-events:none;font:600 11px var(--font-mono);letter-spacing:.1em;padding:2px 6px;background:rgba(6,18,26,.6);border:1px solid var(--line);color:var(--good);font-variant-numeric:tabular-nums">-- FPS</div>
 
 <div class="overlay" id="ov">
-  <div class="panel">
-    <div class="kicker" id="ovKicker"></div>
+  <div class="panel menu">
+    <div class="ovtop"><div class="kicker" id="ovKicker"></div><span class="chip" id="bal"></span></div>
     <h1 class="title" id="ovTitle"></h1>
     <p class="lead" id="ovLead"></p>
     <dl class="stats" id="ovStats" hidden>
@@ -501,18 +519,6 @@ body:not(.touch) .help .only-touch { display: none; }
       <div><dt>Recorde</dt><dd id="sBest">0</dd></div>
       <div><dt>Moedas ganhas</dt><dd id="sCoins">0</dd></div>
     </dl>
-    <div id="ovHelp">
-      <dl class="help">
-        <div class="row only-desk"><dt>Navegar</dt><dd>W A S D ou setas</dd></div>
-        <div class="row only-desk"><dt>Mirar</dt><dd>mouse</dd></div>
-        <div class="row only-desk"><dt>Atirar</dt><dd>clique ou espaço</dd></div>
-        <div class="row only-desk"><dt>Pausar</dt><dd>P ou Esc</dd></div>
-        <div class="row only-desk"><dt>Habilidade</dt><dd>E ou Shift (Nautilon, Enterprize e Capitânia)</dd></div>
-        <div class="row only-touch"><dt>Navegar</dt><dd>joystick esquerdo</dd></div>
-        <div class="row only-touch"><dt>Mirar e atirar</dt><dd>joystick direito</dd></div>
-      </dl>
-      <p class="note" style="margin-top:12px">Caixas boiando consertam o casco, aceleram o canhão, dão escudo ou tiro triplo. Ilhas e icebergs bloqueiam navios e tiros; redemoinhos puxam e giram quem chega perto.</p>
-    </div>
     <p class="note" id="sendMsg"></p>
     <div class="actions mmenu">
       <div class="mprimary">
@@ -520,20 +526,36 @@ body:not(.touch) .help .only-touch { display: none; }
         <button class="btn ghost" id="btnAlt" type="button" hidden>Recomeçar</button>
         <button class="btn ghost" id="btnMenu" type="button" hidden>Menu principal</button>
       </div>
-      <div class="mhead"><span class="mlbl">Menu</span><span class="chip" id="bal"></span></div>
       <div class="mtiles">
-        <button class="btn ghost" id="btnShop" type="button"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><span>Oficina</span></button>
-        <button class="btn ghost evtbtn" id="btnEvt" type="button" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg><span>Evento</span></button>
-        <button class="btn ghost" id="btnMp" type="button" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.8 0 4 2 4 5"/></svg><span>Esquadra</span></button>
-        <button class="btn ghost" id="btnVs" type="button" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4l12 12M19 4L7 16M14 15l3 3M10 15l-3 3"/></svg><span>Versus</span></button>
-        <button class="btn ghost" id="btnRank" type="button" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 20V10M12 20V4M18 20v-7"/></svg><span>Ranking</span></button>
+        <button class="btn ghost" id="btnHow" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg><span>Como jogar</span></button>
+        <button class="btn ghost" id="btnShop" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><span>Oficina</span></button>
+        <button class="btn ghost evtbtn" id="btnEvt" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg><span>Evento</span></button>
+        <button class="btn ghost" id="btnMp" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.8 0 4 2 4 5"/></svg><span>Esquadra</span></button>
+        <button class="btn ghost" id="btnVs" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4l12 12M19 4L7 16M14 15l3 3M10 15l-3 3"/></svg><span>Versus</span></button>
+        <button class="btn ghost" id="btnRank" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 20V10M12 20V4M18 20v-7"/></svg><span>Ranking</span></button>
         <button class="btn ghost" id="btnAdm" type="button" hidden>★ Painel admin</button>
-        <button class="btn ghost" id="btnAch" type="button" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg><span>Conquistas</span></button>
+        <button class="btn ghost" id="btnAch" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg><span>Conquistas</span></button>
       </div>
       <button class="btn ghost acct" id="btnAcct" type="button" hidden>Entrar / Criar conta</button>
     </div>
   </div>
 </div>
+
+<div class="overlay" id="helpEl" hidden><div class="panel">
+  <div class="kicker">Como jogar</div>
+  <h2 class="title sm">Controles</h2>
+  <dl class="help">
+    <div class="row only-desk"><dt>Navegar</dt><dd>W A S D ou setas</dd></div>
+    <div class="row only-desk"><dt>Mirar</dt><dd>mouse</dd></div>
+    <div class="row only-desk"><dt>Atirar</dt><dd>clique ou espaço</dd></div>
+    <div class="row only-desk"><dt>Pausar</dt><dd>P ou Esc</dd></div>
+    <div class="row only-desk"><dt>Habilidade</dt><dd>E ou Shift (Nautilon, Enterprize e Capitânia)</dd></div>
+    <div class="row only-touch"><dt>Navegar</dt><dd>joystick esquerdo</dd></div>
+    <div class="row only-touch"><dt>Mirar e atirar</dt><dd>joystick direito</dd></div>
+  </dl>
+  <p class="note">Caixas boiando consertam o casco, aceleram o canhão, dão escudo ou tiro triplo. Ilhas e icebergs bloqueiam navios e tiros; redemoinhos puxam e giram quem chega perto.</p>
+  <div class="actions"><button class="btn ghost" id="helpBack" type="button">Voltar</button></div>
+</div></div>
 
 <div class="overlay" id="modeEl" hidden><div class="panel launch">
   <div class="lh"><div><div class="kicker">Preparar zarpada</div><h2 class="title sm">Navio e modo</h2></div><span class="chip" id="lBal"></span></div>
@@ -692,7 +714,7 @@ body:not(.touch) .help .only-touch { display: none; }
 @media(max-width:380px){.ac-card{grid-template-columns:40px minmax(0,1fr);}.ac-ico{width:40px;height:40px;font-size:18px}.ac-rw{grid-column:2;text-align:left;display:flex;gap:6px;align-items:baseline}.ac-rw b{font-size:16px}.ring{width:76px;height:76px}.ring b{font-size:21px}.acount b{font-size:38px}}
 @media(orientation:landscape) and (max-height:520px){.ring{width:68px;height:68px}.ring::before{inset:6px}.ring b{font-size:19px}.acount b{font-size:34px}}
 </style>
-<style>body[data-state="playing"] #btnCfg, body:has(#mpEl:not([hidden]), #auth:not([hidden]), #acctEl:not([hidden]), #achEl:not([hidden]), #rank:not([hidden]), #prof:not([hidden]), #shop:not([hidden]), #adm:not([hidden])) #btnCfg { display: none; }</style>
+<style>body[data-state="playing"] #btnCfg, body:has(#mpEl:not([hidden]), #auth:not([hidden]), #acctEl:not([hidden]), #achEl:not([hidden]), #helpEl:not([hidden]), #rank:not([hidden]), #prof:not([hidden]), #shop:not([hidden]), #adm:not([hidden])) #btnCfg { display: none; }</style>
 <div class="overlay" id="cfg" hidden style="z-index:30"><div class="panel">
   <h1 class="title sm">Configurações</h1>
   <div class="kicker">Áudio</div>
@@ -2978,7 +3000,7 @@ function hud() {
 /* ---------- telas ---------- */
 const ov = $('ov'), btnMain = $('btnMain'), btnAlt = $('btnAlt');
 function showOverlay(mode) {
-  $('ovHelp').hidden = mode !== 'menu';
+  $('btnHow').hidden = mode !== 'menu'; ov.dataset.m = mode;
   $('ovStats').hidden = mode !== 'over';
   btnAlt.hidden = mode !== 'paused';
   $('btnShop').hidden = mode === 'paused';
@@ -2992,11 +3014,11 @@ function showOverlay(mode) {
   $('btnVs').hidden = mode === 'paused';
   refreshAcct();
   $('sendMsg').textContent = '';
-  $('bal').textContent = 'Saldo: ' + fmt(save.coins) + ' moedas';
+  $('bal').textContent = '$ ' + fmt(save.coins);
   if (mode === 'menu') {
     $('ovKicker').textContent = 'Frota inimiga avistada';
     $('ovTitle').textContent = 'Mar de Ferro';
-    $('ovLead').textContent = 'Você comanda um navio de guerra sozinho contra frotas que querem te afundar. Navegue, mire o canhão e derrube cada onda de navios inimigos.';
+    $('ovLead').textContent = '';
     btnMain.textContent = 'Zarpar';
   } else if (mode === 'paused') {
     $('ovKicker').textContent = 'Pausado';
@@ -3210,7 +3232,7 @@ function logout() {
 }
 function refreshAcct() {
   $('btnAcct').textContent = sess ? 'Conta: ' + sess.nome : 'Entrar / Criar conta';
-  $('bal').textContent = 'Saldo: ' + fmt(save.coins) + ' moedas';
+  $('bal').textContent = '$ ' + fmt(save.coins);
 }
 async function doAuth(signup) {
   const go = $('aGo'); go.disabled = true;
@@ -3508,6 +3530,8 @@ function openMp(vs) {
   mpSay(vs ? 'Um cria a sala e manda o código; o amigo entra com ele. Duelo 1 contra 1, sem robôs, só vocês dois. Cada um joga com o navio que tem equipado e com os poderes dele (stats base, sem melhorias).' : 'Um cria a sala e manda o código; até 3 amigos entram com ele (4 jogadores). Todos enfrentam as mesmas ondas.');
   mpEl.hidden = false;
 }
+$('btnHow').addEventListener('click', () => { $('helpEl').hidden = false; });
+$('helpBack').addEventListener('click', () => { $('helpEl').hidden = true; });
 $('btnMp').addEventListener('click', () => openMp(false));
 $('btnVs').addEventListener('click', () => openMp(true));
 $('mpBack').addEventListener('click', () => { mpLeave(); mpEl.hidden = true; });
