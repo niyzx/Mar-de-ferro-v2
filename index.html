@@ -79,16 +79,19 @@ body[data-state="menu"] .hud { visibility: hidden; }
 #buff { white-space: pre-line; text-align: right; }
 /* Faixa de aviso */
 .banner {
-  position: fixed; left: 0; right: 0; top: 28%; box-sizing: border-box; padding: 0 16px;
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  text-align: center; pointer-events: none; opacity: 0;
+  position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 22%); box-sizing: border-box;
+  width: max-content; max-width: min(88vw, 460px); padding: 10px 26px 12px; margin: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  text-align: center; pointer-events: none; opacity: 0; translate: -50% 0;
+  background: linear-gradient(90deg, transparent, rgba(4, 14, 22, .62) 18%, rgba(4, 14, 22, .62) 82%, transparent);
+  border-top: 1px solid rgba(201, 162, 90, .45); border-bottom: 1px solid rgba(201, 162, 90, .45);
 }
 .banner b {
   font-family: var(--font-display); font-weight: 900; text-transform: uppercase;
-  font-size: clamp(44px, 12vw, 96px); line-height: 1; letter-spacing: .06em;
-  color: var(--foam); text-shadow: 0 2px 18px rgba(4, 14, 22, .8); text-wrap: balance;
+  font-size: clamp(20px, 5.4vw, 34px); line-height: 1.1; letter-spacing: .1em;
+  color: var(--foam); text-shadow: 0 2px 10px rgba(4, 14, 22, .8); text-wrap: balance;
 }
-.banner span { font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--brass); text-shadow: 0 1px 8px rgba(4, 14, 22, .9); }
+.banner span { font-size: 11px; line-height: 1.3; letter-spacing: .16em; text-transform: uppercase; color: var(--brass); text-shadow: 0 1px 6px rgba(4, 14, 22, .9); text-wrap: balance; }
 .banner.show { animation: bn 2.4s ease both; }
 @keyframes bn { 0% { opacity: 0; transform: scale(.94); } 12% { opacity: 1; transform: scale(1); } 78% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
