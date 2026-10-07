@@ -2150,12 +2150,19 @@ function updateBalls(dt) {
     else if (b.life <= 0) { splash(b.x, b.y); G.balls.splice(i, 1); }
   }
 }
+const CRATE_MAG = 150; // distância (m) em que as caixas começam a vir até você
 function updateCrates(dt) {
   const p = G.player;
   for (let i = G.crates.length - 1; i >= 0; i--) {
     const c = G.crates[i];
     c.life -= dt; c.t += dt;
     if (c.life <= 0) { G.crates.splice(i, 1); continue; }
+    { // ímã: caixa perto de um navio vem até ele
+      let tg = null, td = CRATE_MAG;
+      if (!p.dead) { const d = Math.hypot(p.x - c.x, p.y - c.y); if (d < td) { td = d; tg = p; } }
+      if (MP.role === 'host') for (const q of G.allies) if (!q.dead) { const d = Math.hypot(q.x - c.x, q.y - c.y); if (d < td) { td = d; tg = q; } }
+      if (tg && td > 6) { const sp = Math.min(td - 2, (90 + (1 - td / CRATE_MAG) * 330) * dt), an = Math.atan2(tg.y - c.y, tg.x - c.x); c.x += Math.cos(an) * sp; c.y += Math.sin(an) * sp; }
+    }
     const who = (!p.dead && Math.hypot(p.x - c.x, p.y - c.y) < 36) ? p : ((MP.role === 'host' && G.allies.find(q => !q.dead && Math.hypot(q.x - c.x, q.y - c.y) < 36)) || null);
     if (who) {
       if (c.type === 'repair') { who.hp = Math.min(who.max, who.hp + who.max * .3); floatText(c.x, c.y - 16, '+30% casco', '#4fd1a5'); if (G.esc && G.conv && !G.conv.dead) G.conv.hp = Math.min(G.conv.max, G.conv.hp + G.conv.max * .2); }
@@ -3563,7 +3570,7 @@ for (const [id, k] of [['mpOptHp', 'hp'], ['mpOptMax', 'max'], ['mpOptBuoy', 'bu
 function openMp(vs) {
   vsMode = !!vs;
   mpLeave(); hardMode = false; escMode = false; mpModeUi(); mpOptsUi(); $('mpTitle').textContent = 'Multijogador'; for (const t of $('mpTabs').children) { const on = (t.dataset.vs === '1') === !!vs; t.classList.toggle('on', on); t.setAttribute('aria-selected', on); } $('mpKicker').textContent = vs ? 'Duelo · 1 contra 1' : 'Cooperativo · até 4 jogadores'; $('mpCount').textContent = '';
-  $('mpList').innerHTML = ''; $('mpGift').hidden = true; $('mpOpts').hidden = true; $('mpBig').textContent = ''; $('mpShare').hidden = true; $('mpGo').hidden = true; $('mpCode').hidden = false; mpBusy(false);
+  $('mpInvBox').hidden = true; $('mpList').innerHTML = ''; $('mpGift').hidden = true; $('mpOpts').hidden = true; $('mpBig').textContent = ''; $('mpShare').hidden = true; $('mpGo').hidden = true; $('mpCode').hidden = false; mpBusy(false);
   mpSay(vs ? 'Duelo sem robôs: cada um joga com o navio equipado e seus poderes (stats base, sem melhorias).' : 'Todos enfrentam as mesmas ondas. Crie uma sala ou entre com o código de um amigo.');
   mpEl.hidden = false;
 }
@@ -3584,7 +3591,7 @@ $('mpCreate').addEventListener('click', async () => {
   try {
     await mpConnect(code, 'host');
     $('mpBig').textContent = code; $('mpCode').hidden = true; $('mpShare').hidden = false;
-    mpRoster();
+    mpRoster(); mpInvLoad();
   } catch (e) { mpLeave(); mpSay('Não foi possível conectar. Verifique a internet e tente de novo.'); }
   mpBusy(false);
 });
@@ -4275,9 +4282,9 @@ $('dailyClaim').addEventListener('click', claimDaily);
 $('dailyBack').addEventListener('click', () => { dailyEl.hidden = true; dailyDot(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !dailyEl.hidden) $('dailyBack').click(); });
 
-/* ---------- amizades e caixa de entrada ---------- */
+/* ---------- amizades, conversas privadas e convites ---------- */
 const frEl = $('frEl');
-let frTab = 'amigos', frTo = null, frUnread = 0, frNew = new Set(), frBox = [], frData = { amigos: [], enviados: [], recebidos: [] };
+let frTab = 'amigos', frChat = null, frChatT = 0, frChatSig = '', frUnread = 0, frNew = new Set(), frBox = [], frSum = {}, frData = { amigos: [], enviados: [], recebidos: [] };
 const FR_TXT = {
   ok: 'Pedido enviado.', aceito: 'Vocês agora são amigos!', recusado: 'Pedido recusado.',
   nome_invalido: 'Nome inválido: use 3 a 16 letras minúsculas, números ou _.',
@@ -4285,9 +4292,9 @@ const FR_TXT = {
   ja_amigos: 'Vocês já são amigos.', ja_pedido: 'Você já enviou um pedido para essa pessoa.',
   muitos_pedidos: 'Você tem pedidos demais pendentes. Espere alguns serem respondidos.',
   lista_cheia: 'Sua lista de amigos está cheia (100).', nao_existe: 'Esse pedido não existe mais.',
-  texto_invalido: 'A mensagem precisa ter de 1 a 200 caracteres.', nao_amigo: 'Só dá para enviar mensagem a amigos.',
-  devagar: 'Calma: espere um pouco antes de enviar outra mensagem.', caixa_cheia: 'A caixa dessa pessoa está cheia de mensagens suas não lidas.',
-  sem_login: 'Entre numa conta primeiro.'
+  texto_invalido: 'A mensagem precisa ter de 1 a 200 caracteres.', nao_amigo: 'Só dá para falar com amigos.',
+  devagar: 'Calma: espere um pouco antes de repetir.', chat_cheio: 'Essa pessoa ainda não leu suas últimas mensagens.',
+  sala_invalida: 'Sala inválida.', sem_login: 'Entre numa conta primeiro.'
 };
 const frSay = t => { $('frMsg').textContent = t || ''; };
 async function frCall(fn, args) {
@@ -4295,17 +4302,22 @@ async function frCall(fn, args) {
   if (d && typeof d === 'object' && !Array.isArray(d) && d.message && d.code) throw new Error(d.code === 'PGRST202' ? 'nao_instalado' : d.message);
   return d;
 }
-const frErr = e => e && e.message === 'nao_instalado' ? 'O sistema de amizades ainda não foi instalado no servidor (rode o amizades.sql).' : 'Sem conexão. Tente de novo.';
+const frErr = e => e && e.message === 'nao_instalado' ? 'Falta instalar essa parte no servidor (rode o chat_convites.sql).' : 'Sem conexão. Tente de novo.';
 function frAgo(ts) { const s = Math.max(0, (Date.now() - Date.parse(ts)) / 1000); return s < 60 ? 'agora' : s < 3600 ? Math.floor(s / 60) + ' min' : s < 86400 ? Math.floor(s / 3600) + ' h' : Math.floor(s / 86400) + ' d'; }
 function frBadge() {
-  const t = frUnread > 99 ? '99+' : String(frUnread);
-  for (const id of ['frN', 'frTabN']) { const b = $(id); b.hidden = !(frUnread > 0); b.textContent = t; }
+  const set = (id, n) => { const b = $(id); b.hidden = !(n > 0); b.textContent = n > 99 ? '99+' : n; };
+  set('frN', frUnread);
+  set('frTabN', frBox.filter(m => !m.lida).length);
+  set('frTabA', Object.values(frSum).reduce((t, x) => t + (+x.nao_lidas || 0), 0));
 }
 async function frPoll() {
   if (!sess || !RANK_ON) { frUnread = 0; frBadge(); return; }
-  try { const n = await frCall('mf_caixa_nao_lidas'); if (typeof n === 'number') { frUnread = n; frBadge(); } } catch (e) {}
+  try {
+    let n; try { n = await frCall('mf_nao_lidas'); } catch (e) { n = await frCall('mf_caixa_nao_lidas'); }
+    if (typeof n === 'number') { frUnread = n; frBadge(); }
+  } catch (e) {}
 }
-setInterval(() => { if (sess && !document.hidden && state !== 'playing') frPoll(); }, 60000);
+setInterval(() => { if (sess && !document.hidden && state !== 'playing') frPoll(); }, 20000);
 const frBtn = (a, label, o) => '<button' + (o && (o.pri || o.dng) ? ' class="' + (o.pri ? 'pri' : 'dng') + '"' : '') + ' type="button" data-a="' + a + '"' + (o && o.id ? ' data-id="' + esc(o.id) + '"' : '') + (o && o.n ? ' data-n="' + esc(o.n) + '"' : '') + '>' + label + '</button>';
 const FR_COL = ['#e0a93c', '#4fd1a5', '#5aa9ff', '#b074ff', '#e2552f', '#7fe3ff'];
 function frAv(nome) { const s = String(nome || '?'); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return '<span class="fr-av" style="background:' + FR_COL[h % FR_COL.length] + '" aria-hidden="true">' + esc(s.charAt(0)) + '</span>'; }
@@ -4314,14 +4326,15 @@ const frEmpty = (ico, t, s) => '<div class="fr-empty"><svg viewBox="0 0 24 24" f
 const frSec = (t, n) => '<p class="fr-sec">' + t + (n ? ' <b>' + n + '</b>' : '') + '</p>';
 const frRow = (cls, av, main, act) => '<div class="fr-row' + (cls ? ' ' + cls : '') + '">' + av + '<div class="fr-main">' + main + '</div><div class="fr-act">' + act + '</div></div>';
 function frRender() {
+  const chat = !!(frChat && sess);
   for (const t of $('frTabs').children) t.classList.toggle('on', t.dataset.t === frTab);
-  $('frAddBox').hidden = !sess || frTab !== 'add';
-  $('frCompose').hidden = !sess || !frTo;
-  if (frTo) $('frToName').textContent = 'Mensagem para ' + frTo.nome;
+  $('frTabs').hidden = chat; $('frChat').hidden = !chat; $('frBody').hidden = chat;
+  $('frAddBox').hidden = !sess || frTab !== 'add' || chat;
   const b = $('frBody');
+  if (chat) { $('frChatName').textContent = frChat.nome; $('frChatAv').innerHTML = frAv(frChat.nome); return; }
   if (!sess) {
     $('frCount').textContent = '';
-    b.innerHTML = frEmpty('users', 'Entre numa conta', 'Com uma conta você tem amigos e uma caixa de entrada.') + '<div class="actions"><button class="btn" type="button" data-a="login">Entrar / Criar conta</button></div>';
+    b.innerHTML = frEmpty('users', 'Entre numa conta', 'Com uma conta você tem amigos, conversas e convites.') + '<div class="actions"><button class="btn" type="button" data-a="login">Entrar / Criar conta</button></div>';
     return;
   }
   const na = frData.amigos.length;
@@ -4331,17 +4344,24 @@ function frRender() {
     if (frData.recebidos.length) h += frSec('Pedidos recebidos', frData.recebidos.length) + '<div class="fr-list">' + frData.recebidos.map(x =>
       frRow('req', frAv(x.nome), '<b>' + esc(x.nome) + '</b><small>quer ser seu amigo</small>', frBtn('acc', 'Aceitar', { pri: 1, id: x.id }) + frBtn('rej', 'Recusar', { id: x.id }))).join('') + '</div>';
     h += frSec('Meus amigos', na);
-    h += na ? '<div class="fr-list">' + frData.amigos.map(x =>
-      frRow('', frAv(x.nome), '<b>' + esc(x.nome) + '</b><small>amigo</small>', frBtn('msg', 'Mensagem', { pri: 1, id: x.id, n: x.nome }) + frBtn('rem', 'Remover', { dng: 1, id: x.id, n: x.nome }))).join('') + '</div>'
-      : frEmpty('users', 'Sem amigos ainda', 'Toque em Adicionar e digite o nome de um jogador para enviar um pedido.');
+    h += na ? '<div class="fr-list">' + frData.amigos.map(x => {
+      const s = frSum[x.id] || {}, nl = +s.nao_lidas || 0;
+      return frRow(nl ? 'new' : '', frAv(x.nome), '<b>' + esc(x.nome) + (nl ? '<i class="frn inl">' + nl + '</i>' : '') + '</b>' + (s.ultima ? '<span class="fr-prev">' + esc(s.ultima) + '</span>' : '<small>amigo</small>'),
+        frBtn('msg', 'Conversar', { pri: 1, id: x.id, n: x.nome }) + frBtn('rem', 'Remover', { dng: 1, id: x.id, n: x.nome }));
+    }).join('') + '</div>' : frEmpty('users', 'Sem amigos ainda', 'Toque em Adicionar e digite o nome de um jogador para enviar um pedido.');
   } else if (frTab === 'caixa') {
     if (frBox.some(m => m.lida && m.tipo !== 'pedido')) h += '<div class="fr-top"><div class="fr-act">' + frBtn('clear', 'Limpar lidas') + '</div></div>';
     h += frBox.length ? '<div class="fr-list">' + frBox.map(m => {
       const cls = frNew.has(m.id) ? 'new' : '', ago = frAgo(m.criada), nm = esc(m.de_nome || '?');
       if (m.tipo === 'pedido') return frRow(cls + ' req', frAv(m.de_nome), '<b>' + nm + '</b><small>quer ser seu amigo · ' + ago + '</small>', frBtn('acc', 'Aceitar', { pri: 1, id: m.de }) + frBtn('rej', 'Recusar', { id: m.de }));
+      if (m.tipo === 'convite') {
+        const p = String(m.texto).split('|'), cod = esc(p[0]), exp = Date.now() - Date.parse(m.criada) > 900000;
+        return frRow(cls + ' req', frAv(m.de_nome), '<b>' + nm + '</b><small>convidou você · ' + ago + '</small><span class="fr-txt">Sala <b>' + cod + '</b> · ' + (p[1] === '1' ? 'Duelo 1×1' : 'Esquadra') + (exp ? ' · expirado' : '') + '</span>',
+          (exp ? '' : frBtn('join', 'Entrar', { pri: 1, id: m.id, n: p[0] + '|' + (p[1] || '0') })) + frBtn('del', 'Apagar', { id: m.id }));
+      }
       if (m.tipo === 'mensagem') return frRow(cls, frAv(m.de_nome), '<b>' + nm + '</b><small>' + ago + '</small><span class="fr-txt fr-bub">' + esc(m.texto) + '</span>', (m.de ? frBtn('reply', 'Responder', { pri: 1, id: m.de, n: m.de_nome }) : '') + frBtn('del', 'Apagar', { id: m.id }));
       return frRow(cls, '<span class="fr-av sys" aria-hidden="true">!</span>', '<span class="fr-txt">' + esc(m.texto) + '</span><small>aviso · ' + ago + '</small>', frBtn('del', 'Apagar', { id: m.id }));
-    }).join('') + '</div>' : frEmpty('mail', 'Caixa vazia', 'Pedidos de amizade, mensagens e avisos aparecem aqui.');
+    }).join('') + '</div>' : frEmpty('mail', 'Caixa vazia', 'Pedidos de amizade, convites e avisos aparecem aqui.');
   } else {
     if (frData.enviados.length) h += frSec('Pedidos enviados', frData.enviados.length) + '<div class="fr-list">' + frData.enviados.map(x =>
       frRow('', frAv(x.nome), '<b>' + esc(x.nome) + '</b><small>aguardando resposta</small>', frBtn('cancel', 'Cancelar', { dng: 1, id: x.id }))).join('') + '</div>';
@@ -4350,9 +4370,10 @@ function frRender() {
   b.innerHTML = h;
 }
 async function frMarkRead() {
-  if (!frUnread && !frBox.some(m => !m.lida)) return;
-  frBox.forEach(m => { m.lida = true; }); frUnread = 0; frBadge();
+  if (!frBox.some(m => !m.lida)) return;
+  frBox.forEach(m => { m.lida = true; }); frBadge();
   try { await frCall('mf_caixa_ler', {}); } catch (e) {}
+  frPoll();
 }
 function frSetTab(t) {
   frTab = t;
@@ -4364,25 +4385,59 @@ async function frLoad(keepMsg) {
   if (!sess) { frRender(); return; }
   if (!keepMsg) frSay('Carregando…');
   try {
-    const [l, c] = await Promise.all([frCall('mf_amigo_lista'), frCall('mf_caixa_lista')]);
+    const [l, c, s] = await Promise.all([frCall('mf_amigo_lista'), frCall('mf_caixa_lista'), frCall('mf_chat_resumo').catch(() => [])]);
     if (l && Array.isArray(l.amigos)) frData = { amigos: l.amigos, enviados: l.enviados || [], recebidos: l.recebidos || [] };
     frBox = Array.isArray(c) ? c : [];
-    frUnread = frBox.filter(m => !m.lida).length;
+    frSum = {}; (Array.isArray(s) ? s : []).forEach(x => { frSum[x.id] = x; });
     if (!keepMsg) frSay('');
     if (frTab === 'caixa') { frBox.forEach(m => { if (!m.lida) frNew.add(m.id); }); frRender(); frMarkRead(); }
     else { frRender(); frBadge(); }
+    frPoll();
   } catch (e) { frSay(frErr(e)); frRender(); }
 }
-$('btnFr').addEventListener('click', () => { frTab = 'amigos'; frTo = null; frNew = new Set(); frSay(''); frEl.hidden = false; frEl.scrollTop = 0; frRender(); frLoad(); });
-$('frBack').addEventListener('click', () => { frEl.hidden = true; frTo = null; frPoll(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !frEl.hidden) $('frBack').click(); });
+/* conversa privada */
+async function frChatLoad(first) {
+  if (!frChat) return;
+  const id = frChat.id;
+  try {
+    const d = await frCall('mf_chat_abrir', { p_com: id });
+    if (!frChat || frChat.id !== id || !Array.isArray(d)) return;
+    const sig = (d.length ? d[d.length - 1].id : 0) + ':' + d.length;
+    if (!first && sig === frChatSig) return;
+    frChatSig = sig;
+    const box = $('frMsgs'), atEnd = first || box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+    box.innerHTML = d.length ? d.map(m => '<div class="fr-m' + (m.minha ? ' me' : '') + '">' + esc(m.texto) + '<small>' + frAgo(m.criada) + '</small></div>').join('') : '<p class="note" style="margin:auto;text-align:center">Nenhuma mensagem ainda. Diga olá!</p>';
+    if (atEnd) box.scrollTop = box.scrollHeight;
+    frPoll();
+  } catch (e) { if (first) frSay(frErr(e)); }
+}
+function frChatStop() { clearInterval(frChatT); frChatT = 0; frChat = null; frChatSig = ''; }
+async function frOpenChat(id, nome) {
+  frChatStop(); frChat = { id, nome: nome || '?' }; frSay('');
+  if (frSum[id]) frSum[id].nao_lidas = 0;
+  $('frMsgs').innerHTML = ''; frRender(); frBadge();
+  frChatT = setInterval(() => { if (!frEl.hidden && frChat) frChatLoad(false); }, 4000);
+  await frChatLoad(true);
+  $('frText').focus();
+}
+function frJoin(code, vs, caixaId) {
+  frEl.hidden = true; frChatStop(); openMp(vs);
+  $('mpCode').value = code; $('mpJoin').click();
+  if (caixaId) frCall('mf_caixa_apagar', { p_id: +caixaId }).catch(() => {});
+  frPoll();
+}
+$('btnFr').addEventListener('click', () => { frChatStop(); frTab = 'amigos'; frNew = new Set(); frSay(''); frEl.hidden = false; frEl.scrollTop = 0; frRender(); frLoad(); });
+$('frBack').addEventListener('click', () => { frChatStop(); frEl.hidden = true; frPoll(); });
+$('frChatBack').addEventListener('click', () => { frChatStop(); frSay(''); frRender(); frLoad(true); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !frEl.hidden) $(frChat ? 'frChatBack' : 'frBack').click(); });
 $('frTabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) { frSay(''); frSetTab(b.dataset.t); } });
 $('frBody').addEventListener('click', async e => {
   const b = e.target.closest('[data-a]');
   if (!b || b.disabled) return;
   const a = b.dataset.a, id = b.dataset.id;
   if (a === 'login') { frEl.hidden = true; $('btnAcct').click(); return; }
-  if (a === 'msg' || a === 'reply') { frTo = { id, nome: b.dataset.n || '?' }; frSay(''); frRender(); $('frText').focus(); return; }
+  if (a === 'msg' || a === 'reply') { frOpenChat(id, b.dataset.n); return; }
+  if (a === 'join') { const p = (b.dataset.n || '').split('|'); if (/^[A-Z]{4}$/.test(p[0])) frJoin(p[0], p[1] === '1', id); return; }
   if (a === 'rem' && !confirm('Remover ' + (b.dataset.n || 'este jogador') + ' dos amigos?')) return;
   b.disabled = true;
   try {
@@ -4408,20 +4463,40 @@ $('frAdd').addEventListener('click', async () => {
 });
 $('frSend').addEventListener('click', async () => {
   const t = $('frText').value.trim();
-  if (!frTo || !t) return;
+  if (!frChat || !t) return;
   $('frSend').disabled = true;
   try {
-    const r = await frCall('mf_caixa_enviar', { p_para: frTo.id, p_texto: t });
-    if (r === 'ok') { $('frText').value = ''; frSay('Mensagem enviada para ' + frTo.nome + '.'); frTo = null; frRender(); }
+    const r = await frCall('mf_chat_enviar', { p_para: frChat.id, p_texto: t });
+    if (r === 'ok') { $('frText').value = ''; frSay(''); await frChatLoad(true); }
     else frSay(FR_TXT[r] || 'Não foi possível enviar.');
-  } catch (e) { frSay(frErr(e)); } finally { $('frSend').disabled = false; }
+  } catch (e) { frSay(frErr(e)); } finally { $('frSend').disabled = false; $('frText').focus(); }
 });
-$('frCancel').addEventListener('click', () => { frTo = null; $('frText').value = ''; frRender(); });
 for (const id of ['frName', 'frText']) {
   $(id).addEventListener('keydown', e => { if (e.key !== 'Escape') e.stopPropagation(); if (e.key === 'Enter') $(id === 'frName' ? 'frAdd' : 'frSend').click(); });
   $(id).addEventListener('keyup', e => e.stopPropagation());
 }
 $('frName').addEventListener('input', e => { e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); });
+/* convidar amigos na sala (só o anfitrião) */
+async function mpInvLoad() {
+  const box = $('mpInvBox'); box.hidden = true;
+  if (!sess || !RANK_ON) return;
+  try {
+    const l = await frCall('mf_amigo_lista'), am = l && Array.isArray(l.amigos) ? l.amigos : [];
+    $('mpInvN').textContent = am.length ? am.length + (am.length === 1 ? ' amigo' : ' amigos') : '';
+    $('mpInv').innerHTML = am.length ? '<div class="fr-list">' + am.map(x => frRow('', frAv(x.nome), '<b>' + esc(x.nome) + '</b>', frBtn('inv', 'Convidar', { pri: 1, id: x.id, n: x.nome }))).join('') + '</div>' : '<p class="note">Adicione amigos no menu Amigos para poder convidá-los.</p>';
+    box.hidden = false;
+  } catch (e) {}
+}
+$('mpInv').addEventListener('click', async e => {
+  const b = e.target.closest('[data-a="inv"]');
+  if (!b || b.disabled || !MP.code) return;
+  b.disabled = true; const t0 = b.textContent;
+  try {
+    const r = await frCall('mf_convite_enviar', { p_para: b.dataset.id, p_sala: MP.code, p_vs: !!vsMode });
+    if (r === 'ok') { b.textContent = 'Enviado ✓'; setTimeout(() => { b.disabled = false; b.textContent = t0; }, 30000); mpSay('Convite enviado para ' + b.dataset.n + '.'); }
+    else { b.disabled = false; mpSay(FR_TXT[r] || 'Não foi possível convidar.'); }
+  } catch (err) { b.disabled = false; mpSay(frErr(err)); }
+});
 
 /* ---------- entrada ---------- */
 function stickHome(k) { return k === 'move' ? [W * .2, H - 118] : [W * .8, H - 118]; }
@@ -4532,6 +4607,7 @@ function frame(now) {
   const tips = [
     'Mova-se com WASD e mire com o mouse. Espaço também atira.',
     'Caixas soltas pelos inimigos dão reparo, escudo ou tiro triplo.',
+    'Chegue perto de uma caixa e ela vem até você.',
     'O Nautilon fica invisível e invulnerável por 9 s.',
     'O Mirage 3 cria até 3 clones que atraem o fogo e só somem se forem destruídos.',
     'Navios com várias torretas atiram de todos os canos de uma vez.',
