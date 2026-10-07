@@ -206,7 +206,7 @@ function accOn(id, on) {
   A.on = A.on.filter(o => o !== id && (!on || ACC.find(z => z.id === o).slot !== a.slot));
   if (on) A.on.push(id);
 }
-let save = { prof: { bio: '', photo: '' }, coins: 0, ship: 'corveta', owned: ['corveta'], up: {}, ach: {}, kills: 0, bosses: 0, sharks: 0, evt: { id: 'colheita-sombria', kills: 0, bosses: 0, notif: 0 }, daily: { streak: 0, last: '' }, acc: { own: [], on: [] } };
+let save = { prof: { bio: '', photo: '' }, coins: 0, ship: 'corveta', owned: ['corveta'], up: {}, ach: {}, kills: 0, bosses: 0, sharks: 0, evt: { id: 'colheita-sombria', kills: 0, bosses: 0, notif: 0 }, daily: { streak: 0, last: '' }, wk: { paid: '' }, acc: { own: [], on: [] } };
 function upOf(id) { return save.up[id] || (save.up[id] = { hull: 0, gun: 0, rel: 0, eng: 0 }); }
 function normUp(sv, owned) {
   const src = (sv && sv.up) || {}, out = {}, legacy = UPS.some(u => typeof src[u.k] === 'number');
@@ -238,6 +238,7 @@ function loadExtra(sv) {
   save.acc = { own: aown, on: aon };
   { const dl = (sv && sv.daily) || {}; save.daily = { cyc: clamp(Math.floor(Number(dl.cyc) || 0), 0, 99), streak: clamp(Math.floor(Number(dl.streak) || 0), 0, 7), last: /^\d{4}-\d{2}-\d{2}$/.test(dl.last) ? dl.last : '' }; }
   { const d = (sv && sv.dm) || {}, a3 = (v, f) => [0, 1, 2].map(i => f(Array.isArray(v) ? v[i] : 0)); save.dm = { d: /^\d{4}-\d{2}-\d{2}$/.test(d.d) ? d.d : '', p: a3(d.p, x => clamp(Math.floor(Number(x) || 0), 0, 99999)), c: a3(d.c, x => x ? 1 : 0), b: d.b ? 1 : 0 }; }
+  save.wk = { paid: sv && sv.wk && /^\d{4}-\d{2}-\d{2}$/.test(sv.wk.paid) ? sv.wk.paid : '' };
   save.ach = {};
   for (const a of ACH) if (sv && sv.ach && sv.ach[a.id]) save.ach[a.id] = 1;
 }
@@ -3248,7 +3249,7 @@ window.addEventListener('pagehide', () => { pushCloud(); });
 function logout() {
   sess = null; ADMIN = false; $('btnAdm').hidden = true;
   try { localStorage.removeItem(SESS_KEY); localStorage.removeItem(KEY_SAVE); localStorage.removeItem(KEY_BEST); localStorage.removeItem('mf_dono'); } catch (e) {}
-  Object.assign(save, { prof: { bio: '', photo: '' }, coins: 0, ship: 'corveta', owned: ['corveta'], up: {}, ach: {}, kills: 0, bosses: 0, sharks: 0, ts: 0, play: 0, maxWave: 0, items: { shield: 0, triple: 0 }, acc: { own: [], on: [] }, evt: { id: 'colheita-sombria', kills: 0, bosses: 0, notif: 0 }, daily: { streak: 0, last: '' } });
+  Object.assign(save, { prof: { bio: '', photo: '' }, coins: 0, ship: 'corveta', owned: ['corveta'], up: {}, ach: {}, kills: 0, bosses: 0, sharks: 0, ts: 0, play: 0, maxWave: 0, items: { shield: 0, triple: 0 }, acc: { own: [], on: [] }, evt: { id: 'colheita-sombria', kills: 0, bosses: 0, notif: 0 }, daily: { streak: 0, last: '' }, wk: { paid: '' } });
   best = 0; refreshAcct();
 }
 function refreshAcct() {
@@ -3275,7 +3276,7 @@ async function doAuth0(signup) {
       return;
     }
     setSess(r.d, nome);
-    await pullCloud(); checkAdmin();
+    await pullCloud(); checkAdmin().then(() => weeklyPrize());
     $('aPass').value = ''; $('aPass2').value = ''; m.textContent = '';
     $('auth').hidden = true; refreshAcct();
   } catch (e) { m.textContent = 'Sem conexão. Tente de novo.'; }
@@ -3427,7 +3428,7 @@ async function rkMe(items, tab, eu) {
 function rkTick() {
   const c = $('rkCount'); if (!c || !rkFim) return;
   let ms = rkFim - Date.now();
-  if (ms <= 0) { if (rankTab === 'semana' && !rankEl.hidden) openRank(); return; }
+  if (ms <= 0) { weeklyPrize(); if (rankTab === 'semana' && !rankEl.hidden) openRank(); return; }
   const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60), mi = m % 60;
   c.innerHTML = rkIc(IC_CLOCK, 14) + '<span>A semana zera em <b>' + (d ? d + ' d ' : '') + h + ' h ' + String(mi).padStart(2, '0') + ' min</b> (domingo 00:00, Brasília)</span>';
 }
@@ -3449,7 +3450,7 @@ async function openRank() {
       if (tab !== rankTab) return;
       rkFim = Date.parse(d.fim) || 0;
       const inf = $('rankInfo'); inf.hidden = false;
-      inf.innerHTML = '<span id="rkCount"></span>' + (d.anterior ? '<span>' + rkIc(IC_CROWN, 14) + '<span>Campeão da semana passada: <b>' + esc(d.anterior.nome) + '</b> · ' + fmt(+d.anterior.pontos || 0) + '</span></span>' : '');
+      inf.innerHTML = '<span id="rkCount"></span><span>🏆 Prêmios: 🥇 ' + fmt(WK_PRIZE[0]) + ' · 🥈 ' + fmt(WK_PRIZE[1]) + ' · 🥉 ' + fmt(WK_PRIZE[2]) + ' moedas</span>' + (d.anterior ? '<span>' + rkIc(IC_CROWN, 14) + '<span>Campeão da semana passada: <b>' + esc(d.anterior.nome) + '</b> · ' + fmt(+d.anterior.pontos || 0) + '</span></span>' : '');
       rkTick();
       items = rkNoAdm(d.lista.map(x => ({ nome: String(x.nome), val: +x.pontos || 0, txt: fmt(+x.pontos || 0), sub: 'onda ' + (x.onda || 0) })));
       topCheck(tab, items);
@@ -3637,7 +3638,7 @@ $('peCancel').addEventListener('click', () => { peEl.hidden = true; if (sess) op
 $('profEdit').addEventListener('click', peOpen);
 $('pEditBtn').addEventListener('click', peOpen);
 
-const CLOUD_READY = sess ? (refreshAcct(), pullCloud().then(() => { refreshAcct(); checkAdmin(); ensureThumb(); })) : Promise.resolve();
+const CLOUD_READY = sess ? (refreshAcct(), pullCloud().then(() => { refreshAcct(); checkAdmin().then(() => weeklyPrize()); ensureThumb(); })) : Promise.resolve();
 
 
 /* ---------- multiplayer (Supabase Realtime) ---------- */
@@ -4100,6 +4101,50 @@ async function checkAdmin() {
   if (ADMIN) { ADMINS.add(sess.nome); save.owned = SHIPS.map(s => s.id); save.coins = 99999999; persist(); refreshAcct(); }
 }
 const ADMINS_READY = rpc('admins_nomes').then(a => { if (Array.isArray(a)) a.forEach(n => ADMINS.add(n)); }).catch(() => {});
+
+/* ---------- prêmio do ranking semanal ---------- */
+const WK_PRIZE = [100000, 50000, 25000];
+let wkBusy = false;
+async function weeklyPrize() {
+  if (wkBusy || !sess || ADMIN || TEST_MODE) return;
+  wkBusy = true; let again = false;
+  const me = sess;
+  try {
+    await ADMINS_READY;
+    const w = await rpc('ranking_semana', { p_limit: 1 });
+    if (!sess || sess.id !== me.id || ADMIN || !w || !/^\d{4}-\d{2}-\d{2}/.test(w.inicio)) return;
+    const prev = new Date(Date.parse(String(w.inicio).slice(0, 10) + 'T00:00:00Z') - 7 * 864e5).toISOString().slice(0, 10);
+    if (((save.wk && save.wk.paid) || '') >= prev) return;
+    const r = await api('ranking_semanal?semana=eq.' + prev + '&pontos=gt.0&select=user_id,nome,pontos&order=pontos.desc,atualizado.asc&limit=30');
+    if (!r.ok) return;
+    const d = await r.json();
+    if (!Array.isArray(d) || !sess || sess.id !== me.id || ADMIN) return;
+    const top = d.filter(x => !ADMINS.has(String(x.nome))).slice(0, 3);
+    const pos = top.findIndex(x => x.user_id === me.id);
+    if (pos >= 0 && (document.getElementById('loading') || state === 'playing')) { again = true; return; } // espera o carregamento / a partida acabar
+    save.wk = { paid: prev };
+    if (pos >= 0) save.coins += WK_PRIZE[pos];
+    persist(); refreshAcct();
+    try { await pushCloud(); } catch (e) {}
+    if (pos >= 0) wkShow(top, pos, prev);
+  } catch (e) {} finally { wkBusy = false; if (again) setTimeout(weeklyPrize, 1500); }
+}
+function wkShow(top, pos, prev) {
+  const ini = new Date(Date.parse(prev + 'T00:00:00Z')), fim = new Date(ini.getTime() + 6 * 864e5);
+  const dm = x => String(x.getUTCDate()).padStart(2, '0') + '/' + String(x.getUTCMonth() + 1).padStart(2, '0');
+  const ICO = ['🥇', '🥈', '🥉'];
+  $('wkIco').textContent = ICO[pos];
+  $('wkTitle').textContent = ['Campeão da semana!', 'Vice-campeão da semana!', 'Pódio da semana!'][pos];
+  $('wkSub').textContent = 'Você ficou em ' + (pos + 1) + 'º lugar no ranking semanal (' + dm(ini) + ' a ' + dm(fim) + ').';
+  $('wkAmt').textContent = '+' + fmt(WK_PRIZE[pos]) + ' moedas';
+  $('wkList').innerHTML = top.map((x, i) => '<div class="wk-row' + (x.user_id === sess.id ? ' me' : '') + '" style="--c:' + MEDAL[i] + '"><b>' + ICO[i] + '</b><span>' + esc(x.nome) + '</span><em>' + fmt(+x.pontos || 0) + ' pts</em><i>$ ' + fmt(WK_PRIZE[i]) + '</i></div>').join('');
+  $('wkPrize').hidden = false; $('wkPrize').scrollTop = 0;
+  try { initAudio(); sfx.pick(); } catch (e) {}
+}
+$('wkOk').addEventListener('click', () => { $('wkPrize').hidden = true; });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('wkPrize').hidden) $('wkOk').click(); });
+setInterval(() => { if (!document.hidden) weeklyPrize(); }, 120000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) weeklyPrize(); });
 let admTab = 'contas', admData = [];
 const admBs = 'style="min-height:30px;padding:3px 8px;font-size:11px"';
 const admSay = t => { $('admMsg').textContent = t; };

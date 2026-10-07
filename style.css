@@ -919,3 +919,17 @@ body[data-state="playing"] #btnCfg, body:has(#mpEl:not([hidden]), #auth:not([hid
 
 .fr-av { position: relative; overflow: hidden; }
 .fr-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* prêmio do ranking semanal */
+#wkPrize { z-index: 60; }
+.wk-panel { text-align: center; align-items: stretch; }
+.wk-ico { font-size: 64px; line-height: 1; animation: wkPop .7s cubic-bezier(.2, 1.4, .4, 1) both; }
+.wk-amt { font: 900 34px/1 var(--font-display); color: var(--brass); font-variant-numeric: tabular-nums; text-shadow: 0 0 22px rgba(224, 169, 60, .45); }
+#wkList { display: flex; flex-direction: column; gap: 6px; }
+.wk-row { display: grid; grid-template-columns: 28px 1fr auto auto; gap: 8px; align-items: center; padding: 8px 10px; text-align: left; border: 1px solid var(--line); background: linear-gradient(135deg, rgba(212, 232, 234, .06), rgba(212, 232, 234, .015)); font-size: 13px; }
+.wk-row b { font-size: 18px; }
+.wk-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wk-row em { font-style: normal; font-size: 11px; color: var(--steel); }
+.wk-row i { font-style: normal; font-weight: 700; color: var(--c, var(--brass)); font-variant-numeric: tabular-nums; }
+.wk-row.me { border-color: var(--c, var(--brass)); box-shadow: 0 0 0 1px var(--c, var(--brass)); }
+@keyframes wkPop { from { transform: scale(.2) rotate(-12deg); opacity: 0; } to { transform: none; opacity: 1; } }
