@@ -219,7 +219,8 @@ function cleanProf(p) {
   p = p && typeof p === 'object' ? p : {};
   const bio = String(p.bio || '').replace(/\s+/g, ' ').trim().slice(0, 140);
   const ph = typeof p.photo === 'string' && p.photo.length <= 45000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(p.photo) ? p.photo : '';
-  return { bio, photo: ph };
+  const th = typeof p.thumb === 'string' && p.thumb.length <= 8000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(p.thumb) ? p.thumb : '';
+  return { bio, photo: ph, thumb: ph ? th : '' };
 }
 function loadExtra(sv) {
   save.prof = cleanProf(sv && sv.prof);
@@ -3368,16 +3369,29 @@ async function submitScore() {
 let rankTab = 'semana', rkFim = 0;
 const hh = v => { v = Math.floor(Number(v) || 0); return Math.floor(v / 3600) + ' h ' + Math.floor(v % 3600 / 60) + ' min'; };
 const MEDAL = ['#e0a93c', '#c9d8db', '#b9733a'];
-function rkMsg(t, retry) {
+function rkMsg(t, retry) { rkTok++;
   $('rankBody').innerHTML = '<p class="note" style="text-align:center;padding:18px 0">' + esc(t) + '</p>' +
     (retry ? '<div style="text-align:center"><button class="btn ghost" data-retry="1" type="button" style="font-size:15px;padding:6px 16px">Tentar de novo</button></div>' : '');
 }
-function rkSkel() { $('rankBody').innerHTML = '<div class="rk-list">' + '<div class="rk-sk"></div>'.repeat(7) + '</div>'; }
+function rkSkel() { rkTok++; $('rankBody').innerHTML = '<div class="rk-list">' + '<div class="rk-sk"></div>'.repeat(7) + '</div>'; }
 const rkIc = (d, z) => '<svg viewBox="0 0 24 24" width="' + z + '" height="' + z + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
 const IC_CROWN = '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>', IC_CLOCK = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
 const avH = n => ([...String(n)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0) % 360;
-const avEl = (n, extra) => '<span class="rk-av' + (extra ? ' ' + extra : '') + '" style="--h:' + avH(n) + '" aria-hidden="true">' + ((sess && n === sess.nome && save.prof && save.prof.photo) ? '<img alt="" src="' + save.prof.photo + '">' : esc(String(n).charAt(0).toUpperCase())) + '</span>';
-function rkRender(items, o) {
+const THUMBS = new Map(), okThumb = t => typeof t === 'string' && t.length <= 8000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(t);
+async function loadThumbs(names) { // busca de uma vez as fotos de quem aparece na lista (cache de 5 min)
+  const now = Date.now(), need = [...new Set(names)].filter(n => { const c = THUMBS.get(n); return !c || now - c[1] > 300000; }).slice(0, 60);
+  if (!need.length) return;
+  try {
+    const d = await rpc('fotos_mini', { p_nomes: need });
+    if (!Array.isArray(d)) return;
+    for (const n of need) THUMBS.set(n, ['', now]);
+    for (const x of d) if (x && okThumb(x.foto)) THUMBS.set(String(x.nome), [x.foto, now]);
+  } catch (e) {}
+}
+const avEl = (n, extra) => { const own = sess && n === sess.nome, c = THUMBS.get(n), ph = own ? (save.prof && (save.prof.thumb || save.prof.photo)) : (c && c[0]); return '<span class="rk-av' + (extra ? ' ' + extra : '') + '" style="--h:' + avH(n) + '" aria-hidden="true">' + (ph ? '<img alt="" src="' + esc(ph) + '">' : esc(String(n).charAt(0).toUpperCase())) + '</span>'; };
+let rkTok = 0;
+async function rkRender(items, o) { const tok = rkTok; await loadThumbs(items.map(x => x.nome)); if (tok === rkTok) rkRender0(items, o); }
+function rkRender0(items, o) {
   const me = sess && sess.nome, top = Math.max(1, items[0].val), pod = o.rank && items.length >= 3;
   const mine = it => it.nome === me;
   const row = (it, i) => '<div class="rk-row' + (mine(it) ? ' me' : '') + '" data-n="' + esc(it.nome) + '" tabindex="0" role="button" style="--w:' + Math.round(clamp(it.val / top, 0, 1) * 100) + '%">' +
@@ -3421,6 +3435,7 @@ setInterval(() => { if (!rankEl.hidden && rankTab === 'semana') rkTick(); }, 300
 function topCheck(tab, items) { if (!sess || ADMIN) return; const i = items.slice(0, 3).findIndex(x => x.nome === sess.nome); if (i >= 0 && !(TOPNOW[tab] <= i + 1)) { TOPNOW[tab] = i + 1; checkAch(); } }
 const rkNoAdm = l => l.filter(x => !ADMINS.has(x.nome)).slice(0, 25);
 async function openRank() {
+  ensureThumb();
   rankEl.hidden = false; $('pMine').hidden = !sess;
   const tab = rankTab;
   for (const t of $('rTabs').children) t.classList.toggle('on', t.dataset.tab === tab);
@@ -3533,10 +3548,22 @@ function peUi() {
 }
 function peOpen() {
   if (!sess) return;
-  peDraft = { bio: save.prof.bio, photo: save.prof.photo }; peCrop = null; peStage.hidden = true;
+  peDraft = { bio: save.prof.bio, photo: save.prof.photo, thumb: save.prof.thumb || '' }; peCrop = null; peStage.hidden = true;
   $('peBio').value = peDraft.bio; $('peMsg').textContent = 'Foto e bio aparecem no seu perfil. A foto é recortada em quadrado e reduzida automaticamente.';
   $('peSave').disabled = false; peUi();
   $('acctEl').hidden = true; profEl.hidden = true; rankEl.hidden = true; peEl.hidden = false;
+}
+function thumbOf(src) { // miniatura 48x48 (vai para listas e ranking)
+  const t = document.createElement('canvas'); t.width = t.height = 48;
+  const g = t.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, 48, 48);
+  let o = ''; for (const q of [.7, .5, .35]) { o = t.toDataURL('image/jpeg', q); if (o.length <= 8000) break; }
+  return o.length <= 8000 ? o : '';
+}
+function mkThumb(url) { return new Promise(res => { const im = new Image(); im.onload = () => { try { res(thumbOf(im)); } catch (e) { res(''); } }; im.onerror = () => res(''); im.src = url; }); }
+async function ensureThumb() { // quem já tinha foto antes ganha a miniatura sozinho
+  const p = save.prof; if (!sess || !p || !p.photo || p.thumb) return;
+  const t = await mkThumb(p.photo);
+  if (t && save.prof.photo === p.photo) { save.prof.thumb = t; persist(); }
 }
 let peCrop = null;
 const peCv = $('peCv'), peStage = $('peStage'), peZoom = $('peZoom');
@@ -3556,7 +3583,7 @@ function peCommit() {
   let out = '';
   for (const q of [.85, .7, .55, .4]) { out = c.toDataURL('image/jpeg', q); if (out.length <= 45000) break; }
   if (out.length > 45000 || !out.startsWith('data:image/jpeg;base64,')) return false;
-  peDraft.photo = out; peUi(); return true;
+  peDraft.photo = out; peDraft.thumb = thumbOf(c); peUi(); return true;
 }
 function peLoad(file) {
   return new Promise((res, rej) => {
@@ -3594,7 +3621,7 @@ $('peFile').addEventListener('change', async e => {
   try { await peLoad(f); $('peMsg').textContent = 'Arraste para enquadrar e use o zoom. Toque em Salvar para aplicar.'; }
   catch (er) { $('peMsg').textContent = 'Não foi possível usar essa imagem. Tente outra (JPG ou PNG).'; }
 });
-$('peDel').addEventListener('click', () => { peDraft.photo = ''; peCrop = null; peStage.hidden = true; peUi(); $('peMsg').textContent = 'Foto removida. Toque em Salvar para aplicar.'; });
+$('peDel').addEventListener('click', () => { peDraft.photo = ''; peDraft.thumb = ''; peCrop = null; peStage.hidden = true; peUi(); $('peMsg').textContent = 'Foto removida. Toque em Salvar para aplicar.'; });
 $('peBio').addEventListener('input', e => { peDraft.bio = e.target.value.slice(0, 140); peUi(); });
 for (const ev of ['keydown', 'keyup']) $('peBio').addEventListener(ev, e => e.stopPropagation());
 $('peSave').addEventListener('click', async () => {
@@ -3610,7 +3637,7 @@ $('peCancel').addEventListener('click', () => { peEl.hidden = true; if (sess) op
 $('profEdit').addEventListener('click', peOpen);
 $('pEditBtn').addEventListener('click', peOpen);
 
-const CLOUD_READY = sess ? (refreshAcct(), pullCloud().then(() => { refreshAcct(); checkAdmin(); })) : Promise.resolve();
+const CLOUD_READY = sess ? (refreshAcct(), pullCloud().then(() => { refreshAcct(); checkAdmin(); ensureThumb(); })) : Promise.resolve();
 
 
 /* ---------- multiplayer (Supabase Realtime) ---------- */
