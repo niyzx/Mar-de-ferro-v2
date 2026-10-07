@@ -114,6 +114,12 @@ const SHIPS = [
     spec: Object.assign({}, SPEC.player, { len: 128, wid: 34, turn: 1.3, hull: '#1c1c26', deck: '#33333f', dark: '#0a0a10', stroke: '#c1121f', accent: '#ff2b3a',
       turrets: [{ x: .34, r: 7, bl: 26 }, { x: .08, r: 8, bl: 30 }, { x: -.2, r: 7, bl: 26 }], cabin: { x: -.38, l: 16, w: 12 }, funnel: { x: -.3, r: 4.4 } }) }
 ];
+/* árvore de navios: para comprar um navio é preciso já ter o navio de origem */
+const TREE = { corveta: null, cruzador: 'corveta', submarino: 'corveta', carrier: 'cruzador', tridente: 'cruzador', torpedeiro: 'submarino', furia: 'submarino', leviata: 'tridente', misseis: 'tridente', vingador: 'furia', nova: 'furia', espelho: 'torpedeiro' };
+SHIPS.forEach(s => { if (s.id in TREE) s.from = TREE[s.id]; });
+const shipById = id => SHIPS.find(z => z.id === id);
+const shipUnlocked = id => { const s = shipById(id); return !!s && (!s.from || ADMIN || save.owned.includes(s.from)); };
+const TREE_N = SHIPS.filter(x => x.id in TREE).length;
 const PUB_N = SHIPS.filter(x => !x.adminOnly && !x.eventOnly && !x.dailyOnly).length;
 const isPub = id => { const x = SHIPS.find(z => z.id === id); return !!x && !x.adminOnly && !x.eventOnly && !x.dailyOnly; };
 const ESC_LIFE = 30, ESC_CD = 40, CLONE_LIFE = 1e6, CLONE_CD = 40, CLONE_MAX = 3;
@@ -184,29 +190,13 @@ const UPS = [
 ];
 let ADMIN = false; const ADMINS = new Set();
 const adm = n => ADMINS.has(n) ? '<em class="rk-you" style="color:var(--rust);border-color:var(--rust)">admin</em>' : '';
-const TEST_MODE = false; // true = dinheiro infinito para testes (nunca publique com true)
 const MAXLV = 5, KEY_SAVE = 'mar-de-ferro-save';
 const upCost = l => Math.round(150 * Math.pow(1.9, l) / 10) * 10;
 /* ---------- evento: Colheita Sombria (recompensa: navio Reaper, permanente na conta) ---------- */
 let apowOpen = false;
 const EVENTO = { id: 'colheita-sombria', nome: 'Colheita Sombria', ini: '2026-10-05T00:00:00-03:00', ship: 'reaper', kills: 3000, bosses: 15, coins: 375000 };
 const evtAtivo = () => { const n = Date.now(); return n >= Date.parse(EVENTO.ini); };
-const ACC = [
-  { id: 'lant', n: 'Lanternas', d: 'Luzes quentes na proa e na popa.', cost: 1500, rar: 'Comum', slot: 'luz' },
-  { id: 'flag', n: 'Bandeira Pirata', d: 'Uma bandeira negra tremulando na popa.', cost: 3000, rar: 'Comum', slot: 'popa' },
-  { id: 'radar', n: 'Radar', d: 'Antena giratória sobre a cabine.', cost: 4500, rar: 'Incomum', slot: 'cab' },
-  { id: 'hat', n: 'Chapéu de Capitão', d: 'Tricórnio sobre a cabine.', cost: 6000, rar: 'Incomum', slot: 'cab' },
-  { id: 'anchor', n: 'Âncora Dourada', d: 'Âncora de ouro na proa.', cost: 9000, rar: 'Raro', slot: 'proa' },
-  { id: 'neon', n: 'Casco Neon', d: 'Contorno luminoso ao redor do casco.', cost: 14000, rar: 'Raro', slot: 'casco' },
-  { id: 'horns', n: 'Chifres Infernais', d: 'Chifres rubros na proa.', cost: 20000, rar: 'Épico', slot: 'proa' },
-  { id: 'crown', n: 'Coroa Dourada', d: 'Coroa real sobre a cabine.', cost: 35000, rar: 'Lendário', slot: 'cab' }
-];
-function accOn(id, on) {
-  const a = ACC.find(z => z.id === id), A = save.acc;
-  A.on = A.on.filter(o => o !== id && (!on || ACC.find(z => z.id === o).slot !== a.slot));
-  if (on) A.on.push(id);
-}
-let save = { prof: { bio: '', photo: '' }, coins: 0, ship: 'corveta', owned: ['corveta'], up: {}, ach: {}, kills: 0, bosses: 0, sharks: 0, evt: { id: 'colheita-sombria', kills: 0, bosses: 0, notif: 0 }, daily: { streak: 0, last: '' }, wk: { paid: '' }, acc: { own: [], on: [] } };
+let save = { prof: { bio: '', photo: '' }, coins: 0, ship: 'corveta', owned: ['corveta'], up: {}, ach: {}, kills: 0, bosses: 0, sharks: 0, evt: { id: 'colheita-sombria', kills: 0, bosses: 0, notif: 0 }, daily: { streak: 0, last: '' }, wk: { paid: '' } };
 function upOf(id) { return save.up[id] || (save.up[id] = { hull: 0, gun: 0, rel: 0, eng: 0 }); }
 function normUp(sv, owned) {
   const src = (sv && sv.up) || {}, out = {}, legacy = UPS.some(u => typeof src[u.k] === 'number');
@@ -230,12 +220,8 @@ function loadExtra(sv) {
   save.sharks = Math.max(0, Math.floor(Number(sv && sv.sharks) || 0));
   save.play = Math.max(0, Number(sv && sv.play) || 0);
   save.maxWave = Math.max(0, Math.floor(Number(sv && sv.maxWave) || 0));
-  save.items = { shield: clamp(Math.floor(Number(sv && sv.items && sv.items.shield) || 0), 0, 5), triple: clamp(Math.floor(Number(sv && sv.items && sv.items.triple) || 0), 0, 5) };
   const ev = sv && sv.evt && sv.evt.id === EVENTO.id ? sv.evt : {};
   save.evt = { id: EVENTO.id, kills: clamp(Math.floor(Number(ev.kills) || 0), 0, EVENTO.kills), bosses: clamp(Math.floor(Number(ev.bosses) || 0), 0, EVENTO.bosses), notif: ev.notif ? 1 : 0 };
-  const ac = (sv && sv.acc) || {}, aown = [...new Set((Array.isArray(ac.own) ? ac.own : []).filter(id => ACC.some(x => x.id === id)))], aon = [];
-  for (const id of (Array.isArray(ac.on) ? ac.on : [])) { const x = ACC.find(z => z.id === id); if (x && aown.includes(id) && !aon.some(o => ACC.find(z => z.id === o).slot === x.slot)) aon.push(id); }
-  save.acc = { own: aown, on: aon };
   { const dl = (sv && sv.daily) || {}; save.daily = { cyc: clamp(Math.floor(Number(dl.cyc) || 0), 0, 99), streak: clamp(Math.floor(Number(dl.streak) || 0), 0, 7), last: /^\d{4}-\d{2}-\d{2}$/.test(dl.last) ? dl.last : '' }; }
   { const d = (sv && sv.dm) || {}, a3 = (v, f) => [0, 1, 2].map(i => f(Array.isArray(v) ? v[i] : 0)); save.dm = { d: /^\d{4}-\d{2}-\d{2}$/.test(d.d) ? d.d : '', p: a3(d.p, x => clamp(Math.floor(Number(x) || 0), 0, 99999)), c: a3(d.c, x => x ? 1 : 0), b: d.b ? 1 : 0 }; }
   { const m = (sv && sv.ms) || {}; save.ms = { s: clamp(Math.floor(Number(m.s) || 0), 0, 999), l: /^\d{4}-\d{2}-\d{2}$/.test(m.l) ? m.l : '' }; }
@@ -253,9 +239,8 @@ try {
     loadExtra(sv);
   }
 } catch (e) {}
-function persist() { if (TEST_MODE || ADMIN) save.coins = 99999999; save.ts = Date.now(); try { localStorage.setItem(KEY_SAVE, JSON.stringify(save)); } catch (e) {} try { cloudSoon(); } catch (e) {} try { checkAch(); } catch (e) {} }
-if (TEST_MODE) save.coins = 99999999;
-else if (save.coins >= 99999999) { save.coins = 0; persist(); } // limpa o saldo falso do modo de teste
+function persist() { if (ADMIN) save.coins = 99999999; save.ts = Date.now(); try { localStorage.setItem(KEY_SAVE, JSON.stringify(save)); } catch (e) {} try { cloudSoon(); } catch (e) {} try { checkAch(); } catch (e) {} }
+if (save.coins >= 99999999) { save.coins = 0; persist(); } // limpa o saldo falso do modo de teste
 const effShipId = () => { const sh = SHIPS.find(x => x.id === save.ship) || SHIPS[0]; return sh.adminOnly && !ADMIN ? SHIPS[0].id : sh.id; };
 function playerStats() {
   let sh = SHIPS.find(s => s.id === save.ship) || SHIPS[0];
@@ -271,7 +256,7 @@ function evtAdd(k, b) {
   if (!evtAtivo() || save.owned.includes(EVENTO.ship)) return;
   const e = save.evt || (save.evt = { id: EVENTO.id, kills: 0, bosses: 0, notif: 0 });
   e.kills = Math.min(EVENTO.kills, e.kills + k); e.bosses = Math.min(EVENTO.bosses, e.bosses + b);
-  if (!e.notif && e.kills >= EVENTO.kills && e.bosses >= EVENTO.bosses) { e.notif = 1; try { banner('Evento: Yamaton', 'Requisitos cumpridos! Resgate na Oficina'); } catch (x) {} }
+  if (!e.notif && e.kills >= EVENTO.kills && e.bosses >= EVENTO.bosses) { e.notif = 1; try { banner('Evento: Yamaton', 'Requisitos cumpridos!'); } catch (x) {} }
 }
 function claimEvento() {
   const e = save.evt;
@@ -2304,52 +2289,6 @@ function hullPath(L, Wd) {
   ctx.lineTo(-L / 2, h * .85);
   ctx.closePath();
 }
-function drawAcc(list, L, Wd, spec) {
-  const t = performance.now() / 1000, cx = spec.cabin.x * L;
-  for (const id of list) {
-    ctx.save();
-    if (id === 'lant') {
-      for (const q of [[L * .44, Wd * .26], [L * .44, -Wd * .26], [-L * .44, Wd * .22], [-L * .44, -Wd * .22]]) {
-        ctx.beginPath(); ctx.arc(q[0], q[1], 5.5, 0, TAU); ctx.fillStyle = 'rgba(255,200,90,.22)'; ctx.fill();
-        ctx.beginPath(); ctx.arc(q[0], q[1], 2.4, 0, TAU); ctx.fillStyle = '#ffd36b'; ctx.fill();
-      }
-    } else if (id === 'flag') {
-      const fx = -L * .47, w = Math.sin(t * 5) * 1.6;
-      ctx.beginPath(); ctx.moveTo(fx, -4); ctx.lineTo(fx - 15, -3 + w); ctx.lineTo(fx - 15, 4 + w); ctx.lineTo(fx, 4); ctx.closePath();
-      ctx.fillStyle = '#15151c'; ctx.fill(); ctx.lineWidth = .8; ctx.strokeStyle = '#e9f2f3'; ctx.stroke();
-      ctx.beginPath(); ctx.arc(fx - 8, .5 + w / 2, 1.8, 0, TAU); ctx.fillStyle = '#e9f2f3'; ctx.fill();
-      ctx.beginPath(); ctx.arc(fx, 0, 2, 0, TAU); ctx.fillStyle = '#8a6414'; ctx.fill();
-    } else if (id === 'radar') {
-      ctx.translate(cx, 0); ctx.rotate(t * 2);
-      ctx.beginPath(); ctx.ellipse(0, 0, 7.5, 2.6, 0, 0, TAU); ctx.fillStyle = '#aebfc4'; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = '#2a3d46'; ctx.stroke();
-      ctx.beginPath(); ctx.arc(0, 0, 2, 0, TAU); ctx.fillStyle = spec.accent; ctx.fill();
-    } else if (id === 'hat') {
-      ctx.translate(cx, 0);
-      ctx.beginPath(); ctx.ellipse(0, 0, 10, 7.5, 0, 0, TAU); ctx.fillStyle = '#14141a'; ctx.fill(); ctx.lineWidth = 1.2; ctx.strokeStyle = '#e0a93c'; ctx.stroke();
-      ctx.beginPath(); ctx.ellipse(0, 0, 5, 4, 0, 0, TAU); ctx.fillStyle = '#26262f'; ctx.fill();
-      ctx.beginPath(); ctx.arc(5.5, 0, 1.3, 0, TAU); ctx.fillStyle = '#e0a93c'; ctx.fill();
-    } else if (id === 'crown') {
-      ctx.translate(cx, 0); ctx.beginPath();
-      for (let i = 0; i < 10; i++) { const r = i % 2 ? 3.8 : 8.5, a = i * Math.PI / 5 - Math.PI / 2; ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); }
-      ctx.closePath(); ctx.fillStyle = '#f2c14e'; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = '#8a6414'; ctx.stroke();
-      ctx.beginPath(); ctx.arc(0, 0, 1.7, 0, TAU); ctx.fillStyle = '#e2552f'; ctx.fill();
-    } else if (id === 'anchor') {
-      ctx.translate(L * .45, 0); ctx.strokeStyle = '#f2c14e'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(3, 0); ctx.moveTo(1.5, -3.2); ctx.lineTo(1.5, 3.2); ctx.moveTo(-4, 0); ctx.lineTo(-7, -3.2); ctx.moveTo(-4, 0); ctx.lineTo(-7, 3.2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(4.6, 0, 1.6, 0, TAU); ctx.stroke();
-    } else if (id === 'neon') {
-      ctx.globalAlpha *= .75 + .25 * Math.sin(t * 3); ctx.shadowColor = '#5ffbf1'; ctx.shadowBlur = 8;
-      hullPath(L * .97, Wd * .94); ctx.lineWidth = 1.6; ctx.strokeStyle = '#5ffbf1'; ctx.stroke();
-    } else if (id === 'horns') {
-      ctx.lineCap = 'round';
-      for (const sg of [-1, 1]) {
-        ctx.beginPath(); ctx.moveTo(L * .38, sg * Wd * .22); ctx.quadraticCurveTo(L * .5, sg * Wd * .36, L * .6, sg * Wd * .12);
-        ctx.lineWidth = 3.2; ctx.strokeStyle = '#8f0f1a'; ctx.stroke(); ctx.lineWidth = 1.2; ctx.strokeStyle = '#ff6b6b'; ctx.stroke();
-      }
-    }
-    ctx.restore();
-  }
-}
 function drawShip(x, y, heading, spec, aim, o) {
   const L = spec.len, Wd = spec.wid;
   o = o || {};
@@ -2394,7 +2333,6 @@ function drawShip(x, y, heading, spec, aim, o) {
     ctx.beginPath(); ctx.moveTo(tx, 0); ctx.lineTo(tx + Math.cos(ax) * 13, Math.sin(ax) * 13); ctx.stroke();
     ctx.beginPath(); ctx.arc(tx, 0, 4.5, 0, TAU); ctx.fillStyle = spec.accent; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = spec.dark; ctx.stroke();
   }
-  if (o.acc && o.acc.length) drawAcc(o.acc, L, Wd, spec);
   if (o.flash > 0) { hullPath(L, Wd); ctx.fillStyle = 'rgba(255,255,255,' + Math.min(.6, o.flash * 4) + ')'; ctx.fill(); }
   if (o.dark > 0) { hullPath(L, Wd); ctx.fillStyle = 'rgba(0,0,0,' + o.dark + ')'; ctx.fill(); }
   ctx.restore();
@@ -2762,7 +2700,7 @@ function render0() {
     }
   }
   if (!p.dead) drawShip(p.x, p.y, p.heading, p.spec, p.aim, {
-    flash: p.hflash, recoil: p.recoil, aux: p.auto ? p.autoAim : null, acc: [],
+    flash: p.hflash, recoil: p.recoil, aux: p.auto ? p.autoAim : null,
     alpha: p.cloak > 0 ? (p.cloak < .5 ? .2 + .8 * (1 - p.cloak / .5) : .2) : undefined
   });
   if (!p.dead && p.shield > 0) drawShield(p.x, p.y, p.spec, p.shield);
@@ -2977,7 +2915,7 @@ function pauseArm(b) { // segundo toque confirma: evita perder a partida sem que
 function pSoundUi() { const t = $('pSoundT'); if (t) t.textContent = muted ? 'Som: desligado' : 'Som: ligado'; }
 function pauseFill() {
   const p = G.player, sh = SHIPS.find(x => x.id === effShipId()) || SHIPS[0];
-  try { shipThumb($('pShipCv'), sh, []); } catch (e) {}
+  try { shipThumb($('pShipCv'), sh); } catch (e) {}
   $('pShipName').textContent = sh.name;
   const tag = $('pModeTag'); tag.textContent = G.esc ? 'Escolta' : G.hc ? 'Hardcore' : 'Normal'; tag.className = G.esc ? 'es' : G.hc ? 'hc' : '';
   const hf = clamp(p.hp / p.max, 0, 1);
@@ -2995,10 +2933,9 @@ function showOverlay(mode) {
   $('btnHow').hidden = mode !== 'menu'; ov.dataset.m = mode;
   $('ovStats').hidden = mode !== 'over';
   btnAlt.hidden = mode !== 'paused';
-  $('btnShop').hidden = mode === 'paused';
   $('btnMenu').hidden = mode === 'menu';
   $('btnRank').hidden = !RANK_ON || mode === 'paused';
-  $('btnEvt').hidden = !evtAtivo() || mode === 'paused';
+  $('btnShop').hidden = mode === 'paused';
   $('btnDaily').hidden = mode === 'paused'; try { dailyDot(); ensureSrv(); } catch (e) {}
   $('btnMis').hidden = mode === 'paused'; try { misDot(); } catch (e) {}
   $('btnFr').hidden = !RANK_ON || mode === 'paused'; try { frPoll(); } catch (e) {}
@@ -3006,7 +2943,6 @@ function showOverlay(mode) {
   $('btnAch').hidden = mode === 'paused';
   $('btnAdm').hidden = !ADMIN || mode === 'paused';
   $('btnMp').hidden = mode === 'paused';
-  $('btnVs').hidden = true;
   refreshAcct();
   $('sendMsg').textContent = '';
   $('bal').textContent = '$ ' + fmt(save.coins);
@@ -3061,7 +2997,7 @@ function startGame(hard, esc) {
   if (MP.role) mpLeave();
   escMode = !!esc; hardMode = !!hard && !escMode;
   initAudio();
-  newGame(); applyItems();
+  newGame();
   if (escMode) { G.esc = 1; convInit(); }
   for (const k of ['move', 'aim']) sticks[k] = null;
   setState('playing');
@@ -3105,7 +3041,7 @@ function gameOver() {
   if (MP.role === 'host') mpSend({ t: 'end', w: G.wave, sc: Math.floor(G.score), k: G.kills, c: G.coins });
 }
 const modeEl = $('modeEl');
-let lHard = false, lEsc = false, fromLaunch = false;
+let lHard = false, lEsc = false;
 const lFleet = $('lFleet'), lShipEl = $('lShip');
 const lMaxima = () => { const l = SHIPS.filter(x => !x.adminOnly); return { hp: Math.max(...l.map(x => x.hp)), dps: Math.max(...l.map(x => x.dmg * (x.multi || 1) / x.rel)), spd: Math.max(...l.map(x => x.speed)) }; };
 function launchDetail() {
@@ -3134,7 +3070,7 @@ function openLaunch() {
   $('lBal').textContent = '$ ' + fmt(save.coins);
   lFleet.innerHTML = list.map(x => '<button type="button" class="lcard" role="option" data-id="' + x.id + '"><canvas width="192" height="96"></canvas><b>' + x.name + '</b>' + rarTag(x) + '</button>').join('');
   modeEl.hidden = false;
-  for (const c of lFleet.children) { const sh = SHIPS.find(x => x.id === c.dataset.id); try { shipThumb(c.querySelector('canvas'), sh, []); } catch (e) {} }
+  for (const c of lFleet.children) { const sh = SHIPS.find(x => x.id === c.dataset.id); try { shipThumb(c.querySelector('canvas'), sh); } catch (e) {} }
   launchSelect(save.ship, true);
   launchModeSet(hardMode, escMode);
   const cur = lFleet.querySelector('.lcard.on');
@@ -3156,7 +3092,6 @@ $('modeNormal').addEventListener('click', () => { sfx.click(); launchModeSet(fal
 $('modeHard').addEventListener('click', () => { sfx.click(); launchModeSet(true, false); });
 $('modeEsc').addEventListener('click', () => { sfx.click(); launchModeSet(false, true); });
 $('modeGo').addEventListener('click', () => { modeEl.hidden = true; startGame(lHard, lEsc); });
-$('modeShop').addEventListener('click', () => { fromLaunch = true; modeEl.hidden = true; $('btnShop').click(); });
 $('modeBack').addEventListener('click', () => { modeEl.hidden = true; try { btnMain.focus({ preventScroll: true }); } catch (e) {} });
 btnAlt.addEventListener('click', () => { if (state === 'paused' && !pauseArm(btnAlt)) return; startGame(hardMode, escMode); });
 $('btnMenu').addEventListener('click', () => {
@@ -3250,7 +3185,7 @@ window.addEventListener('pagehide', () => { pushCloud(); });
 function logout() {
   sess = null; ADMIN = false; $('btnAdm').hidden = true;
   try { localStorage.removeItem(SESS_KEY); localStorage.removeItem(KEY_SAVE); localStorage.removeItem(KEY_BEST); localStorage.removeItem('mf_dono'); } catch (e) {}
-  Object.assign(save, { prof: { bio: '', photo: '' }, coins: 0, ship: 'corveta', owned: ['corveta'], up: {}, ach: {}, kills: 0, bosses: 0, sharks: 0, ts: 0, play: 0, maxWave: 0, items: { shield: 0, triple: 0 }, acc: { own: [], on: [] }, evt: { id: 'colheita-sombria', kills: 0, bosses: 0, notif: 0 }, daily: { streak: 0, last: '' }, wk: { paid: '' } });
+  Object.assign(save, { prof: { bio: '', photo: '' }, coins: 0, ship: 'corveta', owned: ['corveta'], up: {}, ach: {}, kills: 0, bosses: 0, sharks: 0, ts: 0, play: 0, maxWave: 0, evt: { id: 'colheita-sombria', kills: 0, bosses: 0, notif: 0 }, daily: { streak: 0, last: '' }, wk: { paid: '' } });
   best = 0; refreshAcct();
 }
 function refreshAcct() {
@@ -3733,7 +3668,6 @@ $('mpTabs').addEventListener('click', e => {
   if (MP.role) { mpSay('Saia da sala (Voltar) para trocar de tipo de partida.'); return; }
   openMp(b.dataset.vs === '1');
 });
-$('btnVs').addEventListener('click', () => openMp(true));
 $('mpBack').addEventListener('click', () => { mpLeave(); mpEl.hidden = true; });
 $('mpCreate').addEventListener('click', async () => {
   const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; let code = '';
@@ -3858,7 +3792,7 @@ function mpStartHost() {
   const vs = vsMode && MP.guests.length === 1;
   G.vs = vs ? 1 : 0;
   G.enemyMul = MP.opts.hp; G.noBuoy = !MP.opts.buoy;
-  if (vs) G.hc = false; else applyItems();
+  if (vs) G.hc = false;
   const hn = sess ? sess.nome : 'anfitrião';
   G.allies = MP.guests.map(g => { const q = mkOther(g.id, g.speed, g.pid); Object.assign(q, { nome: g.n, auto: !!g.au, max: g.hp, hp: g.hp, dmg: g.dmg, rel: g.rel }); return q; });
   if (vs) { vsStd(G.player, -300, effShipId()); vsStd(G.allies[0], 300, G.allies[0].shipId); }
@@ -3868,7 +3802,7 @@ function mpStartHost() {
   if (vs) banner('Duelo 1×1', 'Afunde o oponente');
 }
 function mpStartGuest(m) {
-  initAudio(); newGame(); G.vs = m.vs ? 1 : 0; G.noBuoy = !!m.nb; if (!G.vs) applyItems(); G.hc = !!m.hc && !G.vs;
+  initAudio(); newGame(); G.vs = m.vs ? 1 : 0; G.noBuoy = !!m.nb; G.hc = !!m.hc && !G.vs;
   if (Number.isFinite(+m.sd)) setSeed(+m.sd);
   G.esc = m.es && !G.vs ? 1 : 0; if (G.esc) G.hc = false;
   G.player.x = 90 + (MP.pid - 1) * 80;
@@ -4107,7 +4041,7 @@ const ADMINS_READY = rpc('admins_nomes').then(a => { if (Array.isArray(a)) a.for
 const WK_PRIZE = [100000, 50000, 25000];
 let wkBusy = false;
 async function weeklyPrize() {
-  if (wkBusy || !sess || ADMIN || TEST_MODE) return;
+  if (wkBusy || !sess || ADMIN) return;
   wkBusy = true; let again = false;
   const me = sess;
   try {
@@ -4213,7 +4147,6 @@ async function loadNotices() {
     const [t, ev] = await Promise.all([rpc('aviso_atual'), rpc('evento_atual')]);
     EVT = ev && ev.mult ? ev : null; const parts = [];
     if (EVT) parts.push('Evento: moedas x' + EVT.mult + ' até ' + new Date(EVT.ate).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }));
-    if (evtAtivo()) parts.push('Evento ' + EVENTO.nome + ': conquiste o Yamaton na Oficina');
     if (t) parts.push(t);
     const bn = $('admBanner'); bn.textContent = parts.join(' · '); bn.hidden = !parts.length;
   } catch (e) {}
@@ -4289,129 +4222,98 @@ $('achCats').addEventListener('click', e => { const b = e.target.closest('[data-
 $('achBack').addEventListener('click', () => { $('achEl').hidden = true; });
 
 /* ---------- oficina ---------- */
-const shopEl = $('shop'), shopBody = $('shopBody');
-let shopTab = 'ships';
-const ITEMS = [
-  { k: 'shield', n: 'Escudo inicial', d: 'Começa a partida com escudo por 12 s', cost: 400, max: 5 },
-  { k: 'triple', n: 'Tiro triplo inicial', d: 'Começa a partida com tiro triplo por 15 s', cost: 400, max: 5 }
-];
-function sbar(l, v, mx, ref) {
-  const d = ref == null ? 0 : Math.round(v) - Math.round(ref);
-  return '<div class="sb"><span>' + l + '</span><i><u style="width:' + clamp(v / mx * 100, 4, 100).toFixed(0) + '%"></u></i><em>' + Math.round(v) + (d ? '<span class="dl ' + (d > 0 ? 'up' : 'dn') + '">' + (d > 0 ? '+' : '−') + Math.abs(d) + '</span>' : '') + '</em></div>';
-}
-const AB_TAG = { reaper: 'ceifador', adm: 'admin', auto: 'torre', cloak: 'submersão', air: 'aviões', multi: 'tiro triplo', clone: 'clones', surge: 'sobrecarga', esc: 'escolta', msl: 'mísseis' };
 const rarTag = s => s.rar ? '<span class="rar r-' + s.rar.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') + '">' + s.rar + '</span>' : '';
-function abTag(s) { for (const k in AB_TAG) if (s[k] && !(k === 'multi' && !(s.multi > 1))) return '<span class="tagab">' + AB_TAG[k] + '</span>'; return ''; }
 /* miniatura: desenha o navio no canvas principal e copia (o laço de render repinta em seguida) */
-function shipThumb(c, s, acc) {
+function shipThumb(c, s) {
   const w = c.width, h = c.height, k = Math.min(w / (s.spec.len + 16), h / (s.spec.wid + 16) * 1.0) * .92 * 1;
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, w, h);
   ctx.translate(w / 2, h / 2); ctx.scale(k, k);
-  drawShip(0, 0, 0, s.spec, 0, { recoil: 0, acc });
+  drawShip(0, 0, 0, s.spec, 0, { recoil: 0 });
   ctx.restore();
   const g = c.getContext('2d'); g.clearRect(0, 0, w, h); g.drawImage(cv, 0, 0, w, h, 0, 0, w, h);
   ctx.clearRect(0, 0, w, h);
 }
-let upShip = null, shopFilter = 'all', armed = '', armT = 0;
-const CONFIRM_MIN = 2500;
-const rarCls = o => o.rar ? ' rr-' + o.rar.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') : '';
-function upCur() { const id = upShip && save.owned.includes(upShip) ? upShip : save.ship; return SHIPS.find(x => x.id === id) || SHIPS[0]; }
 const shopShips = () => SHIPS.filter(x => (!x.adminOnly || ADMIN) && ((!x.eventOnly && !x.dailyOnly) || save.owned.includes(x.id)));
-function renderEvento() {
-  const s = SHIPS.find(x => x.id === EVENTO.ship), e = save.evt || { kills: 0, bosses: 0 }, own = save.owned.includes(s.id), on = evtAtivo();
-  const rq = (ic, l, v, m) => '<div class="rq' + (v >= m ? ' ok' : '') + '"><span>' + ic + ' ' + l + '</span><i><u style="width:' + clamp(v / m * 100, 2, 100).toFixed(0) + '%"></u></i><em>' + fmt(Math.min(v, m)) + ' / ' + fmt(m) + '</em></div>';
-  const ok = e.kills >= EVENTO.kills && e.bosses >= EVENTO.bosses && save.coins >= EVENTO.coins;
-  const ab = [['Ceifador', 'ao destruir um navio inimigo, recupera 8% do HP máximo.'], ['Execução', 'inimigos abaixo de 30% de HP recebem +25% de dano.'], ['Colheita Sombria', 'ao destruir um chefe, recupera 20% do HP máximo.']];
-  return '<div class="wc ship evt" data-ship="' + s.id + '" data-id="' + s.id + '"><div class="w-row"><canvas width="152" height="112"></canvas><div class="w-info"><b>' + s.name + rarTag(s) + '</b><small>' + EVENTO.nome + ' · Barco de Evento</small>' +
-    sbar('Casco', s.hp, s.hp, null) + '</div></div>' +
-    '<div class="evt-ab">' + ab.map(a => '<p><b>' + a[0] + '</b> ' + a[1] + '</p>').join('') + '</div>' +
-    '<div class="evt-rq"><small>Requisitos (contam durante o evento)</small>' + rq('⚔️', 'Navios destruídos', e.kills, EVENTO.kills) + rq('👑', 'Chefes derrotados', e.bosses, EVENTO.bosses) + rq('🪙', 'Moedas', Math.min(save.coins, EVENTO.coins), EVENTO.coins) + '</div>' +
-    '<div class="w-foot">' + (own ? '<span class="w-tag">Conquistado · permanente</span>' : !on ? '<span class="w-tag off">Evento encerrado</span>' : '<button class="w-btn" data-a="claim" data-id="' + s.id + '"' + (ok ? '' : ' disabled') + '>Resgatar · <b>$ ' + fmt(EVENTO.coins) + '</b></button>') + '</div></div>';
-}
-function renderShop() {
-  const sc = shopEl.scrollTop;
-  const st = playerStats(), it = save.items || (save.items = { shield: 0, triple: 0 });
-  const eq = SHIPS.find(x => x.id === save.ship) || SHIPS[0], eD = eq.dmg * (eq.multi || 1) / eq.rel;
-  const ush = upCur();
-  $('shopCoins').textContent = fmt(save.coins);
-  const evM = shopTab === 'evt'; $('shopTitle').textContent = evM ? 'Evento' : 'Oficina'; $('shopTabs').hidden = evM; $('shopCur').hidden = evM;
-  const cnt = { ships: save.owned.filter(id => shopShips().some(x => x.id === id)).length + '/' + shopShips().length, ups: UPS.reduce((n, u) => n + upOf(ush.id)[u.k], 0) + '/' + UPS.length * MAXLV };
-  for (const t of $('shopTabs').children) { t.classList.toggle('on', t.dataset.t === shopTab); t.querySelector('i').textContent = cnt[t.dataset.t]; }
-  $('shopCur').innerHTML = [['Casco', st.hp], ['Dano', st.dmg + (st.multi > 1 ? '×' + st.multi : '')], ['Recarga', st.rel.toFixed(2) + ' s'], ['Nós', Math.round(st.spec.speed / 7)]].map(x => '<div><small>' + x[0] + '</small><b>' + x[1] + '</b></div>').join('');
-  const need = c => save.coins < c ? '<div class="w-need">Faltam $ ' + fmt(c - save.coins) + '<i><u style="width:' + clamp(save.coins / c * 100, 2, 100).toFixed(0) + '%"></u></i></div>' : '';
-  const btn = (a, id, c, l) => { const ar = c >= CONFIRM_MIN && armed === a + id; return '<button class="w-btn' + (ar ? ' armed' : c && save.coins >= c ? ' can' : '') + '" data-a="' + a + '" data-id="' + id + '" data-c="' + (c || 0) + '"' + (c && save.coins < c ? ' disabled' : '') + '>' + (ar ? 'Confirmar? <b>$ ' + fmt(c) + '</b>' : c ? '<b>$ ' + fmt(c) + '</b>' : l) + '</button>'; };
-  let h = '';
-  if (shopTab === 'ships') {
-    const VS_ = shopShips(), mH = Math.max(...VS_.map(x => x.hp)), mD = Math.max(...VS_.map(x => x.dmg * (x.multi || 1) / x.rel)), mS = Math.max(...VS_.map(x => x.speed / 7));
-    const has = id => save.owned.includes(id) ? 1 : 0;
-    const FL = [['all', 'Todos'], ['own', 'Meus'], ['sale', 'À venda']];
-    h += '<div class="ushp wf">' + FL.map(f => '<button type="button" class="gchip' + (shopFilter === f[0] ? ' on' : '') + '" data-a="flt" data-id="' + f[0] + '">' + f[1] + '</button>').join('') + '</div>';
-    const list = [...VS_].filter(x => shopFilter === 'all' || (shopFilter === 'own') === !!has(x.id)).sort((x, y) => (y.id === save.ship) - (x.id === save.ship) || has(y.id) - has(x.id) || x.cost - y.cost);
-    const nx = (list.find(x => !has(x.id)) || {}).id;
-    for (const s of list) {
-      const own = has(s.id), cur = s.id === save.ship, ref = !cur;
-      h += '<div class="wc ship' + rarCls(s) + (cur ? ' cur' : '') + (s.id === nx ? ' next' : '') + '" data-ship="' + s.id + '" data-id="' + s.id + '"><div class="w-row"><canvas width="152" height="112"></canvas><div class="w-info"><b>' + s.name + rarTag(s) + '</b>' + (s.note ? '<small>' + s.note + '</small>' : '') +
-        sbar('Casco', s.hp, mH, ref ? eq.hp : null) + sbar('Dano/s', s.dmg * (s.multi || 1) / s.rel, mD, ref ? eD : null) + sbar('Nós', s.speed / 7, mS, ref ? eq.speed / 7 : null) + '</div></div>' +
-        '<div class="w-foot">' + (cur ? '<span class="w-tag">Equipado</span>' : own ? btn('eq', s.id, 0, 'Equipar') : need(s.cost) + btn('buy', s.id, s.cost, 'Comprar')) + '</div></div>';
-    }
-  } else if (shopTab === 'evt') {
-    h = renderEvento();
-  } else if (shopTab === 'ups') {
-    const eq = ush, up = upOf(ush.id);
-    h += '<div class="ushp">' + shopShips().filter(x => save.owned.includes(x.id)).map(x => '<button type="button" class="gchip' + (x.id === ush.id ? ' on' : '') + '" data-a="upsel" data-id="' + x.id + '">' + x.name + '</button>').join('') + '</div><small class="w-hint">Cada navio tem as suas próprias melhorias.</small>';
-    const UV = { hull: ['Casco', l => Math.round(eq.hp * (1 + .15 * l))], gun: ['Dano', l => Math.round(eq.dmg * (1 + .12 * l))], rel: ['Recarga', l => (eq.rel * (1 - .07 * l)).toFixed(2) + ' s'], eng: ['Nós', l => Math.round(eq.speed * (1 + .06 * l) / 7)] };
-    for (const u of UPS) {
-      const l = up[u.k], c = upCost(l), v = UV[u.k];
-      h += '<div class="wc" data-id="' + u.k + '"><div class="w-row"><div class="w-info"><b>' + u.n + '<span class="w-lv">nível ' + l + '/' + MAXLV + '</span></b><small>' + u.d + ' por nível</small>' +
-        '<div class="w-pips">' + Array.from({ length: MAXLV }, (_, k) => '<u' + (k < l ? ' class="on"' : '') + '></u>').join('') + '</div>' +
-        '<div class="w-eff">' + v[0] + ' ' + v[1](l) + (l < MAXLV ? ' → <b>' + v[1](l + 1) + '</b>' : ' <b>máx.</b>') + '</div></div></div>' +
-        '<div class="w-foot">' + (l >= MAXLV ? '<span class="w-tag">Máximo</span>' : need(c) + btn('up', u.k, c, 'Melhorar')) + '</div></div>';
-    }
-  }
-  shopBody.innerHTML = h;
-  shopEl.scrollTop = sc;
-  for (const c of shopBody.querySelectorAll('.wc.ship')) { const sh = SHIPS.find(x => x.id === c.dataset.ship); try { if (sh) shipThumb(c.querySelector('canvas'), sh, []); } catch (e) {} }
-}
-function applyItems() {
-  return;
-  const it = save.items; if (!it || !G || !G.player) return;
-  if (it.shield > 0) { it.shield--; G.player.shield = 12; }
-  if (it.triple > 0) { it.triple--; G.player.triple = 15; }
-  persist();
-}
-shopBody.addEventListener('click', e => {
-  const b = e.target.closest('[data-a]');
-  if (!b || b.disabled) return;
-  const a = b.dataset.a, id = b.dataset.id;
-  initAudio();
-  if ((SHIPS.find(x => x.id === id) || {}).adminOnly && !ADMIN) return;
-  if (a === 'flt') { shopFilter = id; sfx.click && sfx.click(); renderShop(); return; }
-  const cst = +b.dataset.c || 0;
-  if (cst >= CONFIRM_MIN && armed !== a + id) { armed = a + id; clearTimeout(armT); armT = setTimeout(() => { armed = ''; if (!shopEl.hidden) renderShop(); }, 4000); sfx.click && sfx.click(); renderShop(); return; }
-  armed = ''; clearTimeout(armT);
-  if (a === 'eq' && save.owned.includes(id)) save.ship = id;
-  else if (a === 'buy') {
-    const s = SHIPS.find(x => x.id === id);
-    if (s && !s.dailyOnly && !s.eventOnly && !save.owned.includes(id) && save.coins >= s.cost) { save.coins -= s.cost; save.owned.push(id); save.ship = id; sfx.pick(); }
-  } else if (a === 'claim') {
-    claimEvento();
-  } else if (a === 'upsel') {
-    upShip = id;
-  } else if (a === 'up') {
-    const U = upOf(upCur().id), l = U[id];
-    if (l < MAXLV && save.coins >= upCost(l)) { save.coins -= upCost(l); U[id] = l + 1; sfx.pick(); }
-  }
-  persist(); pushCloud(); renderShop();
-  if (a !== 'eq') { const fc = shopBody.querySelector('.wc[data-id="' + id + '"]'); if (fc) fc.classList.add('flash'); }
-});
-$('shopTabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) { armed = ''; shopTab = b.dataset.t; renderShop(); shopEl.scrollTop = 0; } });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !shopEl.hidden) $('shopBack').click(); });
-$('btnEvt').addEventListener('click', () => { shopTab = 'evt'; shopEl.hidden = false; renderShop(); shopEl.scrollTop = 0; });
-$('btnShop').addEventListener('click', () => { shopTab = 'ships'; shopEl.hidden = false; renderShop(); shopEl.scrollTop = 0; });
-$('shopBack').addEventListener('click', () => { shopEl.hidden = true; showOverlay(state === 'over' ? 'over' : 'menu'); if (fromLaunch) { fromLaunch = false; openLaunch(); } });
 $('pings').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (b) { sendPing(+b.dataset.k); b.blur(); } });
 $('btnCloak').addEventListener('click', e => { useCloak(); e.currentTarget.blur(); });
 $('admMenu').addEventListener('click', e => { if (e.target.closest('[data-tg]')) { apowOpen = !apowOpen; sfx.click(); e.target.blur(); return; } const b = e.target.closest('[data-k]'); if (b && G && G.player.admin) { G.player.apow = b.dataset.k; sfx.click(); b.blur(); } });
+
+/* ---------- loja: estoque rotativo a cada 30 min ---------- */
+const SHOP_MIN = 30, SHOP_MIN_STOCK = 3, CONFIRM_MIN = 2500;
+const SHOP_CHANCE = { 'Comum': .9, 'Incomum': .6, 'Raro': .35, 'Épico': .2, 'Lendário': .1 };
+const SHOP_ORD = { 'Comum': 0, 'Incomum': 1, 'Raro': 2, 'Épico': 3, 'Lendário': 4 };
+const shopEl = $('shop'), shopBody = $('shopBody');
+const shopList = () => SHIPS.filter(x => isPub(x.id) && x.cost > 0);
+/* troca sempre em hora cheia e meia (00:00, 00:30, 01:00...) no relógio local; o ajuste só existe para fusos com offset fora de múltiplos de 30 min */
+const shopOff = () => (((-new Date().getTimezoneOffset() % SHOP_MIN) + SHOP_MIN) % SHOP_MIN) * 60000;
+const shopSlot = () => Math.floor((Date.now() + shopOff()) / (SHOP_MIN * 60000));
+function shopHash(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } h ^= h >>> 13; h = Math.imul(h, 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; }
+/* sorteio: cada barco entra se hash < chance; garante um mínimo de barcos para a loja nunca ficar vazia */
+function shopStock(slot) {
+  const l = shopList(), set = new Set(l.filter(s => shopHash(slot + ':' + s.id) < (SHOP_CHANCE[s.rar] || .1)).map(s => s.id));
+  if (set.size < SHOP_MIN_STOCK) l.filter(s => !set.has(s.id)).sort((a, b) => shopHash(slot + ':' + a.id) / (SHOP_CHANCE[a.rar] || .1) - shopHash(slot + ':' + b.id) / (SHOP_CHANCE[b.rar] || .1)).slice(0, SHOP_MIN_STOCK - set.size).forEach(s => set.add(s.id));
+  return set;
+}
+const shopInStock = (s, slot) => shopStock(slot === undefined ? shopSlot() : slot).has(s.id);
+let shopSlotShown = -1, shopTab = 'sale', shopArmed = '', shopArmT = 0, shopFlash = '';
+function shopStat(l, v, mx) { return '<div class="sb"><span>' + l + '</span><i><u style="width:' + clamp(v / mx * 100, 6, 100).toFixed(0) + '%"></u></i></div>'; }
+function renderShop() {
+  const slot = shopSlot(); shopSlotShown = slot;
+  $('shopCoins').textContent = fmt(save.coins);
+  const stock = shopStock(slot), all = shopList();
+  const mH = Math.max(...all.map(x => x.hp)), mD = Math.max(...all.map(x => x.dmg * (x.multi || 1) / x.rel)), mS = Math.max(...all.map(x => x.speed));
+  const cnt = { sale: all.filter(x => stock.has(x.id) && !save.owned.includes(x.id)).length, all: all.length, own: all.filter(x => save.owned.includes(x.id)).length };
+  for (const t of $('shopTabs').children) { t.classList.toggle('on', t.dataset.t === shopTab); t.querySelector('i').textContent = cnt[t.dataset.t]; }
+  let list = all.filter(x => shopTab === 'all' || (shopTab === 'own' ? save.owned.includes(x.id) : stock.has(x.id) && !save.owned.includes(x.id)));
+  list.sort((a, b) => (shopTab === 'all' ? (stock.has(b.id) - stock.has(a.id)) : 0) || (SHOP_ORD[b.rar] || 0) - (SHOP_ORD[a.rar] || 0) || a.cost - b.cost);
+  if (!list.length) { shopBody.innerHTML = '<p class="shop-empty">' + (shopTab === 'own' ? 'Você ainda não comprou nenhum barco.' : 'Nada à venda agora. Volte na próxima troca de estoque.') + '</p>'; shopTick(); return; }
+  shopBody.innerHTML = list.map(s => {
+    const own = save.owned.includes(s.id), st = stock.has(s.id), can = save.coins >= s.cost, armed = shopArmed === s.id;
+    const pct = Math.round((SHOP_CHANCE[s.rar] || .1) * 100), rk = (s.rar || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const act = own ? '<button class="btn ghost shop-btn" type="button" data-a="eq" data-id="' + s.id + '"' + (save.ship === s.id ? ' disabled>✓ Equipado' : '>Equipar') + '</button>'
+      : !st ? '<div class="shop-out">Fora de estoque</div>'
+      : can ? '<button class="btn shop-btn' + (armed ? ' armed' : '') + '" type="button" data-a="buy" data-id="' + s.id + '">' + (armed ? 'Confirmar · ' : 'Comprar · ') + '$ ' + fmt(s.cost) + '</button>'
+      : '<button class="btn shop-btn" type="button" disabled>Faltam $ ' + fmt(s.cost - save.coins) + '</button>';
+    return '<div class="shop-card r-' + rk + (!own && !st ? ' out' : '') + (own ? ' own' : '') + (st && !own && SHOP_ORD[s.rar] >= 3 ? ' hot' : '') + (shopFlash === s.id ? ' flash' : '') + '">' +
+      '<div class="shop-top"><canvas width="224" height="96"></canvas>' + (st && !own && SHOP_ORD[s.rar] >= 3 ? '<em class="shop-tag">Em estoque!</em>' : '') + '</div>' +
+      '<div class="shop-name"><b>' + s.name + '</b>' + rarTag(s) + '</div>' +
+      '<div class="shop-stats">' + shopStat('Casco', s.hp, mH) + shopStat('Dano', s.dmg * (s.multi || 1) / s.rel, mD) + shopStat('Velocid.', s.speed, mS) + '</div>' +
+      '<small class="shop-chance">' + (own ? 'Adquirido' : 'Chance de aparecer: ' + pct + '%') + '</small>' + act + '</div>';
+  }).join('');
+  shopFlash = '';
+  const cards = shopBody.children;
+  list.forEach((s, i) => { try { shipThumb(cards[i].querySelector('canvas'), s); } catch (e) {} });
+  shopTick();
+}
+function shopTick() {
+  if (shopEl.hidden) return;
+  const slot = shopSlot();
+  if (slot !== shopSlotShown) { shopArmed = ''; renderShop(); return; }
+  const left = Math.max(0, (slot + 1) * SHOP_MIN * 60000 - shopOff() - Date.now()), m = Math.floor(left / 60000), sc = Math.floor(left / 1000) % 60;
+  $('shopTimer').textContent = String(m).padStart(2, '0') + ':' + String(sc).padStart(2, '0');
+  $('shopBar').style.width = (100 - left / (SHOP_MIN * 600)).toFixed(1) + '%';
+}
+setInterval(shopTick, 1000);
+function shopOpen() { shopArmed = ''; shopEl.hidden = false; renderShop(); shopEl.scrollTop = 0; }
+shopBody.addEventListener('click', e => {
+  const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
+  const id = b.dataset.id, s = shipById(id); if (!s || !isPub(id)) return;
+  initAudio();
+  if (b.dataset.a === 'eq' && save.owned.includes(id)) { save.ship = id; sfx.click && sfx.click(); }
+  else if (b.dataset.a === 'buy') {
+    if (save.owned.includes(id) || !shopInStock(s) || save.coins < s.cost) return;
+    if (s.cost >= CONFIRM_MIN && shopArmed !== id) { shopArmed = id; clearTimeout(shopArmT); shopArmT = setTimeout(() => { shopArmed = ''; if (!shopEl.hidden) renderShop(); }, 4000); sfx.click && sfx.click(); renderShop(); return; }
+    shopArmed = ''; clearTimeout(shopArmT);
+    save.coins -= s.cost; save.owned.push(id); save.ship = id; shopFlash = id; sfx.pick && sfx.pick();
+    try { banner('Barco comprado', s.name + ' foi equipado'); } catch (x) {}
+  } else return;
+  persist(); pushCloud(); renderShop();
+});
+$('shopTabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) { shopTab = b.dataset.t; shopArmed = ''; renderShop(); shopEl.scrollTop = 0; } });
+$('btnShop').addEventListener('click', shopOpen);
+$('modeShop').addEventListener('click', shopOpen);
+$('shopBack').addEventListener('click', () => { shopEl.hidden = true; if (!modeEl.hidden) openLaunch(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !shopEl.hidden) $('shopBack').click(); });
 
 /* ---------- recompensa diária ---------- */
 const DAILY = [{ c: 500 }, { c: 800 }, { c: 1200 }, { c: 1500, up: 1 }, { c: 3000 }, { c: 5000 }, { c: 15000, ship: 'fenix' }];
@@ -4452,7 +4354,7 @@ function renderDaily() {
   $('dailyStreak').textContent = st.done + '/7';
   { const bm = Math.round((dailyMult() - 1) * 100); $('dailyBonus').textContent = bm ? 'Bônus de ciclos completos: +' + bm + '% de moedas' : 'Complete os 7 dias para ganhar +25% de moedas nos próximos ciclos'; }
   const b = $('dailyClaim'); b.disabled = st.claimed; b.textContent = st.off ? 'Sem conexão' : st.claimed ? 'Volte amanhã' : 'Resgatar dia ' + (st.done + 1);
-  const c = dailyEl.querySelector('canvas'); if (c && fx) { try { shipThumb(c, fx, []); } catch (e) {} }
+  const c = dailyEl.querySelector('canvas'); if (c && fx) { try { shipThumb(c, fx); } catch (e) {} }
 }
 async function claimDaily() {
   $('dailyClaim').disabled = true;
@@ -4874,7 +4776,6 @@ function frame(now) {
     'O Mirage 3 cria até 3 clones que atraem o fogo e só somem se forem destruídos.',
     'Navios com várias torretas atiram de todos os canos de uma vez.',
     'Chefes e encouraçados têm muitas torretas: mantenha distância.',
-    'As moedas das vitórias compram novos navios na Oficina.',
     'Hardcore: inimigos usam poderes de navios e chefes têm o triplo de vida.',
     'Ilhas e icebergs bloqueiam navios e tiros; use-os como cobertura. Redemoinhos puxam e giram quem passa perto.',
     'O minimapa mostra inimigos, aliados, caixas e perigos ao redor do seu navio.',
@@ -4921,5 +4822,5 @@ newGame();
 setState('menu');
 showOverlay('menu');
 requestAnimationFrame(frame);
-try { const qs = new URLSearchParams(location.search), sl = qs.get('sala'); if (sl && /^[A-Za-z]{4}$/.test(sl)) { (qs.get('vs') ? $('btnVs') : $('btnMp')).click(); $('mpCode').value = sl.toUpperCase(); } } catch (e) {}
+try { const qs = new URLSearchParams(location.search), sl = qs.get('sala'); if (sl && /^[A-Za-z]{4}$/.test(sl)) { $('btnMp').click(); if (qs.get('vs')) openMp(true); $('mpCode').value = sl.toUpperCase(); } } catch (e) {}
 })();
