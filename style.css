@@ -916,3 +916,6 @@ body[data-state="playing"] #btnCfg, body:has(#mpEl:not([hidden]), #auth:not([hid
 .pe-stage canvas:active { cursor: grabbing; }
 .pe-zoom { display: flex; align-items: center; gap: 10px; width: min(240px, 70vw); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--steel); }
 .pe-zoom input { flex: 1; min-width: 0; accent-color: var(--brass); }
+
+.fr-av { position: relative; overflow: hidden; }
+.fr-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }

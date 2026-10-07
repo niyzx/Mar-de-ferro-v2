@@ -3377,7 +3377,7 @@ function rkSkel() { rkTok++; $('rankBody').innerHTML = '<div class="rk-list">' +
 const rkIc = (d, z) => '<svg viewBox="0 0 24 24" width="' + z + '" height="' + z + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
 const IC_CROWN = '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/>', IC_CLOCK = '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>';
 const avH = n => ([...String(n)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7) >>> 0) % 360;
-const THUMBS = new Map(), okThumb = t => typeof t === 'string' && t.length <= 8000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(t);
+const THUMBS = new Map(), okThumb = t => typeof t === 'string' && t.length <= 45000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(t);
 async function loadThumbs(names) { // busca de uma vez as fotos de quem aparece na lista (cache de 5 min)
   const now = Date.now(), need = [...new Set(names)].filter(n => { const c = THUMBS.get(n); return !c || now - c[1] > 300000; }).slice(0, 60);
   if (!need.length) return;
@@ -4533,7 +4533,7 @@ async function frPoll() {
 setInterval(() => { if (sess && !document.hidden && state !== 'playing') frPoll(); }, 20000);
 const frBtn = (a, label, o) => '<button' + (o && (o.pri || o.dng) ? ' class="' + (o.pri ? 'pri' : 'dng') + '"' : '') + ' type="button" data-a="' + a + '"' + (o && o.id ? ' data-id="' + esc(o.id) + '"' : '') + (o && o.n ? ' data-n="' + esc(o.n) + '"' : '') + '>' + label + '</button>';
 const FR_COL = ['#e0a93c', '#4fd1a5', '#5aa9ff', '#b074ff', '#e2552f', '#7fe3ff'];
-function frAv(nome) { const s = String(nome || '?'); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return '<span class="fr-av" style="background:' + FR_COL[h % FR_COL.length] + '" aria-hidden="true">' + esc(s.charAt(0)) + '</span>'; }
+function frAv(nome) { const s = String(nome || '?'); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; const c = THUMBS.get(s), ph = sess && s === sess.nome ? (save.prof && (save.prof.thumb || save.prof.photo)) : (c && c[0]); return '<span class="fr-av" style="background:' + FR_COL[h % FR_COL.length] + '" aria-hidden="true">' + (ph ? '<img alt="" src="' + esc(ph) + '">' : esc(s.charAt(0))) + '</span>'; }
 const FR_ICO = { users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>', mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>', send: '<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>' };
 const frEmpty = (ico, t, s) => '<div class="fr-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + FR_ICO[ico] + '</svg><b>' + t + '</b><span>' + s + '</span></div>';
 const frSec = (t, n) => '<p class="fr-sec">' + t + (n ? ' <b>' + n + '</b>' : '') + '</p>';
@@ -4602,6 +4602,7 @@ async function frLoad(keepMsg) {
     if (l && Array.isArray(l.amigos)) frData = { amigos: l.amigos, enviados: l.enviados || [], recebidos: l.recebidos || [] };
     frBox = Array.isArray(c) ? c : [];
     frSum = {}; (Array.isArray(s) ? s : []).forEach(x => { frSum[x.id] = x; });
+    await loadThumbs([...frData.amigos, ...frData.enviados, ...frData.recebidos].map(x => x.nome).concat(frBox.map(m => m.de_nome)).filter(Boolean));
     if (!keepMsg) frSay('');
     if (frTab === 'caixa') { frBox.forEach(m => { if (!m.lida) frNew.add(m.id); }); frRender(); frMarkRead(); }
     else { frRender(); frBadge(); }
