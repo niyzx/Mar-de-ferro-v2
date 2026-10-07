@@ -310,7 +310,8 @@
   <div class="kicker">Perfil</div>
   <h1 class="title sm" id="profName"></h1>
   <div id="profBody" style="font-size:13px;line-height:1.5;max-height:60vh;overflow-y:auto"></div>
-  <div class="actions"><button class="btn" id="profEdit" type="button" hidden>Editar perfil</button><button class="btn ghost" id="profBack" type="button">Voltar</button></div>
+  <p class="note" id="profMsg" aria-live="polite" style="margin:0"></p>
+  <div class="actions"><button class="btn" id="profEdit" type="button" hidden>Editar perfil</button><button class="btn" id="profFriend" type="button" hidden>Adicionar amigo</button><button class="btn ghost" id="profBack" type="button">Voltar</button></div>
 </div></div>
 
 <div class="overlay" id="peEl" hidden><div class="panel pep">
@@ -323,6 +324,7 @@
       <button class="btn ghost" id="peDel" type="button">Remover foto</button>
     </div>
   </div>
+  <div class="pe-stage" id="peStage" hidden><canvas id="peCv" width="240" height="240" aria-label="Enquadramento da foto"></canvas><label class="pe-zoom"><span>Zoom</span><input type="range" id="peZoom" min="100" max="300" value="100"></label></div>
   <input id="peFile" type="file" accept="image/*" hidden>
   <div class="pe-bio">
     <label class="mlbl" for="peBio">Bio</label>

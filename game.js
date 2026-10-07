@@ -3468,29 +3468,41 @@ const dia = v => { const t = Date.parse(v); return t ? new Date(t).toLocaleDateS
 async function openProfile(nome) {
   rankEl.hidden = true; profEl.hidden = false;
   $('profName').textContent = nome;
-  const b = $('profBody'); b.textContent = 'Carregando…'; $('profEdit').hidden = true;
+  const b = $('profBody'); b.textContent = 'Carregando…'; $('profEdit').hidden = true; $('profFriend').hidden = true; $('profMsg').textContent = '';
   try {
     const r = await api('rpc/perfil_publico', { method: 'POST', body: JSON.stringify({ p_nome: nome }) });
     const d = await r.json();
     if (!d || !d.nome) { b.textContent = 'Jogador não encontrado.'; return; }
-    $('profName').textContent = d.nome + (ADMINS.has(d.nome) ? ' ★ ADMIN' : ''); curProf = d.nome;
-    const sv = d.save || {}, up = sv.up || {}, rk = d.ranking;
-    const owned = (Array.isArray(sv.owned) ? sv.owned : ['corveta']).map(id => SHIPS.find(s => s.id === id)).filter(Boolean);
+    const adm = ADMINS.has(d.nome);
+    $('profName').textContent = d.nome; curProf = d.nome;
+    const sv = d.save || {}, rk = d.ranking;
+    const owned = (Array.isArray(sv.owned) ? sv.owned : ['corveta']).map(id => SHIPS.find(s => s.id === id)).filter(s => s && (adm || isPub(s.id)));
     const ship = SHIPS.find(s => s.id === sv.ship) || SHIPS[0];
+    const upS = (sv.up && sv.up[ship.id]) || {}; // as melhorias são guardadas por navio
     const ach = ACH.filter(a => sv.ach && sv.ach[a.id]);
     const own = !!(sess && d.nome === sess.nome), pr = own ? save.prof : cleanProf(d.prof || sv.prof);
-    $('profEdit').hidden = !own;
-    b.innerHTML = '<div class="pf-hero"><div class="pf-av" style="--h:' + avH(d.nome) + '">' + (pr.photo ? '<img alt="Foto de ' + esc(d.nome) + '" src="' + pr.photo + '">' : esc(d.nome.charAt(0).toUpperCase())) + '</div><div class="pf-bio' + (pr.bio ? '' : ' empty') + '">' + (pr.bio ? esc(pr.bio) : (own ? 'Você ainda não escreveu uma bio.' : 'Sem bio ainda.')) + '</div></div>' +
-      kv('Membro desde', dia(d.desde)) + kv('Último salvamento', dia(d.atualizado)) +
-      kv('Recorde de pontos', num(d.best)) +
-      (rk ? kv('Posição no ranking', '#' + num(rk.pos)) + kv('Melhor onda', num(rk.onda)) : kv('Ranking', 'sem pontuação enviada')) +
-      kv('Navios afundados', num(sv.kills)) + kv('Chefes derrotados', num(sv.bosses)) + kv('Moedas', num(sv.coins)) +
-      kv('Navio atual', esc(ship.name)) + kv('Frota', owned.length + ' de ' + SHIPS.length + ' · ' + esc(owned.map(s => s.name).join(', '))) +
-      UPS.map(u => kv(esc(u.n), clamp(Math.floor(Number(up[u.k]) || 0), 0, MAXLV) + ' / ' + MAXLV)).join('') +
-      kv('Conquistas', ach.length + ' de ' + ACH.length) +
-      (ach.length ? '<div style="padding:6px 0;color:var(--brass)">' + ach.map(a => '★ ' + esc(a.n)).join(' · ') + '</div>' : '');
+    $('profEdit').hidden = !own; $('profFriend').hidden = own || !sess;
+    const pos = rk ? Math.floor(Number(rk.pos) || 0) : 0, medal = pos >= 1 && pos <= 3 ? MEDAL[pos - 1] : '';
+    const card = (k, v) => '<div class="pf-card"><span>' + k + '</span><b>' + v + '</b></div>';
+    const pips = lv => Array.from({ length: MAXLV }, (_, i) => '<s' + (i < lv ? ' class="on"' : '') + '></s>').join('');
+    const pct = ACH.length ? Math.round(ach.length / ACH.length * 100) : 0;
+    b.innerHTML = '<div class="pf-hero"><div class="pf-avw"><div class="pf-av" style="--h:' + avH(d.nome) + '">' + (pr.photo ? '<img alt="Foto de ' + esc(d.nome) + '" src="' + esc(pr.photo) + '">' : esc(d.nome.charAt(0).toUpperCase())) + '</div>' + (medal ? '<i class="pf-medal" style="--c:' + medal + '">' + pos + '</i>' : '') + '</div>' +
+      '<div class="pf-id"><div class="pf-tags">' + (adm ? '<em class="pf-tag adm">admin</em>' : '') + (pos ? '<em class="pf-tag">#' + num(pos) + ' no ranking</em>' : '<em class="pf-tag mute">sem ranking</em>') + '</div>' +
+      '<div class="pf-bio' + (pr.bio ? '' : ' empty') + '">' + (pr.bio ? esc(pr.bio) : (own ? 'Você ainda não escreveu uma bio.' : 'Sem bio ainda.')) + '</div></div></div>' +
+      '<div class="pf-grid">' + card('Recorde', num(d.best)) + card('Melhor onda', num((rk && rk.onda) || sv.maxWave)) + card('Navios afundados', num(sv.kills)) + card('Chefes', num(sv.bosses)) + card('Tempo de jogo', hh(sv.play)) + (own ? card('Moedas', num(save.coins)) : card('Conquistas', ach.length + '/' + ACH.length)) + '</div>' +
+      '<div class="pf-sec">Navio atual</div><div class="pf-ship"><b>' + esc(ship.name) + '</b>' + UPS.map(u => '<div class="pf-up"><span>' + esc(u.n) + '</span><i>' + pips(clamp(Math.floor(Number(upS[u.k]) || 0), 0, MAXLV)) + '</i></div>').join('') + '</div>' +
+      '<div class="pf-sec">Frota <small>' + owned.length + ' de ' + (adm ? SHIPS.length : PUB_N) + '</small></div><div class="pf-chips">' + owned.map(s => '<span class="pf-chip' + (s.id === ship.id ? ' on' : '') + '">' + esc(s.name) + '</span>').join('') + '</div>' +
+      '<div class="pf-sec">Conquistas <small>' + ach.length + ' de ' + ACH.length + ' · ' + pct + '%</small></div><div class="pf-bar"><i style="width:' + pct + '%"></i></div>' +
+      (ach.length ? '<div class="pf-chips">' + ach.map(a => '<span class="pf-chip star">★ ' + esc(a.n) + '</span>').join('') + '</div>' : '') +
+      '<div class="pf-foot">Membro desde ' + dia(d.desde) + ' · último salvamento ' + dia(d.atualizado) + '</div>';
   } catch (e) { b.textContent = 'Não foi possível carregar o perfil.'; }
 }
+$('profFriend').addEventListener('click', async () => {
+  if (!sess || !curProf) return;
+  const bt = $('profFriend'), m = $('profMsg'); bt.disabled = true; m.textContent = 'Enviando…';
+  try { const r = await frCall('mf_amigo_pedir', { p_nome: curProf }); m.textContent = FR_TXT[r] || 'Não foi possível enviar o pedido.'; }
+  catch (e) { m.textContent = frErr(e); } finally { bt.disabled = false; }
+});
 async function searchProf() {
   const q = $('pSearch').value.trim().toLowerCase();
   if (q.length < 2) { openRank(); return; }
@@ -3521,29 +3533,57 @@ function peUi() {
 }
 function peOpen() {
   if (!sess) return;
-  peDraft = { bio: save.prof.bio, photo: save.prof.photo };
+  peDraft = { bio: save.prof.bio, photo: save.prof.photo }; peCrop = null; peStage.hidden = true;
   $('peBio').value = peDraft.bio; $('peMsg').textContent = 'Foto e bio aparecem no seu perfil. A foto é recortada em quadrado e reduzida automaticamente.';
   $('peSave').disabled = false; peUi();
   $('acctEl').hidden = true; profEl.hidden = true; rankEl.hidden = true; peEl.hidden = false;
 }
-function peShrink(file) {
+let peCrop = null;
+const peCv = $('peCv'), peStage = $('peStage'), peZoom = $('peZoom');
+function peWin() {
+  const c = peCrop, W0 = c.img.naturalWidth, H0 = c.img.naturalHeight, m = Math.min(W0, H0) / c.z;
+  c.cx = clamp(c.cx, m / 2, W0 - m / 2); c.cy = clamp(c.cy, m / 2, H0 - m / 2);
+  return { m, sx: c.cx - m / 2, sy: c.cy - m / 2 };
+}
+function peDraw(cv) {
+  const S = cv.width, g = cv.getContext('2d'), w = peWin();
+  g.fillStyle = '#0c2433'; g.fillRect(0, 0, S, S); g.imageSmoothingQuality = 'high';
+  g.drawImage(peCrop.img, w.sx, w.sy, w.m, w.m, 0, 0, S, S);
+}
+function peCommit() {
+  if (!peCrop) return false;
+  const c = document.createElement('canvas'); c.width = c.height = 160; peDraw(c);
+  let out = '';
+  for (const q of [.85, .7, .55, .4]) { out = c.toDataURL('image/jpeg', q); if (out.length <= 45000) break; }
+  if (out.length > 45000 || !out.startsWith('data:image/jpeg;base64,')) return false;
+  peDraft.photo = out; peUi(); return true;
+}
+function peLoad(file) {
   return new Promise((res, rej) => {
     const url = URL.createObjectURL(file), img = new Image();
     img.onload = () => {
-      try {
-        const S = 160, c = document.createElement('canvas'); c.width = c.height = S;
-        const g = c.getContext('2d'), m = Math.min(img.naturalWidth, img.naturalHeight), sx = (img.naturalWidth - m) / 2, sy = (img.naturalHeight - m) / 2;
-        g.fillStyle = '#0c2433'; g.fillRect(0, 0, S, S); g.imageSmoothingQuality = 'high'; g.drawImage(img, sx, sy, m, m, 0, 0, S, S);
-        let out = '';
-        for (const q of [.85, .7, .55, .4]) { out = c.toDataURL('image/jpeg', q); if (out.length <= 45000) break; }
-        URL.revokeObjectURL(url);
-        out.length <= 45000 && out.startsWith('data:image/jpeg;base64,') ? res(out) : rej(new Error('big'));
-      } catch (e) { rej(e); }
+      URL.revokeObjectURL(url);
+      if (!img.naturalWidth || !img.naturalHeight) { rej(new Error('img')); return; }
+      peCrop = { img, cx: img.naturalWidth / 2, cy: img.naturalHeight / 2, z: 1 };
+      peZoom.value = 100; peStage.hidden = false; peDraw(peCv);
+      peCommit() ? res() : rej(new Error('big'));
     };
     img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('img')); };
     img.src = url;
   });
 }
+let peDrag = null;
+peCv.addEventListener('pointerdown', e => { if (!peCrop) return; peDrag = { x: e.clientX, y: e.clientY }; try { peCv.setPointerCapture(e.pointerId); } catch (er) {} });
+peCv.addEventListener('pointermove', e => {
+  if (!peDrag || !peCrop) return;
+  const k = peWin().m / peCv.getBoundingClientRect().width;
+  peCrop.cx -= (e.clientX - peDrag.x) * k; peCrop.cy -= (e.clientY - peDrag.y) * k;
+  peDrag.x = e.clientX; peDrag.y = e.clientY; peDraw(peCv);
+});
+const peDrop = () => { if (peDrag) { peDrag = null; peCommit(); } };
+peCv.addEventListener('pointerup', peDrop); peCv.addEventListener('pointercancel', peDrop);
+peZoom.addEventListener('input', () => { if (!peCrop) return; peCrop.z = peZoom.value / 100; peDraw(peCv); });
+peZoom.addEventListener('change', () => { if (peCrop) peCommit(); });
 $('pePick').addEventListener('click', () => $('peFile').click());
 $('peFile').addEventListener('change', async e => {
   const f = e.target.files && e.target.files[0]; e.target.value = '';
@@ -3551,10 +3591,10 @@ $('peFile').addEventListener('change', async e => {
   if (!/^image\//.test(f.type)) { $('peMsg').textContent = 'Escolha um arquivo de imagem.'; return; }
   if (f.size > 15 * 1024 * 1024) { $('peMsg').textContent = 'Imagem muito grande (máximo 15 MB).'; return; }
   $('peMsg').textContent = 'Processando foto…';
-  try { peDraft.photo = await peShrink(f); $('peMsg').textContent = 'Foto pronta. Toque em Salvar para aplicar.'; peUi(); }
+  try { await peLoad(f); $('peMsg').textContent = 'Arraste para enquadrar e use o zoom. Toque em Salvar para aplicar.'; }
   catch (er) { $('peMsg').textContent = 'Não foi possível usar essa imagem. Tente outra (JPG ou PNG).'; }
 });
-$('peDel').addEventListener('click', () => { peDraft.photo = ''; peUi(); $('peMsg').textContent = 'Foto removida. Toque em Salvar para aplicar.'; });
+$('peDel').addEventListener('click', () => { peDraft.photo = ''; peCrop = null; peStage.hidden = true; peUi(); $('peMsg').textContent = 'Foto removida. Toque em Salvar para aplicar.'; });
 $('peBio').addEventListener('input', e => { peDraft.bio = e.target.value.slice(0, 140); peUi(); });
 for (const ev of ['keydown', 'keyup']) $('peBio').addEventListener(ev, e => e.stopPropagation());
 $('peSave').addEventListener('click', async () => {
