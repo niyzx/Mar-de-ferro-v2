@@ -4578,9 +4578,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !misEl.hid
 $('dailyBack').addEventListener('click', () => { dailyEl.hidden = true; dailyDot(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !dailyEl.hidden) $('dailyBack').click(); });
 
-/* ---------- amizades, conversas privadas e convites ---------- */
+/* ---------- amizades e convites ---------- */
 const frEl = $('frEl');
-let frTab = 'amigos', frChat = null, frChatT = 0, frChatSig = '', frUnread = 0, frNew = new Set(), frBox = [], frSum = {}, frData = { amigos: [], enviados: [], recebidos: [] };
+let frTab = 'amigos', frUnread = 0, frNew = new Set(), frBox = [], frData = { amigos: [], enviados: [], recebidos: [] };
 const FR_TXT = {
   ok: 'Pedido enviado.', aceito: 'Vocês agora são amigos!', recusado: 'Pedido recusado.',
   nome_invalido: 'Nome inválido: use 3 a 16 letras minúsculas, números ou _.',
@@ -4588,8 +4588,7 @@ const FR_TXT = {
   ja_amigos: 'Vocês já são amigos.', ja_pedido: 'Você já enviou um pedido para essa pessoa.',
   muitos_pedidos: 'Você tem pedidos demais pendentes. Espere alguns serem respondidos.',
   lista_cheia: 'Sua lista de amigos está cheia (100).', nao_existe: 'Esse pedido não existe mais.',
-  texto_invalido: 'A mensagem precisa ter de 1 a 200 caracteres.', nao_amigo: 'Só dá para falar com amigos.',
-  devagar: 'Calma: espere um pouco antes de repetir.', chat_cheio: 'Essa pessoa ainda não leu suas últimas mensagens.',
+  devagar: 'Calma: espere um pouco antes de repetir.',
   sala_invalida: 'Sala inválida.', sem_login: 'Entre numa conta primeiro.'
 };
 const frSay = t => { $('frMsg').textContent = t || ''; };
@@ -4604,7 +4603,6 @@ function frBadge() {
   const set = (id, n) => { const b = $(id); b.hidden = !(n > 0); b.textContent = n > 99 ? '99+' : n; };
   set('frN', frUnread);
   set('frTabN', frBox.filter(m => !m.lida).length);
-  set('frTabA', Object.values(frSum).reduce((t, x) => t + (+x.nao_lidas || 0), 0));
 }
 async function frPoll() {
   if (!sess || !RANK_ON) { frUnread = 0; frBadge(); return; }
@@ -4622,15 +4620,12 @@ const frEmpty = (ico, t, s) => '<div class="fr-empty"><svg viewBox="0 0 24 24" f
 const frSec = (t, n) => '<p class="fr-sec">' + t + (n ? ' <b>' + n + '</b>' : '') + '</p>';
 const frRow = (cls, av, main, act) => '<div class="fr-row' + (cls ? ' ' + cls : '') + '">' + av + '<div class="fr-main">' + main + '</div><div class="fr-act">' + act + '</div></div>';
 function frRender() {
-  const chat = !!(frChat && sess);
   for (const t of $('frTabs').children) t.classList.toggle('on', t.dataset.t === frTab);
-  $('frTabs').hidden = chat; $('frChat').hidden = !chat; $('frBody').hidden = chat;
-  $('frAddBox').hidden = !sess || frTab !== 'add' || chat;
+  $('frAddBox').hidden = !sess || frTab !== 'add';
   const b = $('frBody');
-  if (chat) { $('frChatName').textContent = frChat.nome; $('frChatAv').innerHTML = frAv(frChat.nome); return; }
   if (!sess) {
     $('frCount').textContent = '';
-    b.innerHTML = frEmpty('users', 'Entre numa conta', 'Com uma conta você tem amigos, conversas e convites.') + '<div class="actions"><button class="btn" type="button" data-a="login">Entrar / Criar conta</button></div>';
+    b.innerHTML = frEmpty('users', 'Entre numa conta', 'Com uma conta você tem amigos e convites.') + '<div class="actions"><button class="btn" type="button" data-a="login">Entrar / Criar conta</button></div>';
     return;
   }
   const na = frData.amigos.length;
@@ -4641,9 +4636,8 @@ function frRender() {
       frRow('req', frAv(x.nome), '<b>' + esc(x.nome) + '</b><small>quer ser seu amigo</small>', frBtn('acc', 'Aceitar', { pri: 1, id: x.id }) + frBtn('rej', 'Recusar', { id: x.id }))).join('') + '</div>';
     h += frSec('Meus amigos', na);
     h += na ? '<div class="fr-list">' + frData.amigos.map(x => {
-      const s = frSum[x.id] || {}, nl = +s.nao_lidas || 0;
-      return frRow(nl ? 'new' : '', frAv(x.nome), '<b>' + esc(x.nome) + (nl ? '<i class="frn inl">' + nl + '</i>' : '') + '</b>' + (s.ultima ? '<span class="fr-prev">' + esc(s.ultima) + '</span>' : '<small>amigo</small>'),
-        frBtn('msg', 'Conversar', { pri: 1, id: x.id, n: x.nome }) + frBtn('vs', 'Desafiar', { id: x.id, n: x.nome }) + frBtn('rem', 'Remover', { dng: 1, id: x.id, n: x.nome }));
+      return frRow('', frAv(x.nome), '<b>' + esc(x.nome) + '</b><small>amigo</small>',
+        frBtn('vs', 'Desafiar', { pri: 1, id: x.id, n: x.nome }) + frBtn('rem', 'Remover', { dng: 1, id: x.id, n: x.nome }));
     }).join('') + '</div>' : frEmpty('users', 'Sem amigos ainda', 'Toque em Adicionar e digite o nome de um jogador para enviar um pedido.');
   } else if (frTab === 'caixa') {
     if (frBox.some(m => m.lida && m.tipo !== 'pedido')) h += '<div class="fr-top"><div class="fr-act">' + frBtn('clear', 'Limpar lidas') + '</div></div>';
@@ -4655,7 +4649,6 @@ function frRender() {
         return frRow(cls + ' req', frAv(m.de_nome), '<b>' + nm + '</b><small>convidou você · ' + ago + '</small><span class="fr-txt">Sala <b>' + cod + '</b> · ' + (p[1] === '1' ? 'Duelo 1×1' : 'Esquadra') + (exp ? ' · expirado' : '') + '</span>',
           (exp ? '' : frBtn('join', 'Entrar', { pri: 1, id: m.id, n: p[0] + '|' + (p[1] || '0') })) + frBtn('del', 'Apagar', { id: m.id }));
       }
-      if (m.tipo === 'mensagem') return frRow(cls, frAv(m.de_nome), '<b>' + nm + '</b><small>' + ago + '</small><span class="fr-txt fr-bub">' + esc(m.texto) + '</span>', (m.de ? frBtn('reply', 'Responder', { pri: 1, id: m.de, n: m.de_nome }) : '') + frBtn('del', 'Apagar', { id: m.id }));
       return frRow(cls, '<span class="fr-av sys" aria-hidden="true">!</span>', '<span class="fr-txt">' + esc(m.texto) + '</span><small>aviso · ' + ago + '</small>', frBtn('del', 'Apagar', { id: m.id }));
     }).join('') + '</div>' : frEmpty('mail', 'Caixa vazia', 'Pedidos de amizade, convites e avisos aparecem aqui.');
   } else {
@@ -4681,10 +4674,9 @@ async function frLoad(keepMsg) {
   if (!sess) { frRender(); return; }
   if (!keepMsg) frSay('Carregando…');
   try {
-    const [l, c, s] = await Promise.all([frCall('mf_amigo_lista'), frCall('mf_caixa_lista'), frCall('mf_chat_resumo').catch(() => [])]);
+    const [l, c] = await Promise.all([frCall('mf_amigo_lista'), frCall('mf_caixa_lista')]);
     if (l && Array.isArray(l.amigos)) frData = { amigos: l.amigos, enviados: l.enviados || [], recebidos: l.recebidos || [] };
-    frBox = Array.isArray(c) ? c : [];
-    frSum = {}; (Array.isArray(s) ? s : []).forEach(x => { frSum[x.id] = x; });
+    frBox = Array.isArray(c) ? c.filter(m => m.tipo !== 'mensagem') : [];
     await loadThumbs([...frData.amigos, ...frData.enviados, ...frData.recebidos].map(x => x.nome).concat(frBox.map(m => m.de_nome)).filter(Boolean));
     if (!keepMsg) frSay('');
     if (frTab === 'caixa') { frBox.forEach(m => { if (!m.lida) frNew.add(m.id); }); frRender(); frMarkRead(); }
@@ -4692,33 +4684,8 @@ async function frLoad(keepMsg) {
     frPoll();
   } catch (e) { frSay(frErr(e)); frRender(); }
 }
-/* conversa privada */
-async function frChatLoad(first) {
-  if (!frChat) return;
-  const id = frChat.id;
-  try {
-    const d = await frCall('mf_chat_abrir', { p_com: id });
-    if (!frChat || frChat.id !== id || !Array.isArray(d)) return;
-    const sig = (d.length ? d[d.length - 1].id : 0) + ':' + d.length;
-    if (!first && sig === frChatSig) return;
-    frChatSig = sig;
-    const box = $('frMsgs'), atEnd = first || box.scrollHeight - box.scrollTop - box.clientHeight < 60;
-    box.innerHTML = d.length ? d.map(m => '<div class="fr-m' + (m.minha ? ' me' : '') + '">' + esc(m.texto) + '<small>' + frAgo(m.criada) + '</small></div>').join('') : '<p class="note" style="margin:auto;text-align:center">Nenhuma mensagem ainda. Diga olá!</p>';
-    if (atEnd) box.scrollTop = box.scrollHeight;
-    frPoll();
-  } catch (e) { if (first) frSay(frErr(e)); }
-}
-function frChatStop() { clearInterval(frChatT); frChatT = 0; frChat = null; frChatSig = ''; }
-async function frOpenChat(id, nome) {
-  frChatStop(); frChat = { id, nome: nome || '?' }; frSay('');
-  if (frSum[id]) frSum[id].nao_lidas = 0;
-  $('frMsgs').innerHTML = ''; frRender(); frBadge();
-  frChatT = setInterval(() => { if (!frEl.hidden && frChat) frChatLoad(false); }, 4000);
-  await frChatLoad(true);
-  $('frText').focus();
-}
 async function frChallenge(id, nome) {
-  frEl.hidden = true; frChatStop(); openMp(true);
+  frEl.hidden = true; openMp(true);
   $('mpCreate').click();
   for (let i = 0; i < 50 && !(MP.role === 'host' && MP.code && $('mpBig').textContent === MP.code); i++) await new Promise(r => setTimeout(r, 200));
   if (!(MP.role === 'host' && MP.code && $('mpBig').textContent === MP.code)) return;
@@ -4728,22 +4695,20 @@ async function frChallenge(id, nome) {
   } catch (e) { mpSay(frErr(e)); }
 }
 function frJoin(code, vs, caixaId) {
-  frEl.hidden = true; frChatStop(); openMp(vs);
+  frEl.hidden = true; openMp(vs);
   $('mpCode').value = code; $('mpJoin').click();
   if (caixaId) frCall('mf_caixa_apagar', { p_id: +caixaId }).catch(() => {});
   frPoll();
 }
-$('btnFr').addEventListener('click', () => { frChatStop(); frTab = 'amigos'; frNew = new Set(); frSay(''); frEl.hidden = false; frEl.scrollTop = 0; frRender(); frLoad(); });
-$('frBack').addEventListener('click', () => { frChatStop(); frEl.hidden = true; frPoll(); });
-$('frChatBack').addEventListener('click', () => { frChatStop(); frSay(''); frRender(); frLoad(true); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !frEl.hidden) $(frChat ? 'frChatBack' : 'frBack').click(); });
+$('btnFr').addEventListener('click', () => { frTab = 'amigos'; frNew = new Set(); frSay(''); frEl.hidden = false; frEl.scrollTop = 0; frRender(); frLoad(); });
+$('frBack').addEventListener('click', () => { frEl.hidden = true; frPoll(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !frEl.hidden) $('frBack').click(); });
 $('frTabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) { frSay(''); frSetTab(b.dataset.t); } });
 $('frBody').addEventListener('click', async e => {
   const b = e.target.closest('[data-a]');
   if (!b || b.disabled) return;
   const a = b.dataset.a, id = b.dataset.id;
   if (a === 'login') { frEl.hidden = true; $('btnAcct').click(); return; }
-  if (a === 'msg' || a === 'reply') { frOpenChat(id, b.dataset.n); return; }
   if (a === 'vs') { frChallenge(id, b.dataset.n || 'seu amigo'); return; }
   if (a === 'join') { const p = (b.dataset.n || '').split('|'); if (/^[A-Z]{4}$/.test(p[0])) frJoin(p[0], p[1] === '1', id); return; }
   if (a === 'rem' && !confirm('Remover ' + (b.dataset.n || 'este jogador') + ' dos amigos?')) return;
@@ -4769,20 +4734,8 @@ $('frAdd').addEventListener('click', async () => {
     if (r === 'ok' || r === 'aceito') { $('frName').value = ''; await frLoad(true); }
   } catch (e) { frSay(frErr(e)); } finally { $('frAdd').disabled = false; }
 });
-$('frSend').addEventListener('click', async () => {
-  const t = $('frText').value.trim();
-  if (!frChat || !t) return;
-  $('frSend').disabled = true;
-  try {
-    const r = await frCall('mf_chat_enviar', { p_para: frChat.id, p_texto: t });
-    if (r === 'ok') { $('frText').value = ''; frSay(''); await frChatLoad(true); }
-    else frSay(FR_TXT[r] || 'Não foi possível enviar.');
-  } catch (e) { frSay(frErr(e)); } finally { $('frSend').disabled = false; $('frText').focus(); }
-});
-for (const id of ['frName', 'frText']) {
-  $(id).addEventListener('keydown', e => { if (e.key !== 'Escape') e.stopPropagation(); if (e.key === 'Enter') $(id === 'frName' ? 'frAdd' : 'frSend').click(); });
-  $(id).addEventListener('keyup', e => e.stopPropagation());
-}
+$('frName').addEventListener('keydown', e => { if (e.key !== 'Escape') e.stopPropagation(); if (e.key === 'Enter') $('frAdd').click(); });
+$('frName').addEventListener('keyup', e => e.stopPropagation());
 $('frName').addEventListener('input', e => { e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); });
 /* convidar amigos na sala (só o anfitrião) */
 async function mpInvLoad() {

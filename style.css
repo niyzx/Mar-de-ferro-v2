@@ -868,19 +868,6 @@ body[data-state="playing"] #btnCfg, body:has(#mpEl:not([hidden]), #auth:not([hid
 /* conversa privada e convites */
 .frn.inl { position: static; display: inline-block; margin-left: 6px; vertical-align: middle; box-shadow: none; }
 .fr-prev { font-size: 12px; color: var(--steel); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fr-chat { display: flex; flex-direction: column; gap: 10px; }
-.fr-chat[hidden] { display: none; }
-.fr-chathead { display: flex; align-items: center; gap: 10px; }
-.fr-chathead .btn { min-height: 36px; padding: 4px 12px; font-size: 13px; }
-.fr-chathead b { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
-.fr-chathead .fr-av { width: 32px; height: 32px; font-size: 16px; }
-.fr-msgs { display: flex; flex-direction: column; gap: 6px; height: min(46vh, 380px); overflow-y: auto; padding: 10px; border: 1px solid var(--line); background: rgba(6, 18, 26, .55); overscroll-behavior: contain; }
-.fr-m { max-width: 82%; padding: 7px 10px; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; align-self: flex-start; background: rgba(212, 232, 234, .1); border-radius: 2px 10px 10px 10px; }
-.fr-m.me { align-self: flex-end; background: rgba(224, 169, 60, .22); border-radius: 10px 2px 10px 10px; }
-.fr-m small { display: block; margin-top: 3px; font-size: 9px; letter-spacing: .1em; color: var(--steel); text-align: right; }
-.fr-chatin { display: flex; gap: 8px; }
-.fr-chatin .fld { flex: 1; min-width: 0; margin: 0; }
-.fr-chatin .btn { min-height: 44px; padding: 4px 16px; }
 .mpinv { display: flex; flex-direction: column; gap: 8px; }
 .mpinv[hidden] { display: none; }
 .mpinv .fr-list { max-height: 220px; overflow-y: auto; }
