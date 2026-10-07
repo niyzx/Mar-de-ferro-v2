@@ -238,6 +238,7 @@ function loadExtra(sv) {
   save.acc = { own: aown, on: aon };
   { const dl = (sv && sv.daily) || {}; save.daily = { cyc: clamp(Math.floor(Number(dl.cyc) || 0), 0, 99), streak: clamp(Math.floor(Number(dl.streak) || 0), 0, 7), last: /^\d{4}-\d{2}-\d{2}$/.test(dl.last) ? dl.last : '' }; }
   { const d = (sv && sv.dm) || {}, a3 = (v, f) => [0, 1, 2].map(i => f(Array.isArray(v) ? v[i] : 0)); save.dm = { d: /^\d{4}-\d{2}-\d{2}$/.test(d.d) ? d.d : '', p: a3(d.p, x => clamp(Math.floor(Number(x) || 0), 0, 99999)), c: a3(d.c, x => x ? 1 : 0), b: d.b ? 1 : 0 }; }
+  { const m = (sv && sv.ms) || {}; save.ms = { s: clamp(Math.floor(Number(m.s) || 0), 0, 999), l: /^\d{4}-\d{2}-\d{2}$/.test(m.l) ? m.l : '' }; }
   save.wk = { paid: sv && sv.wk && /^\d{4}-\d{2}-\d{2}$/.test(sv.wk.paid) ? sv.wk.paid : '' };
   save.ach = {};
   for (const a of ACH) if (sv && sv.ach && sv.ach[a.id]) save.ach[a.id] = 1;
@@ -277,7 +278,7 @@ function claimEvento() {
   if (!evtAtivo() || save.owned.includes(EVENTO.ship) || !e || e.kills < EVENTO.kills || e.bosses < EVENTO.bosses || save.coins < EVENTO.coins) return false;
   save.coins -= EVENTO.coins; save.owned.push(EVENTO.ship); save.ship = EVENTO.ship; sfx.pick(); return true;
 }
-function addCoins(n) { if (typeof EVT !== "undefined" && EVT && EVT.mult > 1 && Date.parse(EVT.ate) > Date.now()) n = Math.round(n * EVT.mult); G.coins += n; save.coins += n; persist(); return n; }
+function addCoins(n) { if (typeof EVT !== "undefined" && EVT && EVT.mult > 1 && Date.parse(EVT.ate) > Date.now()) n = Math.round(n * EVT.mult); G.coins += n; save.coins += n; try { misAdd('coins', n); } catch (e) {} persist(); return n; }
 
 /* ---------- perigos do mar: icebergs e redemoinhos (gerados por células, iguais em todos os clientes) ---------- */
 const HZ_CELL = 900, HZ = new Map(), VW = [], VI = [], ICE_ST = new Map();
@@ -3011,7 +3012,7 @@ function showOverlay(mode) {
   $('bal').textContent = '$ ' + fmt(save.coins);
   if (mode === 'menu') {
     $('ovKicker').textContent = 'Frota inimiga avistada';
-    $('ovTitle').textContent = 'Mar de Ferro';
+    $('ovTitle').textContent = 'Naval Warfare';
     $('ovLead').textContent = '';
     btnMain.textContent = 'Zarpar';
   } else if (mode === 'paused') {
@@ -3761,7 +3762,7 @@ $('mpJoin').addEventListener('click', async () => {
   } catch (e) { mpLeave(); mpBusy(false); mpSay('Não foi possível conectar. Verifique a internet e tente de novo.'); }
 });
 $('mpShare').addEventListener('click', async () => {
-  const c = MP.code, link = location.origin + location.pathname + '?sala=' + c + (vsMode ? '&vs=1' : ''), txt = (vsMode ? 'Duelo 1×1 no Mar de Ferro! Código: ' : 'Entre na minha esquadra no Mar de Ferro! Código: ') + c + ' · ' + link;
+  const c = MP.code, link = location.origin + location.pathname + '?sala=' + c + (vsMode ? '&vs=1' : ''), txt = (vsMode ? 'Duelo 1×1 no Naval Warfare! Código: ' : 'Entre na minha esquadra no Naval Warfare! Código: ') + c + ' · ' + link;
   try { if (navigator.share) { await navigator.share({ text: txt }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
   try { await navigator.clipboard.writeText(txt); mpSay('Código copiado! Cole numa conversa com o aliado.'); } catch (e) { mpSay('Copie manualmente: ' + c); }
 });
@@ -4478,18 +4479,25 @@ $('dailyClaim').addEventListener('click', claimDaily);
 const MIS = [
   { k: 'kills', t: 'Afunde {n} navios inimigos', n: [20, 30, 45], r: 200 },
   { k: 'waves', t: 'Chegue à onda {n} em uma partida', n: [5, 7, 9], r: 250 },
-  { k: 'boss', t: 'Derrote {n} chefe{s}', n: [1, 1, 2], r: 400 },
+  { k: 'boss', t: 'Derrote {n} chefe{s}', n: [1, 2, 3], r: 400 },
   { k: 'sharks', t: 'Afunde {n} tubarões', n: [2, 3, 4], r: 300 },
   { k: 'crates', t: 'Colete {n} caixas', n: [4, 6, 8], r: 200 },
   { k: 'score', t: 'Faça {n} pontos em uma partida', n: [2500, 4000, 6000], r: 300 },
-  { k: 'games', t: 'Jogue {n} partidas', n: [2, 3, 4], r: 150 }
+  { k: 'games', t: 'Jogue {n} partidas', n: [2, 3, 4], r: 150 },
+  { k: 'coins', t: 'Ganhe {n} moedas em partidas', n: [150, 300, 500], r: 250 }
 ];
-const MIS_BONUS = 500, misEl = $('misEl');
+const MIS_TIER = [{ n: 'Fácil', m: 1 }, { n: 'Média', m: 1.4 }, { n: 'Difícil', m: 2 }];
+const MIS_BONUS = 500, MIS_STREAK = 100, MIS_STREAK_MAX = 7, misEl = $('misEl');
+let misTick = 0;
 const misToday = () => srvOk ? srvDay(0) : new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+const misYest = () => srvOk ? srvDay(1) : new Date(Date.now() - 3 * 3600e3 - 864e5).toISOString().slice(0, 10);
 function misPick(day) {
   let h = 5381; for (let i = 0; i < day.length; i++) h = (h * 33 + day.charCodeAt(i)) >>> 0;
   const pool = MIS.slice(), out = [], nx = () => { h = (h * 1664525 + 1013904223) >>> 0; return h >>> 16; };
-  for (let i = 0; i < 3; i++) { const m = pool.splice(nx() % pool.length, 1)[0], n = m.n[nx() % 3]; out.push({ k: m.k, n, r: m.r, t: m.t.replace('{n}', fmt(n)).replace('{s}', n > 1 ? 's' : '') }); }
+  for (let i = 0; i < 3; i++) {
+    const m = pool.splice(nx() % pool.length, 1)[0], ti = nx() % 3, n = m.n[ti];
+    out.push({ k: m.k, n, ti, r: Math.round(m.r * MIS_TIER[ti].m / 10) * 10, t: m.t.replace('{n}', fmt(n)).replace('{s}', n > 1 ? 's' : '') });
+  }
   return out;
 }
 function misState() {
@@ -4497,12 +4505,17 @@ function misState() {
   if (!save.dm || save.dm.d !== day) save.dm = { d: day, p: [0, 0, 0], c: [0, 0, 0], b: 0 };
   return save.dm;
 }
+const misMs = () => save.ms || (save.ms = { s: 0, l: '' });
+/* sequência de dias em que o bônus foi resgatado; só vale se foi hoje ou ontem */
+function misStreak() { const m = misMs(), d = misToday(); return m.l === d || m.l === misYest() ? m.s : 0; }
+function misNextStreak() { const m = misMs(); return m.l === misYest() ? m.s + 1 : 1; }
+function misBonus() { return MIS_BONUS + MIS_STREAK * (Math.min(misNextStreak(), MIS_STREAK_MAX) - 1); }
 function misAdd(k, v, max) {
   if (!G || G.vs || MP.role === 'guest') return;
   const st = misState(); let done = false;
   misPick(st.d).forEach((m, i) => {
     if (m.k !== k || st.p[i] >= m.n) return;
-    st.p[i] = Math.min(m.n, max ? Math.max(st.p[i], Math.floor(v)) : st.p[i] + v);
+    st.p[i] = Math.min(m.n, max ? Math.max(st.p[i], Math.floor(v)) : st.p[i] + Math.floor(v));
     if (st.p[i] >= m.n) { done = true; try { banner('Missão cumprida', m.t); sfx.pick(); } catch (e) {} }
   });
   if (done) { try { persist(); } catch (e) {} }
@@ -4511,15 +4524,35 @@ function misDot() {
   const st = misState(), list = misPick(st.d);
   $('btnMis').classList.toggle('dot', list.some((m, i) => st.p[i] >= m.n && !st.c[i]) || (st.c.every(Boolean) && !st.b));
 }
+function misLeft() {
+  const st = misState(), [y, mo, d] = st.d.split('-').map(Number);
+  const now = srvOk ? srvBase + (performance.now() - srvPerf) : Date.now();
+  return Date.UTC(y, mo - 1, d + 1, 3) - now;
+}
+function misTime() {
+  const ms = misLeft();
+  if (ms <= 0) { syncServerTime().then(() => { renderMis(); misDot(); }); return; }
+  const h = Math.floor(ms / 3600e3), m = Math.floor(ms % 3600e3 / 60e3);
+  $('misTime').textContent = 'Novas missões em ' + (h ? h + 'h ' : '') + m + 'min';
+}
 function renderMis() {
   const st = misState(), list = misPick(st.d), done = st.c.filter(Boolean).length, all = done === 3;
+  const ready = list.filter((m, i) => st.p[i] >= m.n && !st.c[i]), bonus = misBonus(), sk = misStreak();
   $('misCount').textContent = done + '/3';
-  let h = '<div class="fr-list">' + list.map((m, i) => {
+  $('misStreak').textContent = sk ? 'Sequência: ' + sk + (sk > 1 ? ' dias' : ' dia') : 'Sem sequência';
+  $('misTime').textContent = '';
+  let h = '';
+  if (ready.length >= 2 || (ready.length === 1 && done === 2)) {
+    const tot = ready.reduce((s, m) => s + m.r, 0) + (done + ready.length === 3 && !st.b ? bonus : 0);
+    h += '<button class="ms-all" type="button" data-i="a">Resgatar tudo · $ ' + fmt(tot) + '</button>';
+  }
+  h += '<div class="fr-list">' + list.map((m, i) => {
     const ok = st.p[i] >= m.n, got = !!st.c[i], pc = Math.round(Math.min(1, st.p[i] / m.n) * 100);
-    return '<div class="ms-card' + (got ? ' got' : ok ? ' ok' : '') + '"><div class="ms-top"><b>' + esc(m.t) + '</b><span>$ ' + fmt(m.r) + '</span></div><div class="ms-bar"><i style="width:' + pc + '%"></i></div><div class="ms-bot"><small>' + fmt(st.p[i]) + ' / ' + fmt(m.n) + '</small><button class="ms-b' + (ok && !got ? ' pri' : '') + '" type="button" data-i="' + i + '"' + (ok && !got ? '' : ' disabled') + '>' + (got ? 'Resgatado' : ok ? 'Resgatar' : 'Em andamento') + '</button></div></div>';
-  }).join('') + '</div>';
-  h += '<div class="ms-card bonus' + (st.b ? ' got' : all ? ' ok' : '') + '"><div class="ms-top"><b>Bônus: resgatar as 3</b><span>$ ' + fmt(MIS_BONUS) + '</span></div><div class="ms-bot"><small>' + done + ' / 3 resgatadas</small><button class="ms-b' + (all && !st.b ? ' pri' : '') + '" type="button" data-i="b"' + (all && !st.b ? '' : ' disabled') + '>' + (st.b ? 'Resgatado' : all ? 'Resgatar' : 'Bloqueado') + '</button></div></div>';
+    return '<div class="ms-card' + (got ? ' got' : ok ? ' ok' : '') + '"><div class="ms-top"><div class="ms-t"><em class="ms-tier t' + m.ti + '">' + MIS_TIER[m.ti].n + '</em><b>' + esc(m.t) + '</b></div><span>$ ' + fmt(m.r) + '</span></div><div class="ms-bar"><i style="width:' + pc + '%"></i></div><div class="ms-bot"><small>' + fmt(st.p[i]) + ' / ' + fmt(m.n) + ' · ' + pc + '%</small><button class="ms-b' + (ok && !got ? ' pri' : '') + '" type="button" data-i="' + i + '"' + (ok && !got ? '' : ' disabled') + '>' + (got ? 'Resgatado' : ok ? 'Resgatar' : 'Em andamento') + '</button></div></div>';
+  }).join('');
+  h += '<div class="ms-card bonus' + (st.b ? ' got' : all ? ' ok' : '') + '"><div class="ms-top"><div class="ms-t"><b>Bônus: resgatar as 3</b></div><span>$ ' + fmt(bonus) + '</span></div><div class="ms-bot"><small>' + (st.b ? 'Bônus resgatado hoje' : done + ' / 3 resgatadas · +$ ' + MIS_STREAK + ' por dia seguido (até ' + MIS_STREAK_MAX + ')') + '</small><button class="ms-b' + (all && !st.b ? ' pri' : '') + '" type="button" data-i="b"' + (all && !st.b ? '' : ' disabled') + '>' + (st.b ? 'Resgatado' : all ? 'Resgatar' : 'Bloqueado') + '</button></div></div></div>';
   $('misBody').innerHTML = h;
+  misTime();
 }
 async function misClaim(i) {
   const old = save.dm && save.dm.d;
@@ -4527,14 +4560,19 @@ async function misClaim(i) {
   const st = misState();
   if (old && old !== st.d) { $('misMsg').textContent = 'As missões anteriores expiraram. Novas missões disponíveis!'; renderMis(); misDot(); return; }
   const list = misPick(st.d); let gain = 0;
-  if (i === 'b') { if (!st.c.every(Boolean) || st.b) { renderMis(); return; } st.b = 1; gain = MIS_BONUS; }
-  else { i = +i; if (!list[i] || st.p[i] < list[i].n || st.c[i]) { renderMis(); return; } st.c[i] = 1; gain = list[i].r; }
+  const take = j => { if (list[j] && st.p[j] >= list[j].n && !st.c[j]) { st.c[j] = 1; gain += list[j].r; } };
+  if (i === 'a') list.forEach((m, j) => take(j)); else if (i !== 'b') take(+i);
+  if ((i === 'a' || i === 'b') && st.c.every(Boolean) && !st.b) {
+    gain += misBonus();
+    const ms = misMs(); ms.s = misNextStreak(); ms.l = st.d; st.b = 1;
+  }
+  if (!gain) { renderMis(); return; }
   save.coins += gain; initAudio(); sfx.pick(); persist(); try { pushCloud(); } catch (e) {}
   try { banner('Missão diária', '+$ ' + fmt(gain)); } catch (e) {}
   $('misMsg').textContent = ''; renderMis(); misDot();
 }
-$('btnMis').addEventListener('click', () => { $('misMsg').textContent = ''; renderMis(); misEl.hidden = false; misEl.scrollTop = 0; syncServerTime().then(() => { renderMis(); misDot(); }); });
-$('misBack').addEventListener('click', () => { misEl.hidden = true; misDot(); });
+$('btnMis').addEventListener('click', () => { $('misMsg').textContent = ''; renderMis(); misEl.hidden = false; misEl.scrollTop = 0; clearInterval(misTick); misTick = setInterval(misTime, 20000); syncServerTime().then(() => { renderMis(); misDot(); }); });
+$('misBack').addEventListener('click', () => { misEl.hidden = true; clearInterval(misTick); misDot(); });
 $('misBody').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b && !b.disabled) { b.disabled = true; misClaim(b.dataset.i); } });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !misEl.hidden) $('misBack').click(); });
 $('dailyBack').addEventListener('click', () => { dailyEl.hidden = true; dailyDot(); });
