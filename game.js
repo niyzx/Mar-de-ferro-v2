@@ -184,7 +184,7 @@ const UPS = [
 ];
 let ADMIN = false; const ADMINS = new Set();
 const adm = n => ADMINS.has(n) ? '<em class="rk-you" style="color:var(--rust);border-color:var(--rust)">admin</em>' : '';
-const TEST_MODE = true; // true = dinheiro infinito para testes; mude para false antes de publicar de verdade
+const TEST_MODE = false; // true = dinheiro infinito para testes (nunca publique com true)
 const MAXLV = 5, KEY_SAVE = 'mar-de-ferro-save';
 const upCost = l => Math.round(150 * Math.pow(1.9, l) / 10) * 10;
 /* ---------- evento: Colheita Sombria (recompensa: navio Reaper, permanente na conta) ---------- */
