@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mar de Ferro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="loading" role="status" aria-live="polite">
+  <div class="ld-radar" aria-hidden="true">
+    <span class="ld-blip" style="left:68%;top:28.6%;animation-delay:-.42s"></span><span class="ld-blip" style="left:79.1%;top:74.4%;animation-delay:-4.17s"></span>
+    <span class="ld-blip" style="left:37.4%;top:68%;animation-delay:-2.99s"></span><span class="ld-blip" style="left:21.4%;top:33.5%;animation-delay:-1.81s"></span>
+  </div>
+  <div class="ld-ship"><svg viewBox="0 0 120 50" aria-hidden="true">
+    <path d="M4 28 H114 L101 44 H17 Z" fill="#8ea6ad" stroke="#e0a93c" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M10 33 H108" stroke="#41575f" stroke-width="1.4"/>
+    <rect x="42" y="16" width="30" height="12" fill="#41575f"/><rect x="50" y="8" width="13" height="8" fill="#41575f"/>
+    <circle class="sm" cx="56.5" cy="3" r="2.5"/><circle class="sm s2" cx="56.5" cy="3" r="2.5"/><circle class="sm s3" cx="56.5" cy="3" r="2.5"/><rect x="55" y="2" width="3" height="6" fill="#c9d8db"/><circle cx="76" cy="22" r="4" fill="#e0a93c"/>
+    <circle cx="92" cy="25" r="5.5" fill="#41575f"/><rect x="94" y="23.6" width="20" height="2.8" rx="1.4" fill="#26363d"/>
+    <circle cx="26" cy="25" r="5" fill="#41575f"/><rect x="28" y="23.7" width="16" height="2.6" rx="1.3" fill="#26363d"/>
+  </svg></div>
+  <div class="ld-box">
+    <small id="ldStage">Preparando a frota</small>
+    <b>Mar de Ferro</b>
+    <div class="ld-bar"><i id="ldFill"></i></div>
+    <div class="ld-row"><span id="ldPct">0%</span><span id="ldTip"></span></div>
+  </div>
+  <div class="ld-sea" aria-hidden="true">
+    <svg class="ld-wave c" viewBox="0 0 800 120" preserveAspectRatio="none"><path d="M0 60 Q50 20 100 60 T200 60 T300 60 T400 60 T500 60 T600 60 T700 60 T800 60 V120 H0Z" fill="#0f3043"/></svg>
+    <svg class="ld-wave b" viewBox="0 0 800 120" preserveAspectRatio="none"><path d="M0 60 Q50 20 100 60 T200 60 T300 60 T400 60 T500 60 T600 60 T700 60 T800 60 V120 H0Z" fill="#0b2636"/></svg>
+    <svg class="ld-wave" viewBox="0 0 800 120" preserveAspectRatio="none"><path d="M0 60 Q50 20 100 60 T200 60 T300 60 T400 60 T500 60 T600 60 T700 60 T800 60 V120 H0Z" fill="#081a26"/></svg>
+  </div>
+</div>
+<canvas id="sea" aria-label="Mar de batalha"></canvas>
+
+<div class="hud" id="hud">
+  <div class="top">
+    <div class="gauges">
+      <div class="gauge"><span>CASCO</span><div class="bar" id="hpBar"><i class="lag" id="hpLag"></i><i id="hpFill"></i></div><span class="num" id="hpNum">100</span></div>
+      <div class="gauge thin"><span>RECARGA</span><div class="bar"><i id="rlFill"></i></div><span class="num"></span></div>
+      <div class="gauge" id="cvGauge" hidden><span>COMBOIO</span><div class="bar"><i id="cvFill" style="background:#8fd3e8"></i></div><span class="num" id="cvNum">0</span></div>
+      <div class="readout"><span>RUMO <b id="rumo">000°</b></span><span><b id="knots">0</b> NÓS</span></div>
+      <div class="lstats">
+        <div class="stat sm warn"><span>FALTAM</span><b id="remain">0</b></div>
+        <div class="stat sm"><span>ABATES</span><b id="killsHud">0</b></div>
+        <div class="stat sm"><span>TEMPO</span><b id="ptime">0:00</b></div>
+      </div>
+      <div class="tag" id="buff" hidden>FOGO RÁPIDO</div>
+    </div>
+    <div class="right">
+      <canvas class="mini" id="mini" aria-label="Minimapa" role="img"></canvas>
+      <div class="btns">
+        <button class="ibtn" id="btnSound" type="button" aria-label="Som ligado" aria-pressed="true" title="Som">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18 6.5a8 8 0 0 1 0 11"/>
+            <path class="slash" d="M3 3l18 18"/>
+          </svg>
+        </button>
+        <button class="ibtn" id="btnPause" type="button" aria-label="Pausar" title="Pausar (P)">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+        </button>
+      </div>
+      <div class="rstats" id="rstats">
+        <div class="stat"><span>ONDA</span><b id="wave">1</b></div>
+        <div class="wprog"><i id="wpFill"></i></div>
+        <div class="stat"><span>PONTOS</span><b id="score">0</b></div>
+        <div class="stat"><span>MOEDAS</span><b id="coins">0</b></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<button class="ability" id="btnCloak" type="button" hidden>SUBMERGIR</button>
+<div class="admmenu" id="admMenu" hidden></div>
+<div id="admBanner" hidden style="position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:60;text-align:center;font:600 12px var(--font-mono);padding:6px 10px;background:var(--rust);color:#fff"></div>
+
+<div class="boss" id="boss" hidden><div class="bs-top"><span class="bs-name" id="bsName">Chefe</span><span class="bs-st" id="bsSt"></span><span class="bs-pct" id="bsPct">100%</span></div><div class="bs-bar"><i class="bs-lag" id="bsLag"></i><i class="bs-fill" id="bsFill"></i></div></div>
+<div class="banner" id="banner" aria-live="polite"></div>
+<div id="fpsEl" hidden style="position:fixed;left:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:25;pointer-events:none;font:600 11px var(--font-mono);letter-spacing:.1em;padding:2px 6px;background:rgba(6,18,26,.6);border:1px solid var(--line);color:var(--good);font-variant-numeric:tabular-nums">-- FPS</div>
+
+<div id="resumeCd" hidden aria-hidden="true">3</div>
+<div class="overlay" id="ov">
+  <div class="panel menu">
+    <div class="ovtop"><div class="kicker" id="ovKicker"></div><span class="chip" id="bal"></span></div>
+    <h1 class="title" id="ovTitle"></h1>
+    <p class="lead" id="ovLead"></p>
+    <div class="pinfo" id="pauseInfo" hidden>
+      <div class="pship"><canvas id="pShipCv" width="192" height="96"></canvas><div class="pmeta"><b id="pShipName"></b><span id="pModeTag"></span></div></div>
+      <div class="pbars">
+        <div class="pbar"><span>CASCO</span><div class="bar"><i id="pHp"></i></div><b id="pHpN"></b></div>
+        <div class="pbar" id="pCvRow" hidden><span>COMBOIO</span><div class="bar"><i id="pCv" style="background:#8fd3e8"></i></div><b id="pCvN"></b></div>
+      </div>
+      <dl class="stats pstats">
+        <div><dt>Onda</dt><dd id="pWave">0</dd></div>
+        <div><dt>Navios afundados</dt><dd id="pKills">0</dd></div>
+        <div><dt>Pontos</dt><dd id="pScore">0</dd></div>
+        <div><dt>Tempo</dt><dd id="pTime">0:00</dd></div>
+      </dl>
+    </div>
+    <dl class="stats" id="ovStats" hidden>
+      <div><dt>Onda alcançada</dt><dd id="sWave">0</dd></div>
+      <div><dt>Navios afundados</dt><dd id="sKills">0</dd></div>
+      <div><dt>Pontos</dt><dd id="sScore">0</dd></div>
+      <div><dt>Recorde</dt><dd id="sBest">0</dd></div>
+      <div><dt>Moedas ganhas</dt><dd id="sCoins">0</dd></div>
+    </dl>
+    <p class="note" id="sendMsg"></p>
+    <div class="actions mmenu">
+      <div class="mprimary">
+        <button class="btn" id="btnMain" type="button">Zarpar</button>
+        <button class="btn ghost" id="btnAlt" type="button" hidden>Recomeçar</button>
+        <button class="btn ghost" id="btnMenu" type="button" hidden>Menu principal</button>
+      </div>
+      <div class="mgrp" id="pauseSet" hidden><span class="mgl">Ajustes</span><div class="mtiles">
+        <button class="btn ghost" id="pSound" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg><span id="pSoundT">Som</span></button>
+        <button class="btn ghost" id="pCfg" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Configurações</span></button>
+      </div></div>
+      <div class="mgrp"><span class="mgl">Competir</span><div class="mtiles">
+        <button class="btn ghost" id="btnMp" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.8 0 4 2 4 5"/></svg><span>Multijogador</span></button>
+        <button class="btn ghost" id="btnVs" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4l12 12M19 4L7 16M14 15l3 3M10 15l-3 3"/></svg><span>Versus</span></button>
+        <button class="btn ghost" id="btnRank" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 20V10M12 20V4M18 20v-7"/></svg><span>Ranking</span></button>
+      </div></div>
+      <div class="mgrp"><span class="mgl">Frota</span><div class="mtiles">
+        <button class="btn ghost" id="btnShop" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><span>Oficina</span></button>
+        <button class="btn ghost" id="btnAch" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg><span>Conquistas</span></button>
+        <button class="btn ghost evtbtn" id="btnDaily" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="13" rx="1"/><path d="M12 8v13M3 12h18M12 8c-2-4-6-4-6-1s4 1 6 1zm0 0c2-4 6-4 6-1s-4 1-6 1z"/></svg><span>Diário</span></button>
+        <button class="btn ghost evtbtn" id="btnEvt" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg><span>Evento</span></button>
+      </div></div>
+      <div class="mfoot">
+        <button class="btn ghost" id="btnHow" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg><span>Como jogar</span></button>
+        <button class="btn ghost" id="btnAdm" type="button" hidden>★ Painel admin</button>
+        <button class="btn ghost acct" id="btnAcct" type="button" hidden>Entrar / Criar conta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="helpEl" hidden><div class="panel">
+  <div class="kicker">Como jogar</div>
+  <h2 class="title sm">Controles</h2>
+  <dl class="help">
+    <div class="row only-desk"><dt>Navegar</dt><dd>W A S D ou setas</dd></div>
+    <div class="row only-desk"><dt>Mirar</dt><dd>mouse</dd></div>
+    <div class="row only-desk"><dt>Atirar</dt><dd>clique ou espaço</dd></div>
+    <div class="row only-desk"><dt>Pausar</dt><dd>P ou Esc</dd></div>
+    <div class="row only-desk"><dt>Habilidade</dt><dd>E ou Shift (Nautilon, Enterprize e Capitânia)</dd></div>
+    <div class="row only-touch"><dt>Navegar</dt><dd>joystick esquerdo</dd></div>
+    <div class="row only-touch"><dt>Mirar e atirar</dt><dd>joystick direito</dd></div>
+  </dl>
+  <p class="note">Caixas boiando consertam o casco, aceleram o canhão, dão escudo ou tiro triplo. Ilhas e icebergs bloqueiam navios e tiros; redemoinhos puxam e giram quem chega perto.</p>
+  <div class="actions"><button class="btn ghost" id="helpBack" type="button">Voltar</button></div>
+</div></div>
+
+<div class="overlay" id="modeEl" hidden><div class="panel launch">
+  <div class="lh"><div><div class="kicker">Preparar zarpada</div><h2 class="title sm">Navio e modo</h2></div><span class="chip" id="lBal"></span></div>
+  <div class="lcols">
+    <section class="lcol">
+      <div class="lsec"><i>1</i>Escolha o navio</div>
+      <div class="lfleet" id="lFleet" role="listbox" aria-label="Navios disponíveis"></div>
+      <div class="lship" id="lShip"></div>
+    </section>
+    <section class="lcol">
+      <div class="lsec"><i>2</i>Escolha o modo</div>
+      <div class="lmodes">
+        <button class="lmode" id="modeNormal" type="button" aria-pressed="true">
+          <span class="lmi"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15c3 0 3-2 6-2s3 2 6 2 3-2 6-2"/><path d="M3 20c3 0 3-2 6-2s3 2 6 2 3-2 6-2"/><path d="M12 3v7M12 3l5 4-5 3"/></svg></span>
+          <span class="lmt"><b>Normal</b><small>Ondas de navios inimigos e um chefe a cada 5 ondas.</small><em>Vale no ranking</em></span>
+        </button>
+        <button class="lmode hard" id="modeHard" type="button" aria-pressed="false">
+          <span class="lmi"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 4 4.5 4 8.5A4 4 0 0 1 12 16a4 4 0 0 1-4-4.5c0-1.5.7-2.5 1.5-3.5.3 1 .8 1.6 1.5 1.8C11 7 11 5 12 3z"/><path d="M8 20h8"/></svg></span>
+          <span class="lmt"><b>Hardcore</b><small>Inimigos usam poderes de navios e chefes têm o triplo de vida.</small><em>Fora do ranking</em></span>
+        </button>
+        <button class="lmode esc" id="modeEsc" type="button" aria-pressed="false">
+          <span class="lmi"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V5z"/><path d="M9 12l2 2 4-4"/></svg></span>
+          <span class="lmt"><b>Escolta</b><small>Proteja um navio de carga por quantas ondas conseguir. Se ele afundar, acabou.</small><em>Fora do ranking · recorde próprio</em></span>
+        </button>
+      </div>
+    </section>
+  </div>
+  <div class="actions lact">
+    <button class="btn" id="modeGo" type="button">Zarpar</button>
+    <button class="btn ghost" id="modeShop" type="button">Oficina</button>
+    <button class="btn ghost" id="modeBack" type="button">Voltar</button>
+  </div>
+</div></div>
+
+<div id="mate" hidden style="position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);z-index:5;pointer-events:none;width:min(170px,34vw);font-size:11px;letter-spacing:.14em;color:var(--steel);text-align:center;display:flex;flex-direction:column;gap:5px"></div>
+<div id="pings" hidden><button type="button" data-k="0">1 · Ajuda!</button><button type="button" data-k="1">2 · Vem aqui</button><button type="button" data-k="2">3 · Cuidado!</button><button type="button" data-k="3">4 · Valeu!</button></div>
+<div class="overlay" id="mpEl" hidden><div class="panel mpp">
+  <div class="mpt"><div class="kicker" id="mpKicker">Cooperativo · até 4 jogadores</div><h1 class="title sm" id="mpTitle">Multijogador</h1></div>
+  <div class="tabs mptabs" id="mpTabs" role="tablist" aria-label="Tipo de partida"><button type="button" role="tab" data-vs="0" class="on" aria-selected="true">Esquadra<i>até 4 · coop</i></button><button type="button" role="tab" data-vs="1" aria-selected="false">Versus<i>1×1</i></button></div>
+  <p class="mpstat" id="mpMsg" role="status" aria-live="polite"></p>
+  <div class="mpjoin">
+    <div class="mpcard"><b>Criar sala</b><small>Você é o anfitrião e manda o código aos amigos.</small>
+      <button class="btn" id="mpCreate" type="button">Criar sala</button></div>
+    <div class="mpcard"><b>Entrar numa sala</b><small>Digite o código de 4 letras que o anfitrião mandou.</small>
+      <input id="mpCode" maxlength="4" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <button class="btn ghost" id="mpJoin" type="button">Entrar na sala</button></div>
+  </div>
+  <div class="mplobby">
+    <div class="mpticket"><div><span class="mlbl">Código da sala</span><div id="mpBig"></div></div><button class="btn ghost" id="mpShare" type="button" hidden>Copiar código</button></div>
+    <div class="mpopts" id="mpOpts" hidden>
+      <span class="mlbl" style="grid-column:1/-1">Configurações da sala</span>
+      <button class="btn ghost" id="mpMode" type="button" title="Toque para alternar entre Normal, Hardcore e Escolta">Modo: Normal</button>
+      <button class="btn ghost" id="mpOptHp" type="button" title="Toque para alternar a vida dos inimigos"></button>
+      <button class="btn ghost" id="mpOptMax" type="button" title="Toque para alternar o máximo de jogadores"></button>
+      <button class="btn ghost" id="mpOptBuoy" type="button" title="Liga ou desliga a boia de resgate de aliados afundados"></button>
+    </div>
+    <div class="mplbl"><span>Jogadores</span><b id="mpCount"></b></div>
+    <div id="mpList"></div>
+    <div class="giftrow" id="mpGift" hidden><span class="mlbl">Presentear com moedas: toque no 🎁 de um jogador</span><div class="ushp" id="mpAmts"></div></div>
+  </div>
+  <div class="actions mpact">
+    <button class="btn" id="mpGo" type="button" hidden>Zarpar</button>
+    <button class="btn ghost" id="mpBack" type="button">Voltar</button>
+  </div>
+</div></div>
+<div class="overlay" id="auth" hidden><div class="panel">
+  <h1 class="title sm">Conta</h1>
+  <div class="tabs" id="aTabs"><button type="button" data-m="login" class="on">Entrar</button><button type="button" data-m="signup">Criar conta</button></div>
+  <p class="note" id="aNote"></p>
+  <input class="fld" id="aUser" maxlength="16" placeholder="Nome de usuário" autocomplete="username" autocapitalize="none">
+  <div style="display:flex;gap:8px"><input class="fld" id="aPass" type="password" placeholder="Senha" autocomplete="current-password" style="flex:1;min-width:0"><button class="btn ghost" id="aShow" type="button" style="min-height:0;padding:0 12px" aria-label="Mostrar senha">ver</button></div>
+  <input class="fld" id="aPass2" type="password" placeholder="Repita a senha" autocomplete="new-password" hidden>
+  <p class="note" id="aMsg"></p>
+  <div class="actions">
+    <button class="btn" id="aGo" type="button">Entrar</button>
+    <button class="btn ghost" id="aBack" type="button">Voltar</button>
+  </div>
+</div></div>
+<div class="overlay" id="acctEl" hidden><div class="panel">
+  <div class="kicker">Conta</div><h1 class="title sm" id="pName"></h1>
+  <dl class="stats" id="pStats"></dl>
+  <p class="note" id="pSync"></p>
+  <input class="fld" id="pNew" type="password" placeholder="Nova senha (mínimo 6)" autocomplete="new-password">
+  <p class="note" id="pMsg"></p>
+  <div class="actions">
+    <button class="btn ghost" id="pAdm" type="button" hidden>Painel admin</button>
+    <button class="btn ghost" id="pEditBtn" type="button">Editar perfil</button>
+    <button class="btn ghost" id="pPass" type="button">Alterar senha</button>
+    <button class="btn ghost" id="pSyncBtn" type="button">Sincronizar agora</button>
+    <button class="btn ghost" id="pOut" type="button">Sair da conta</button>
+    <button class="btn ghost" id="pBack" type="button">Voltar</button>
+  </div>
+</div></div>
+<div class="overlay" id="adm" hidden><div class="panel">
+  <div class="kicker">Administrador</div><h1 class="title sm">Painel admin</h1>
+  <div class="tabs" id="admTabs"><button type="button" data-t="contas" class="on">Contas</button><button type="button" data-t="stats">Stats</button><button type="button" data-t="avisos">Avisos</button><button type="button" data-t="log">Log</button></div>
+  <p class="note" id="admMsg"></p>
+  <input id="admQ" type="search" placeholder="Buscar conta pelo nome" autocomplete="off" style="width:100%;box-sizing:border-box;min-height:40px;margin-bottom:8px;padding:0 10px;background:transparent;border:1px solid var(--line);color:inherit;font:inherit">
+  <div id="admBody" style="font-size:13px"></div>
+  <div class="actions"><button class="btn ghost" id="admBack" type="button">Voltar</button></div>
+</div></div>
+<div class="overlay" id="achEl" hidden><div class="panel achp">
+  <div class="ah">
+    <div class="ring" id="achRing" role="img"><b id="achPct">0%</b></div>
+    <div class="asum">
+      <div class="kicker">Conquistas</div>
+      <div class="acount"><b id="achNum">0</b><span id="achTot">/ 0</span></div>
+      <div class="acoin" id="achCoin"></div>
+    </div>
+  </div>
+  <p class="note" id="achNote" hidden></p>
+  <div class="anext" id="achNext" hidden></div>
+  <div class="acats" id="achCats" role="tablist" aria-label="Categorias"></div>
+  <div class="tabs" id="achTabs"><button type="button" data-f="all" class="on">Todas<i></i></button><button type="button" data-f="ok">Ganhas<i></i></button><button type="button" data-f="lock">Faltam<i></i></button></div>
+  <div id="achBody"></div>
+  <div class="actions"><button class="btn ghost" id="achBack" type="button">Voltar</button></div>
+</div></div>
+<div class="overlay" id="rank" hidden><div class="panel rkp">
+  <div class="rkh"><div><div class="kicker">Classificação</div><h1 class="title sm">Ranking</h1></div><button class="btn ghost" id="pMine" type="button" hidden>Meu perfil</button></div>
+  <div id="rTabs" class="rk-tabs" role="tablist" aria-label="Tipo de ranking"><button data-tab="semana" type="button" role="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="1"/><path d="M4 10h16M8 3v4M16 3v4"/></svg><b>Semana</b><small>Zera domingo</small></button><button data-tab="pontos" type="button" role="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg><b>Pontos</b><small>Recorde</small></button><button data-tab="kills" type="button" role="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg><b>Abates</b><small>Navios</small></button><button data-tab="horas" type="button" role="tab"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><b>Horas</b><small>Tempo</small></button></div>
+  <div class="rk-search"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="pSearch" maxlength="16" placeholder="Buscar jogador" autocomplete="off" autocapitalize="none" spellcheck="false"><button class="btn ghost" id="pGo" type="button">Buscar</button></div>
+  <div id="rankInfo" class="rk-info" hidden></div>
+  <div id="rankMe" class="rk-meb" hidden></div>
+  <div id="rankBody"></div>
+  <p class="rk-hint">Toque em um jogador para ver o perfil.</p>
+  <div class="actions"><button class="btn ghost" id="rankBack" type="button">Voltar</button></div>
+</div></div>
+<button class="ibtn" id="btnCfg" type="button" aria-label="Configurações" title="Configurações" style="position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);right:12px;z-index:20"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+
+
+<div class="overlay" id="cfg" hidden style="z-index:30"><div class="panel">
+  <h1 class="title sm">Configurações</h1>
+  <div class="kicker">Áudio</div>
+  <div class="crow"><span>Som</span><button class="btn ghost" id="cfgSound" type="button" style="min-width:110px"></button></div>
+  <div class="crow"><span>Volume</span><input type="range" id="cfgVol" min="0" max="100" step="5" style="flex:1;max-width:200px;accent-color:var(--brass)"><b id="cfgVolN" style="min-width:3.5ch;text-align:right"></b></div>
+  <div class="kicker">Jogo</div>
+  <div class="crow"><span>Tremor da tela</span><div class="seg" data-c="shake"><button type="button" data-v="0">Desligado</button><button type="button" data-v="1">Reduzido</button><button type="button" data-v="2">Normal</button></div></div>
+  <div class="crow"><span>Câmera</span><div class="seg" data-c="zoom"><button type="button" data-v="0">Perto</button><button type="button" data-v="1">Normal</button><button type="button" data-v="2">Longe</button></div></div>
+  <div class="crow" id="cfgVibRow"><span>Vibração</span><div class="seg" data-c="vib"><button type="button" data-v="0">Desligada</button><button type="button" data-v="1">Ligada</button></div></div>
+  <div class="crow" id="cfgStickRow"><span>Joysticks (celular)</span><div class="seg" data-c="stick"><button type="button" data-v="0">Flutuante</button><button type="button" data-v="1">Fixo</button></div></div>
+  <div class="crow"><span>Contador de FPS</span><div class="seg" data-c="fps"><button type="button" data-v="0">Desligado</button><button type="button" data-v="1">Ligado</button></div></div>
+  <div class="kicker">Geral</div>
+  <div class="crow"><span>Tela cheia</span><button class="btn ghost" id="cfgFull" type="button" style="min-width:110px">Alternar</button></div>
+  <div class="crow"><span>Conta</span><button class="btn ghost" id="cfgAcct" type="button" style="min-width:110px"></button></div>
+  <div class="actions"><button class="btn ghost" id="cfgReset" type="button">Restaurar padrões</button><button class="btn ghost" id="cfgBack" type="button">Voltar</button></div>
+</div></div>
+<div class="overlay" id="prof" hidden><div class="panel">
+  <div class="kicker">Perfil</div>
+  <h1 class="title sm" id="profName"></h1>
+  <div id="profBody" style="font-size:13px;line-height:1.5;max-height:60vh;overflow-y:auto"></div>
+  <div class="actions"><button class="btn" id="profEdit" type="button" hidden>Editar perfil</button><button class="btn ghost" id="profBack" type="button">Voltar</button></div>
+</div></div>
+
+<div class="overlay" id="peEl" hidden><div class="panel pep">
+  <div class="kicker">Perfil</div>
+  <h1 class="title sm">Personalizar</h1>
+  <div class="pe-photo">
+    <div class="pf-av big" id="peAv"></div>
+    <div class="pe-btns">
+      <button class="btn ghost" id="pePick" type="button">Escolher foto</button>
+      <button class="btn ghost" id="peDel" type="button">Remover foto</button>
+    </div>
+  </div>
+  <input id="peFile" type="file" accept="image/*" hidden>
+  <div class="pe-bio">
+    <label class="mlbl" for="peBio">Bio</label>
+    <textarea class="fld" id="peBio" maxlength="140" rows="3" placeholder="Conte algo sobre você, seu navio favorito, seu recorde…" spellcheck="false"></textarea>
+    <div class="pe-count" id="peCount">0/140</div>
+  </div>
+  <p class="note" id="peMsg">Foto e bio aparecem no seu perfil. A foto é recortada em quadrado e reduzida automaticamente.</p>
+  <div class="actions"><button class="btn" id="peSave" type="button">Salvar</button><button class="btn ghost" id="peCancel" type="button">Cancelar</button></div>
+</div></div>
+
+<div class="overlay" id="shop" hidden><div class="panel">
+  <div class="w-top"><h1 id="shopTitle">Oficina</h1><div class="w-bal">$ <span id="shopCoins">0</span></div></div>
+  <div class="w-tabs" id="shopTabs"><button type="button" data-t="ships">Navios<i></i></button><button type="button" data-t="ups">Melhorias<i></i></button></div>
+  <div class="w-cur" id="shopCur"></div>
+  <div id="shopBody"></div>
+  <div class="actions"><button class="btn ghost" id="shopBack" type="button">Voltar</button></div>
+</div></div>
+
+<div class="overlay" id="daily" hidden><div class="panel">
+  <div class="w-top"><h1>Recompensa diária</h1><div class="w-bal" id="dailyStreak">0/7</div></div>
+  <p class="note" style="margin:0">Entre todo dia para continuar a sequência. No dia 7 você ganha o barco Fênix. Se faltar um dia, a sequência recomeça.</p>
+  <div id="dailyBody"></div>
+  <p class="note" id="dailyBonus" style="margin:0"></p>
+  <div class="actions"><button class="btn" id="dailyClaim" type="button">Resgatar</button><button class="btn ghost" id="dailyBack" type="button">Voltar</button></div>
+</div></div>
+<script src="game.js"></script>
+</body>
+</html>
