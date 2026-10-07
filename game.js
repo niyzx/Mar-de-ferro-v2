@@ -35,7 +35,7 @@ function resize() {
 }
 
 /* ---------- constantes de jogo ---------- */
-const ENEMY_HP_MUL = 2;   // multiplicador da vida de todos os inimigos (2 = dobro)
+const ENEMY_HP_MUL = 1;   // multiplicador da vida de todos os inimigos (1 = vida base)
 const RANGE = 540;          // alcance do canhão, em metros
 const BALL_V = 640;         // velocidade da bala do jogador
 const PLAYER_DMG = 20;
@@ -121,7 +121,7 @@ function cloneCount(pid) { return G ? G.escorts.filter(z => z.clone && (z.pid ||
 function myCloneCount() { return cloneCount(MP.role === 'guest' ? MP.pid : 0); }
 const ESC_SPEC = Object.assign({}, SPEC.player, { len: 58, wid: 18, turn: 2.4, hull: '#3f8f78', deck: '#7fd1b4', dark: '#16362d', stroke: '#4fd1a5', accent: '#4fd1a5',
   turrets: [{ x: .2, r: 6, bl: 20 }], cabin: { x: -.1, l: 12, w: 9 }, funnel: null });
-const MP = { opts: { hp: 2, max: 4, buoy: 1 }, role: null, ch: null, sb: null, code: '', guests: [], pid: -1, acked: false, ev: [], nid: 0, acc: 0, lastIn: 0, mute: 0, peerGone: false };
+const MP = { opts: { hp: 1, max: 4, buoy: 1 }, role: null, ch: null, sb: null, code: '', guests: [], pid: -1, acked: false, ev: [], nid: 0, acc: 0, lastIn: 0, mute: 0, peerGone: false };
 function evp(a) { if (MP.ev.length < 400) MP.ev.push(a); }
 const mw = () => Math.max(save.maxWave || 0, G ? G.wave : 0), ms = () => Math.max(best || 0, G ? G.score : 0);
 const upsMax = () => Math.max(0, ...SHIPS.map(sh => UPS.filter(u => (save.up[sh.id] || {})[u.k] >= MAXLV).length));
@@ -3708,7 +3708,7 @@ async function mpConnect(code, role) {
 function mpBusy(b) { for (const id of ['mpCreate', 'mpJoin']) $(id).disabled = b; }
 function mpModeUi() { const b = $('mpMode'); b.textContent = 'Modo: ' + (escMode ? 'Escolta' : hardMode ? 'Hardcore' : 'Normal'); b.style.borderColor = escMode ? '#8fd3e8' : hardMode ? 'var(--rust)' : ''; b.style.color = escMode ? '#8fd3e8' : hardMode ? 'var(--rust)' : ''; }
 $('mpMode').addEventListener('click', () => { if (MP.role === 'guest') return; if (!hardMode && !escMode) hardMode = true; else if (hardMode) { hardMode = false; escMode = true; } else escMode = false; mpModeUi(); });
-const MPO = { hp: [1, 2, 3], max: [2, 3, 4], buoy: [1, 0] };
+const MPO = { hp: [.5, 1, 1.5], max: [2, 3, 4], buoy: [1, 0] };
 function mpOptsUi() {
   const o = MP.opts;
   $('mpOptHp').textContent = 'Vida inimiga: ' + o.hp + 'x';
