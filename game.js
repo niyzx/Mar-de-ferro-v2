@@ -2938,6 +2938,7 @@ function showOverlay(mode) {
   $('btnRank').hidden = !RANK_ON || mode === 'paused';
   $('btnEvt').hidden = !evtAtivo() || mode === 'paused';
   $('btnDaily').hidden = mode === 'paused'; try { dailyDot(); ensureSrv(); } catch (e) {}
+  $('btnFr').hidden = !RANK_ON || mode === 'paused'; try { frPoll(); } catch (e) {}
   $('btnAcct').hidden = mode === 'paused';
   $('btnAch').hidden = mode === 'paused';
   $('btnAdm').hidden = !ADMIN || mode === 'paused';
@@ -4273,6 +4274,154 @@ $('btnDaily').addEventListener('click', () => { renderDaily(); dailyEl.hidden = 
 $('dailyClaim').addEventListener('click', claimDaily);
 $('dailyBack').addEventListener('click', () => { dailyEl.hidden = true; dailyDot(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !dailyEl.hidden) $('dailyBack').click(); });
+
+/* ---------- amizades e caixa de entrada ---------- */
+const frEl = $('frEl');
+let frTab = 'amigos', frTo = null, frUnread = 0, frNew = new Set(), frBox = [], frData = { amigos: [], enviados: [], recebidos: [] };
+const FR_TXT = {
+  ok: 'Pedido enviado.', aceito: 'Vocês agora são amigos!', recusado: 'Pedido recusado.',
+  nome_invalido: 'Nome inválido: use 3 a 16 letras minúsculas, números ou _.',
+  nao_encontrado: 'Não existe nenhuma conta com esse nome.', proprio: 'Esse é o seu próprio nome.',
+  ja_amigos: 'Vocês já são amigos.', ja_pedido: 'Você já enviou um pedido para essa pessoa.',
+  muitos_pedidos: 'Você tem pedidos demais pendentes. Espere alguns serem respondidos.',
+  lista_cheia: 'Sua lista de amigos está cheia (100).', nao_existe: 'Esse pedido não existe mais.',
+  texto_invalido: 'A mensagem precisa ter de 1 a 200 caracteres.', nao_amigo: 'Só dá para enviar mensagem a amigos.',
+  devagar: 'Calma: espere um pouco antes de enviar outra mensagem.', caixa_cheia: 'A caixa dessa pessoa está cheia de mensagens suas não lidas.',
+  sem_login: 'Entre numa conta primeiro.'
+};
+const frSay = t => { $('frMsg').textContent = t || ''; };
+async function frCall(fn, args) {
+  const d = await rpc(fn, args);
+  if (d && typeof d === 'object' && !Array.isArray(d) && d.message && d.code) throw new Error(d.code === 'PGRST202' ? 'nao_instalado' : d.message);
+  return d;
+}
+const frErr = e => e && e.message === 'nao_instalado' ? 'O sistema de amizades ainda não foi instalado no servidor (rode o amizades.sql).' : 'Sem conexão. Tente de novo.';
+function frAgo(ts) { const s = Math.max(0, (Date.now() - Date.parse(ts)) / 1000); return s < 60 ? 'agora' : s < 3600 ? Math.floor(s / 60) + ' min' : s < 86400 ? Math.floor(s / 3600) + ' h' : Math.floor(s / 86400) + ' d'; }
+function frBadge() {
+  const t = frUnread > 99 ? '99+' : String(frUnread);
+  for (const id of ['frN', 'frTabN']) { const b = $(id); b.hidden = !(frUnread > 0); b.textContent = t; }
+}
+async function frPoll() {
+  if (!sess || !RANK_ON) { frUnread = 0; frBadge(); return; }
+  try { const n = await frCall('mf_caixa_nao_lidas'); if (typeof n === 'number') { frUnread = n; frBadge(); } } catch (e) {}
+}
+setInterval(() => { if (sess && !document.hidden && state !== 'playing') frPoll(); }, 60000);
+const frBtn = (a, label, o) => '<button' + (o && (o.pri || o.dng) ? ' class="' + (o.pri ? 'pri' : 'dng') + '"' : '') + ' type="button" data-a="' + a + '"' + (o && o.id ? ' data-id="' + esc(o.id) + '"' : '') + (o && o.n ? ' data-n="' + esc(o.n) + '"' : '') + '>' + label + '</button>';
+const FR_COL = ['#e0a93c', '#4fd1a5', '#5aa9ff', '#b074ff', '#e2552f', '#7fe3ff'];
+function frAv(nome) { const s = String(nome || '?'); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return '<span class="fr-av" style="background:' + FR_COL[h % FR_COL.length] + '" aria-hidden="true">' + esc(s.charAt(0)) + '</span>'; }
+const FR_ICO = { users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>', mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>', send: '<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>' };
+const frEmpty = (ico, t, s) => '<div class="fr-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + FR_ICO[ico] + '</svg><b>' + t + '</b><span>' + s + '</span></div>';
+const frSec = (t, n) => '<p class="fr-sec">' + t + (n ? ' <b>' + n + '</b>' : '') + '</p>';
+const frRow = (cls, av, main, act) => '<div class="fr-row' + (cls ? ' ' + cls : '') + '">' + av + '<div class="fr-main">' + main + '</div><div class="fr-act">' + act + '</div></div>';
+function frRender() {
+  for (const t of $('frTabs').children) t.classList.toggle('on', t.dataset.t === frTab);
+  $('frAddBox').hidden = !sess || frTab !== 'add';
+  $('frCompose').hidden = !sess || !frTo;
+  if (frTo) $('frToName').textContent = 'Mensagem para ' + frTo.nome;
+  const b = $('frBody');
+  if (!sess) {
+    $('frCount').textContent = '';
+    b.innerHTML = frEmpty('users', 'Entre numa conta', 'Com uma conta você tem amigos e uma caixa de entrada.') + '<div class="actions"><button class="btn" type="button" data-a="login">Entrar / Criar conta</button></div>';
+    return;
+  }
+  const na = frData.amigos.length;
+  $('frCount').textContent = na + (na === 1 ? ' amigo' : ' amigos');
+  let h = '';
+  if (frTab === 'amigos') {
+    if (frData.recebidos.length) h += frSec('Pedidos recebidos', frData.recebidos.length) + '<div class="fr-list">' + frData.recebidos.map(x =>
+      frRow('req', frAv(x.nome), '<b>' + esc(x.nome) + '</b><small>quer ser seu amigo</small>', frBtn('acc', 'Aceitar', { pri: 1, id: x.id }) + frBtn('rej', 'Recusar', { id: x.id }))).join('') + '</div>';
+    h += frSec('Meus amigos', na);
+    h += na ? '<div class="fr-list">' + frData.amigos.map(x =>
+      frRow('', frAv(x.nome), '<b>' + esc(x.nome) + '</b><small>amigo</small>', frBtn('msg', 'Mensagem', { pri: 1, id: x.id, n: x.nome }) + frBtn('rem', 'Remover', { dng: 1, id: x.id, n: x.nome }))).join('') + '</div>'
+      : frEmpty('users', 'Sem amigos ainda', 'Toque em Adicionar e digite o nome de um jogador para enviar um pedido.');
+  } else if (frTab === 'caixa') {
+    if (frBox.some(m => m.lida && m.tipo !== 'pedido')) h += '<div class="fr-top"><div class="fr-act">' + frBtn('clear', 'Limpar lidas') + '</div></div>';
+    h += frBox.length ? '<div class="fr-list">' + frBox.map(m => {
+      const cls = frNew.has(m.id) ? 'new' : '', ago = frAgo(m.criada), nm = esc(m.de_nome || '?');
+      if (m.tipo === 'pedido') return frRow(cls + ' req', frAv(m.de_nome), '<b>' + nm + '</b><small>quer ser seu amigo · ' + ago + '</small>', frBtn('acc', 'Aceitar', { pri: 1, id: m.de }) + frBtn('rej', 'Recusar', { id: m.de }));
+      if (m.tipo === 'mensagem') return frRow(cls, frAv(m.de_nome), '<b>' + nm + '</b><small>' + ago + '</small><span class="fr-txt fr-bub">' + esc(m.texto) + '</span>', (m.de ? frBtn('reply', 'Responder', { pri: 1, id: m.de, n: m.de_nome }) : '') + frBtn('del', 'Apagar', { id: m.id }));
+      return frRow(cls, '<span class="fr-av sys" aria-hidden="true">!</span>', '<span class="fr-txt">' + esc(m.texto) + '</span><small>aviso · ' + ago + '</small>', frBtn('del', 'Apagar', { id: m.id }));
+    }).join('') + '</div>' : frEmpty('mail', 'Caixa vazia', 'Pedidos de amizade, mensagens e avisos aparecem aqui.');
+  } else {
+    if (frData.enviados.length) h += frSec('Pedidos enviados', frData.enviados.length) + '<div class="fr-list">' + frData.enviados.map(x =>
+      frRow('', frAv(x.nome), '<b>' + esc(x.nome) + '</b><small>aguardando resposta</small>', frBtn('cancel', 'Cancelar', { dng: 1, id: x.id }))).join('') + '</div>';
+    else h += frEmpty('send', 'Convide um amigo', 'Digite o nome exato do jogador, o mesmo que ele usa para entrar.');
+  }
+  b.innerHTML = h;
+}
+async function frMarkRead() {
+  if (!frUnread && !frBox.some(m => !m.lida)) return;
+  frBox.forEach(m => { m.lida = true; }); frUnread = 0; frBadge();
+  try { await frCall('mf_caixa_ler', {}); } catch (e) {}
+}
+function frSetTab(t) {
+  frTab = t;
+  if (t === 'caixa') frBox.forEach(m => { if (!m.lida) frNew.add(m.id); });
+  frRender();
+  if (t === 'caixa') frMarkRead();
+}
+async function frLoad(keepMsg) {
+  if (!sess) { frRender(); return; }
+  if (!keepMsg) frSay('Carregando…');
+  try {
+    const [l, c] = await Promise.all([frCall('mf_amigo_lista'), frCall('mf_caixa_lista')]);
+    if (l && Array.isArray(l.amigos)) frData = { amigos: l.amigos, enviados: l.enviados || [], recebidos: l.recebidos || [] };
+    frBox = Array.isArray(c) ? c : [];
+    frUnread = frBox.filter(m => !m.lida).length;
+    if (!keepMsg) frSay('');
+    if (frTab === 'caixa') { frBox.forEach(m => { if (!m.lida) frNew.add(m.id); }); frRender(); frMarkRead(); }
+    else { frRender(); frBadge(); }
+  } catch (e) { frSay(frErr(e)); frRender(); }
+}
+$('btnFr').addEventListener('click', () => { frTab = 'amigos'; frTo = null; frNew = new Set(); frSay(''); frEl.hidden = false; frEl.scrollTop = 0; frRender(); frLoad(); });
+$('frBack').addEventListener('click', () => { frEl.hidden = true; frTo = null; frPoll(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !frEl.hidden) $('frBack').click(); });
+$('frTabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) { frSay(''); frSetTab(b.dataset.t); } });
+$('frBody').addEventListener('click', async e => {
+  const b = e.target.closest('[data-a]');
+  if (!b || b.disabled) return;
+  const a = b.dataset.a, id = b.dataset.id;
+  if (a === 'login') { frEl.hidden = true; $('btnAcct').click(); return; }
+  if (a === 'msg' || a === 'reply') { frTo = { id, nome: b.dataset.n || '?' }; frSay(''); frRender(); $('frText').focus(); return; }
+  if (a === 'rem' && !confirm('Remover ' + (b.dataset.n || 'este jogador') + ' dos amigos?')) return;
+  b.disabled = true;
+  try {
+    let r, say = '';
+    if (a === 'acc' || a === 'rej') { r = await frCall('mf_amigo_responder', { p_de: id, p_aceitar: a === 'acc' }); say = FR_TXT[r] || ''; }
+    else if (a === 'rem') { await frCall('mf_amigo_remover', { p_id: id }); say = 'Amigo removido.'; }
+    else if (a === 'cancel') { await frCall('mf_amigo_remover', { p_id: id }); say = 'Pedido cancelado.'; }
+    else if (a === 'del') await frCall('mf_caixa_apagar', { p_id: +id });
+    else if (a === 'clear') await frCall('mf_caixa_apagar', {});
+    frSay(say);
+    await frLoad(true);
+  } catch (err) { frSay(frErr(err)); b.disabled = false; }
+});
+$('frAdd').addEventListener('click', async () => {
+  const n = $('frName').value.trim().toLowerCase();
+  if (!n) return;
+  $('frAdd').disabled = true; frSay('Enviando…');
+  try {
+    const r = await frCall('mf_amigo_pedir', { p_nome: n });
+    frSay(FR_TXT[r] || 'Não foi possível enviar o pedido.');
+    if (r === 'ok' || r === 'aceito') { $('frName').value = ''; await frLoad(true); }
+  } catch (e) { frSay(frErr(e)); } finally { $('frAdd').disabled = false; }
+});
+$('frSend').addEventListener('click', async () => {
+  const t = $('frText').value.trim();
+  if (!frTo || !t) return;
+  $('frSend').disabled = true;
+  try {
+    const r = await frCall('mf_caixa_enviar', { p_para: frTo.id, p_texto: t });
+    if (r === 'ok') { $('frText').value = ''; frSay('Mensagem enviada para ' + frTo.nome + '.'); frTo = null; frRender(); }
+    else frSay(FR_TXT[r] || 'Não foi possível enviar.');
+  } catch (e) { frSay(frErr(e)); } finally { $('frSend').disabled = false; }
+});
+$('frCancel').addEventListener('click', () => { frTo = null; $('frText').value = ''; frRender(); });
+for (const id of ['frName', 'frText']) {
+  $(id).addEventListener('keydown', e => { if (e.key !== 'Escape') e.stopPropagation(); if (e.key === 'Enter') $(id === 'frName' ? 'frAdd' : 'frSend').click(); });
+  $(id).addEventListener('keyup', e => e.stopPropagation());
+}
+$('frName').addEventListener('input', e => { e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); });
 
 /* ---------- entrada ---------- */
 function stickHome(k) { return k === 'move' ? [W * .2, H - 118] : [W * .8, H - 118]; }

@@ -124,6 +124,7 @@
         <button class="btn ghost" id="btnMp" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14c2.8 0 4 2 4 5"/></svg><span>Multijogador</span></button>
         <button class="btn ghost" id="btnVs" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4l12 12M19 4L7 16M14 15l3 3M10 15l-3 3"/></svg><span>Versus</span></button>
         <button class="btn ghost" id="btnRank" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 20V10M12 20V4M18 20v-7"/></svg><span>Ranking</span></button>
+        <button class="btn ghost" id="btnFr" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Amigos</span><i class="frn" id="frN" hidden></i></button>
       </div></div>
       <div class="mgrp"><span class="mgl">Frota</span><div class="mtiles">
         <button class="btn ghost" id="btnShop" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><span>Oficina</span></button>
@@ -342,6 +343,23 @@
   <div id="dailyBody"></div>
   <p class="note" id="dailyBonus" style="margin:0"></p>
   <div class="actions"><button class="btn" id="dailyClaim" type="button">Resgatar</button><button class="btn ghost" id="dailyBack" type="button">Voltar</button></div>
+</div></div>
+<div class="overlay" id="frEl" hidden><div class="panel">
+  <div class="w-top"><h1>Amigos</h1><div class="w-bal" id="frCount"></div></div>
+  <div class="fr-tabs" id="frTabs"><button type="button" data-t="amigos">Amigos</button><button type="button" data-t="caixa">Caixa<i class="frn" id="frTabN" hidden></i></button><button type="button" data-t="add">Adicionar</button></div>
+  <div class="fr-box" id="frAddBox" hidden>
+    <label class="mlbl" for="frName">Nome do jogador</label>
+    <input class="fld" id="frName" maxlength="16" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="ex.: capitao_ferro">
+    <div class="actions"><button class="btn" id="frAdd" type="button">Enviar pedido</button></div>
+  </div>
+  <div class="fr-box" id="frCompose" hidden>
+    <label class="mlbl" id="frToName" for="frText"></label>
+    <input class="fld" id="frText" maxlength="200" autocomplete="off" placeholder="Escreva sua mensagem (até 200 letras)">
+    <div class="actions"><button class="btn" id="frSend" type="button">Enviar</button><button class="btn ghost" id="frCancel" type="button">Cancelar</button></div>
+  </div>
+  <p class="note" id="frMsg" style="margin:0"></p>
+  <div id="frBody"></div>
+  <div class="actions"><button class="btn ghost" id="frBack" type="button">Voltar</button></div>
 </div></div>
 <script src="game.js"></script>
 </body>
