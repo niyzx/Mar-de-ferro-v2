@@ -4255,22 +4255,24 @@ function shopStock(slot) {
   return set;
 }
 const shopInStock = (s, slot) => shopStock(slot === undefined ? shopSlot() : slot).has(s.id);
-let shopSlotShown = -1, shopTab = 'sale', shopArmed = '', shopArmT = 0, shopFlash = '';
+let shopSlotShown = -1, shopTab = 'stock', shopArmed = '', shopArmT = 0, shopFlash = '';
 function shopStat(l, v, mx) { return '<div class="sb"><span>' + l + '</span><i><u style="width:' + clamp(v / mx * 100, 6, 100).toFixed(0) + '%"></u></i></div>'; }
 function renderShop() {
   const slot = shopSlot(); shopSlotShown = slot;
   $('shopCoins').textContent = fmt(save.coins);
   const stock = shopStock(slot), all = shopList();
   const mH = Math.max(...all.map(x => x.hp)), mD = Math.max(...all.map(x => x.dmg * (x.multi || 1) / x.rel)), mS = Math.max(...all.map(x => x.speed));
-  const cnt = { sale: all.filter(x => stock.has(x.id) && !save.owned.includes(x.id)).length, all: all.length, own: all.filter(x => save.owned.includes(x.id)).length };
+  const cnt = { stock: all.length, own: all.filter(x => save.owned.includes(x.id)).length };
   for (const t of $('shopTabs').children) { t.classList.toggle('on', t.dataset.t === shopTab); t.querySelector('i').textContent = cnt[t.dataset.t]; }
-  let list = all.filter(x => shopTab === 'all' || (shopTab === 'own' ? save.owned.includes(x.id) : stock.has(x.id) && !save.owned.includes(x.id)));
-  list.sort((a, b) => (shopTab === 'all' ? (stock.has(b.id) - stock.has(a.id)) : 0) || (SHOP_ORD[b.rar] || 0) - (SHOP_ORD[a.rar] || 0) || a.cost - b.cost);
-  if (!list.length) { shopBody.innerHTML = '<p class="shop-empty">' + (shopTab === 'own' ? 'Você ainda não comprou nenhum barco.' : 'Nada à venda agora. Volte na próxima troca de estoque.') + '</p>'; shopTick(); return; }
+  let list = all.filter(x => shopTab === 'own' ? save.owned.includes(x.id) : true);
+  const rk0 = x => save.owned.includes(x.id) ? 1 : stock.has(x.id) ? 0 : 2;
+  list.sort((a, b) => (shopTab === 'stock' ? rk0(a) - rk0(b) : 0) || (SHOP_ORD[b.rar] || 0) - (SHOP_ORD[a.rar] || 0) || a.cost - b.cost);
+  if (!list.length) { shopBody.innerHTML = '<p class="shop-empty">' + 'Você ainda não comprou nenhum barco.' + '</p>'; shopTick(); return; }
   shopBody.innerHTML = list.map(s => {
     const own = save.owned.includes(s.id), st = stock.has(s.id), can = save.coins >= s.cost, armed = shopArmed === s.id;
     const pct = Math.round((SHOP_CHANCE[s.rar] || .1) * 100), rk = (s.rar || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const act = own ? '<button class="btn ghost shop-btn" type="button" data-a="eq" data-id="' + s.id + '"' + (save.ship === s.id ? ' disabled>✓ Equipado' : '>Equipar') + '</button>'
+    const act = own && shopTab === 'stock' ? '<div class="shop-owned">✓ Possuído</div>'
+      : own ? '<button class="btn ghost shop-btn" type="button" data-a="eq" data-id="' + s.id + '"' + (save.ship === s.id ? ' disabled>✓ Equipado' : '>Equipar') + '</button>'
       : !st ? '<div class="shop-out">Fora de estoque</div>'
       : can ? '<button class="btn shop-btn' + (armed ? ' armed' : '') + '" type="button" data-a="buy" data-id="' + s.id + '">' + (armed ? 'Confirmar · ' : 'Comprar · ') + '$ ' + fmt(s.cost) + '</button>'
       : '<button class="btn shop-btn" type="button" disabled>Faltam $ ' + fmt(s.cost - save.coins) + '</button>';
@@ -4499,7 +4501,7 @@ async function frCall(fn, args) {
   if (d && typeof d === 'object' && !Array.isArray(d) && d.message && d.code) throw new Error(d.code === 'PGRST202' ? 'nao_instalado' : d.message);
   return d;
 }
-const frErr = e => e && e.message === 'nao_instalado' ? 'Falta instalar essa parte no servidor (rode o chat_convites.sql).' : 'Sem conexão. Tente de novo.';
+const frErr = e => e && e.message === 'nao_instalado' ? 'Falta instalar essa parte no servidor.' : 'Sem conexão. Tente de novo.';
 function frAgo(ts) { const s = Math.max(0, (Date.now() - Date.parse(ts)) / 1000); return s < 60 ? 'agora' : s < 3600 ? Math.floor(s / 60) + ' min' : s < 86400 ? Math.floor(s / 3600) + ' h' : Math.floor(s / 86400) + ' d'; }
 function frBadge() {
   const set = (id, n) => { const b = $(id); b.hidden = !(n > 0); b.textContent = n > 99 ? '99+' : n; };

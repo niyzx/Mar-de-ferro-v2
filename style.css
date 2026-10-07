@@ -753,7 +753,7 @@ body[data-state="playing"] #btnCfg, body:has(#mpEl:not([hidden]), #auth:not([hid
 @media (max-width: 420px) { .fr-row { flex-wrap: wrap; } .fr-act { max-width: 100%; width: 100%; justify-content: flex-start; } }
 @media (prefers-reduced-motion: reduce) { .fr-row { animation: none; } }
 
-/* conversa privada e convites */
+/* convites */
 .mpinv { display: flex; flex-direction: column; gap: 8px; }
 .mpinv[hidden] { display: none; }
 .mpinv .fr-list { max-height: 220px; overflow-y: auto; }
@@ -875,3 +875,4 @@ body[data-state="playing"] #btnCfg, body:has(#mpEl:not([hidden]), #auth:not([hid
 .shop-card.flash { animation: shopflash .9s ease-out; }
 @keyframes shopflash { 0% { box-shadow: 0 0 0 0 var(--rc), 0 0 30px var(--rc); } 100% { box-shadow: 0 0 0 0 transparent; } }
 @media (max-width: 480px) { #shopBody { grid-template-columns: 1fr 1fr; gap: 8px; } .shop-card { padding: 8px; } .shop-name b { font-size: 18px; } .shop-btn { font-size: 14px; padding: 4px 6px; } }
+.shop-owned { margin-top: auto; padding: 9px 8px; text-align: center; font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--good); border: 1px solid rgba(79,209,165,.5); background: rgba(79,209,165,.08); }
