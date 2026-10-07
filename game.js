@@ -236,6 +236,7 @@ function loadExtra(sv) {
   for (const id of (Array.isArray(ac.on) ? ac.on : [])) { const x = ACC.find(z => z.id === id); if (x && aown.includes(id) && !aon.some(o => ACC.find(z => z.id === o).slot === x.slot)) aon.push(id); }
   save.acc = { own: aown, on: aon };
   { const dl = (sv && sv.daily) || {}; save.daily = { cyc: clamp(Math.floor(Number(dl.cyc) || 0), 0, 99), streak: clamp(Math.floor(Number(dl.streak) || 0), 0, 7), last: /^\d{4}-\d{2}-\d{2}$/.test(dl.last) ? dl.last : '' }; }
+  { const d = (sv && sv.dm) || {}, a3 = (v, f) => [0, 1, 2].map(i => f(Array.isArray(v) ? v[i] : 0)); save.dm = { d: /^\d{4}-\d{2}-\d{2}$/.test(d.d) ? d.d : '', p: a3(d.p, x => clamp(Math.floor(Number(x) || 0), 0, 99999)), c: a3(d.c, x => x ? 1 : 0), b: d.b ? 1 : 0 }; }
   save.ach = {};
   for (const a of ACH) if (sv && sv.ach && sv.ach[a.id]) save.ach[a.id] = 1;
 }
@@ -826,7 +827,7 @@ function newGame() {
   const st = playerStats();
   G = {
     t: 0, pt: 0, vs: 0, esc: 0, conv: null, hc: hardMode && MP.role !== 'guest', wave: 0, score: 0, kills: 0, coins: 0, queue: [], spawnT: 0, waveClearing: true, interlude: 1.3,
-    enemies: [], sharks: [], escorts: [], planes: [], missiles: [], balls: [], parts: [], wrecks: [], crates: [], buoys: [], allies: [], texts: [],
+    enemies: [], sharks: [], mines: [], escorts: [], planes: [], missiles: [], balls: [], parts: [], wrecks: [], crates: [], buoys: [], allies: [], texts: [],
     shake: 0, flash: 0, deadT: 0, hpMul: 1, fireScale: 1, aimActive: false,
     camera: { x: 0, y: 0 },
     player: {
@@ -1035,6 +1036,7 @@ function pickType(n) {
 }
 function startWave() {
   G.wave++;
+  misAdd('waves', G.wave, 1);
   const n = G.wave, boss = n % 5 === 0, count = 2 + n * 2;
   G.queue = [];
   for (let i = 0; i < (boss ? Math.ceil(count / 2) : count); i++) G.queue.push(pickType(n));
@@ -1048,6 +1050,7 @@ function startWave() {
   else { banner('Onda ' + n + (G.hc ? ' · HARDCORE' : G.esc ? ' · ESCOLTA' : ''), G.esc ? 'Proteja o comboio · ' + G.queue.length + ' inimigos' : G.queue.length + ' navios inimigos à vista'); sfx.wave(); }
   checkAch();
   syncSharks();
+  if (!MP.role && !G.vs) { let n = 0; while (G.mines.length < mineTarget() && n < 4 && spawnMine()) n++; }
 }
 function spawnEnemy(type) {
   const p = G.esc && G.conv && !G.conv.dead ? G.conv : G.player;
@@ -1903,7 +1906,7 @@ function sinkEnemy(e) {
   if (MP.role === 'host') evp(['w', Math.round(e.x), Math.round(e.y), +e.heading.toFixed(2), e.type, +e.aim.toFixed(2)]);
   explosion(e.x, e.y, e.type === 'boss' ? 3.2 : e.type === 'battle' ? 2 : e.type === 'frigate' || e.type === 'blindado' ? 1.4 : 1);
   G.wrecks.push({ x: e.x, y: e.y, heading: e.heading, spec: e.spec, aim: e.aim, t: 0, vx: e.vx * .3, vy: e.vy * .3 });
-  G.score += e.spec.score; G.kills++; save.kills++; evtAdd(1, e.type === 'boss' ? 1 : 0); if (e.type === 'boss') { save.bosses++; banner('Chefe derrotado', '+' + e.spec.score + ' pontos'); }
+  G.score += e.spec.score; G.kills++; save.kills++; evtAdd(1, e.type === 'boss' ? 1 : 0); misAdd('kills', 1); misAdd('score', G.score, 1); if (e.type === 'boss') misAdd('boss', 1); if (e.type === 'boss') { save.bosses++; banner('Chefe derrotado', '+' + e.spec.score + ' pontos'); }
   const rp = G.player;
   if (rp && rp.reaperAb && !rp.dead && MP.role !== 'guest') { const hl = Math.round(rp.max * (e.type === 'boss' ? .2 : .08)); rp.hp = Math.min(rp.max, rp.hp + hl); floatText(rp.x, rp.y - 34, '+' + hl + ' casco', '#ff5a5a'); }
   const gain = addCoins(Math.round(e.spec.score / 10 * (G.hc ? 1.5 : 1)));
@@ -1961,7 +1964,7 @@ function sharkHit(bx, by, s) {
   return Math.abs(lx) <= s.len / 2 + 4 && Math.abs(ly) <= s.wid / 2 + 6;
 }
 function sinkShark(s) {
-  G.score += 150; save.sharks = (save.sharks || 0) + 1;
+  G.score += 150; save.sharks = (save.sharks || 0) + 1; misAdd('sharks', 1); misAdd('score', G.score, 1);
   explosion(s.x, s.y, .6);
   for (let i = 0; i < 6; i++) addP({ t: 'foam', x: s.x + rand(-10, 10), y: s.y + rand(-10, 10), vx: rand(-30, 30), vy: rand(-30, 30), life: rand(.8, 1.4), size: 5, grow: 12 });
   const gain = addCoins(20);
@@ -2150,7 +2153,54 @@ function updateBalls(dt) {
     else if (b.life <= 0) { splash(b.x, b.y); G.balls.splice(i, 1); }
   }
 }
-const CRATE_MAG = 150; // distância (m) em que as caixas começam a vir até você
+/* ---------- minas aquáticas: só a sombra aparece na água; explodem quando você passa por cima (solo) ---------- */
+const MINE_TRIG = 26, MINE_BLAST = 95;
+function mineTarget() { return G.wave < 2 ? 0 : clamp(Math.floor(G.wave / 2) + 2, 0, 9) + (G.hc ? 2 : 0); }
+function spawnMine() {
+  const p = G.player, base = Math.hypot(W, H) / zoom / 2;
+  for (let k = 0; k < 6; k++) {
+    const a = Math.random() * TAU, r = base + rand(40, 380), q = iceOut(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, 30);
+    if (G.mines.some(m => Math.hypot(m.x - q[0], m.y - q[1]) < 90)) continue;
+    G.mines.push({ x: q[0], y: q[1], t: rand(0, TAU), r: rand(.9, 1.15) });
+    return true;
+  }
+  return false;
+}
+function mineBlow(m) {
+  const p = G.player;
+  explosion(m.x, m.y, 1.3); sfx.boom();
+  for (let i = 0; i < 14; i++) addP({ t: 'foam', x: m.x + rand(-8, 8), y: m.y + rand(-8, 8), vx: rand(-60, 60), vy: rand(-60, 60), life: rand(.8, 1.5), size: 6, grow: 16 });
+  floatText(m.x, m.y - 20, 'MINA!', '#ff6b6b');
+  G.shake = Math.min(16, G.shake + 7);
+  for (let i = G.enemies.length - 1; i >= 0; i--) {
+    const e = G.enemies[i];
+    if (Math.hypot(e.x - m.x, e.y - m.y) < MINE_BLAST) { if (!(e.shield > 0)) e.hp -= 30 + G.wave * 3; e.flash = .15; if (e.hp <= 0) { G.enemies.splice(i, 1); sinkEnemy(e); } }
+  }
+  hurtPlayer(Math.round(Math.max(18, p.max * .2) * (G.hc ? 1.3 : 1)), m.x, m.y);
+}
+function updateMines(dt) {
+  if (MP.role || G.vs || state !== 'playing') return;
+  const p = G.player;
+  for (let i = G.mines.length - 1; i >= 0; i--) {
+    const m = G.mines[i]; m.t += dt;
+    const d = Math.hypot(p.x - m.x, p.y - m.y);
+    if (d > 1500) { G.mines.splice(i, 1); continue; }
+    if (!p.dead && d < MINE_TRIG) { G.mines.splice(i, 1); mineBlow(m); }
+  }
+  G.mineT = (G.mineT || 0) - dt;
+  if (G.mineT <= 0) { G.mineT = 3; if (G.mines.length < mineTarget()) spawnMine(); }
+}
+function drawMine(m) {
+  const pulse = .5 + .5 * Math.sin(m.t * 1.6), R = 20 * m.r;
+  ctx.save(); ctx.translate(m.x, m.y);
+  const g = ctx.createRadialGradient(0, 0, 2, 0, 0, R * 1.35);
+  g.addColorStop(0, 'rgba(4,14,22,' + (.24 + pulse * .06) + ')'); g.addColorStop(.7, 'rgba(4,14,22,.14)'); g.addColorStop(1, 'rgba(4,14,22,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, 2, R * 1.35, R * 1.1, 0, 0, TAU); ctx.fill();
+  ctx.strokeStyle = 'rgba(143,211,232,' + (.03 + pulse * .04) + ')'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.ellipse(0, 0, R * (1 + pulse * .25), R * .8 * (1 + pulse * .25), 0, 0, TAU); ctx.stroke();
+  ctx.restore();
+}
+const CRATE_MAG = 62; // só quando você passa quase encostando (a coleta normal é 36)
 function updateCrates(dt) {
   const p = G.player;
   for (let i = G.crates.length - 1; i >= 0; i--) {
@@ -2174,6 +2224,7 @@ function updateCrates(dt) {
         addP({ t: 'spark', x: c.x, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: .5, size: 1.6, drag: 2 });
       }
       sfx[c.type === 'repair' ? 'repair' : c.type === 'shield' ? 'shieldUp' : 'powerup'](); if (MP.role === 'host') evp(['k', 'p']);
+      if (who === p) misAdd('crates', 1);
       G.crates.splice(i, 1);
     }
   }
@@ -2216,7 +2267,7 @@ function step(dt) {
   if (state === 'playing' || state === 'over') {
     if (state === 'playing' && !G.vs) runWaves(dt);
     for (let i = G.enemies.length - 1; i >= 0; i--) { const en = G.enemies[i]; updateEnemy(en, dt); hazShip(en, dt); if (en.expire) { G.enemies.splice(i, 1); cloneFx(en.x, en.y, 1, en.spec.len); } }
-    if (state === 'playing') updateSharks(dt);
+    if (state === 'playing') { updateSharks(dt); updateMines(dt); }
     updateHole(dt);
     separate();
   }
@@ -2687,6 +2738,7 @@ function render0() {
     const k = w.t / 2.4;
     drawShip(w.x, w.y, w.heading + k * .12, w.spec, w.aim, { alpha: Math.max(0, 1 - k * k), dark: Math.min(.8, k * .9) });
   }
+  for (const m of G.mines) if (onScreen(m, 50)) drawMine(m);
   for (const sk of G.sharks) drawShark(sk);
   for (const cr of G.crates) drawCrate(cr);
   for (const b of G.buoys) drawBuoy(b);
@@ -2945,6 +2997,7 @@ function showOverlay(mode) {
   $('btnRank').hidden = !RANK_ON || mode === 'paused';
   $('btnEvt').hidden = !evtAtivo() || mode === 'paused';
   $('btnDaily').hidden = mode === 'paused'; try { dailyDot(); ensureSrv(); } catch (e) {}
+  $('btnMis').hidden = mode === 'paused'; try { misDot(); } catch (e) {}
   $('btnFr').hidden = !RANK_ON || mode === 'paused'; try { frPoll(); } catch (e) {}
   $('btnAcct').hidden = mode === 'paused';
   $('btnAch').hidden = mode === 'paused';
@@ -3036,6 +3089,7 @@ function tickResume(dt) {
 function togglePause() { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); }
 function gameOver() {
   G.newRecord = false;
+  misAdd('games', 1); misAdd('score', G.score, 1);
   if (G.esc) {
     if (G.wave > escBest) { escBest = G.wave; G.newRecord = G.wave > 1; try { localStorage.setItem(KEY_ESC, String(escBest)); } catch (e) {} }
   } else if (G.score > best && !G.hc) {
@@ -3267,6 +3321,34 @@ $('pPass').addEventListener('click', async () => {
   } catch (e) { m.textContent = 'Sem conexão. Tente de novo.'; }
 });
 $('aBack').addEventListener('click', () => { $('auth').hidden = true; });
+const REN_TXT = {
+  nome_invalido: 'Nome inválido: use 3 a 16 letras minúsculas, números ou _.', mesmo_nome: 'Esse já é o seu nome.',
+  espere: 'Você trocou de nome há pouco. Espere 7 dias entre as trocas.', nome_em_uso: 'Esse nome já está em uso.',
+  banido: 'Contas banidas não podem trocar de nome.', sem_login: 'Entre numa conta primeiro.'
+};
+$('pRename').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('pRenBtn').click(); });
+$('pRename').addEventListener('keyup', e => e.stopPropagation());
+$('pRename').addEventListener('input', e => { e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); });
+$('pRenBtn').addEventListener('click', async () => {
+  const n = $('pRename').value.trim().toLowerCase(), m = $('pMsg'), b = $('pRenBtn');
+  if (!sess) return;
+  if (!/^[a-z0-9_]{3,16}$/.test(n)) { m.textContent = 'Nome inválido: use 3 a 16 letras minúsculas, números ou _.'; return; }
+  if (n === sess.nome) { m.textContent = 'Esse já é o seu nome.'; return; }
+  if (!confirm('Trocar seu nome para "' + n + '"?\n\nVocê entrará com o nome novo e só poderá trocar de novo daqui a 7 dias.')) return;
+  m.textContent = 'Trocando…'; b.disabled = true;
+  try {
+    const r = await rpc('mf_trocar_nome', { p_novo: n });
+    if (r === 'ok') {
+      const old = sess.nome; sess.nome = n;
+      try { localStorage.setItem(SESS_KEY, JSON.stringify(sess)); } catch (e) {}
+      if (ADMINS.has(old)) { ADMINS.delete(old); ADMINS.add(n); }
+      $('pRename').value = ''; refreshAcct(); $('pName').textContent = n + (ADMIN ? ' ★ ADMIN' : '');
+      m.textContent = 'Nome alterado! Use "' + n + '" para entrar da próxima vez.';
+      try { pushCloud(); } catch (e) {}
+    } else if (r && typeof r === 'object' && r.code === 'PGRST202') m.textContent = 'Falta instalar o trocar_nome.sql no servidor.';
+    else m.textContent = (typeof r === 'string' && REN_TXT[r]) || 'Não foi possível trocar o nome. Tente de novo.';
+  } catch (e) { m.textContent = 'Sem conexão. Tente de novo.'; } finally { b.disabled = false; }
+});
 async function submitScore() {
   const msg = $('sendMsg');
   if (G.score <= 0) return;
@@ -4279,6 +4361,70 @@ async function claimDaily() {
 }
 $('btnDaily').addEventListener('click', () => { renderDaily(); dailyEl.hidden = false; dailyEl.scrollTop = 0; syncServerTime().then(() => { renderDaily(); dailyDot(); }); });
 $('dailyClaim').addEventListener('click', claimDaily);
+
+/* ---------- missões diárias (3 por dia, iguais para todos, data do servidor) ---------- */
+const MIS = [
+  { k: 'kills', t: 'Afunde {n} navios inimigos', n: [20, 30, 45], r: 200 },
+  { k: 'waves', t: 'Chegue à onda {n} em uma partida', n: [5, 7, 9], r: 250 },
+  { k: 'boss', t: 'Derrote {n} chefe{s}', n: [1, 1, 2], r: 400 },
+  { k: 'sharks', t: 'Afunde {n} tubarões', n: [2, 3, 4], r: 300 },
+  { k: 'crates', t: 'Colete {n} caixas', n: [4, 6, 8], r: 200 },
+  { k: 'score', t: 'Faça {n} pontos em uma partida', n: [2500, 4000, 6000], r: 300 },
+  { k: 'games', t: 'Jogue {n} partidas', n: [2, 3, 4], r: 150 }
+];
+const MIS_BONUS = 500, misEl = $('misEl');
+const misToday = () => srvOk ? srvDay(0) : new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+function misPick(day) {
+  let h = 5381; for (let i = 0; i < day.length; i++) h = (h * 33 + day.charCodeAt(i)) >>> 0;
+  const pool = MIS.slice(), out = [], nx = () => { h = (h * 1664525 + 1013904223) >>> 0; return h >>> 16; };
+  for (let i = 0; i < 3; i++) { const m = pool.splice(nx() % pool.length, 1)[0], n = m.n[nx() % 3]; out.push({ k: m.k, n, r: m.r, t: m.t.replace('{n}', fmt(n)).replace('{s}', n > 1 ? 's' : '') }); }
+  return out;
+}
+function misState() {
+  const day = misToday();
+  if (!save.dm || save.dm.d !== day) save.dm = { d: day, p: [0, 0, 0], c: [0, 0, 0], b: 0 };
+  return save.dm;
+}
+function misAdd(k, v, max) {
+  if (!G || G.vs || MP.role === 'guest') return;
+  const st = misState(); let done = false;
+  misPick(st.d).forEach((m, i) => {
+    if (m.k !== k || st.p[i] >= m.n) return;
+    st.p[i] = Math.min(m.n, max ? Math.max(st.p[i], Math.floor(v)) : st.p[i] + v);
+    if (st.p[i] >= m.n) { done = true; try { banner('Missão cumprida', m.t); sfx.pick(); } catch (e) {} }
+  });
+  if (done) { try { persist(); } catch (e) {} }
+}
+function misDot() {
+  const st = misState(), list = misPick(st.d);
+  $('btnMis').classList.toggle('dot', list.some((m, i) => st.p[i] >= m.n && !st.c[i]) || (st.c.every(Boolean) && !st.b));
+}
+function renderMis() {
+  const st = misState(), list = misPick(st.d), done = st.c.filter(Boolean).length, all = done === 3;
+  $('misCount').textContent = done + '/3';
+  let h = '<div class="fr-list">' + list.map((m, i) => {
+    const ok = st.p[i] >= m.n, got = !!st.c[i], pc = Math.round(Math.min(1, st.p[i] / m.n) * 100);
+    return '<div class="ms-card' + (got ? ' got' : ok ? ' ok' : '') + '"><div class="ms-top"><b>' + esc(m.t) + '</b><span>$ ' + fmt(m.r) + '</span></div><div class="ms-bar"><i style="width:' + pc + '%"></i></div><div class="ms-bot"><small>' + fmt(st.p[i]) + ' / ' + fmt(m.n) + '</small><button class="ms-b' + (ok && !got ? ' pri' : '') + '" type="button" data-i="' + i + '"' + (ok && !got ? '' : ' disabled') + '>' + (got ? 'Resgatado' : ok ? 'Resgatar' : 'Em andamento') + '</button></div></div>';
+  }).join('') + '</div>';
+  h += '<div class="ms-card bonus' + (st.b ? ' got' : all ? ' ok' : '') + '"><div class="ms-top"><b>Bônus: resgatar as 3</b><span>$ ' + fmt(MIS_BONUS) + '</span></div><div class="ms-bot"><small>' + done + ' / 3 resgatadas</small><button class="ms-b' + (all && !st.b ? ' pri' : '') + '" type="button" data-i="b"' + (all && !st.b ? '' : ' disabled') + '>' + (st.b ? 'Resgatado' : all ? 'Resgatar' : 'Bloqueado') + '</button></div></div>';
+  $('misBody').innerHTML = h;
+}
+async function misClaim(i) {
+  const old = save.dm && save.dm.d;
+  if (!(await syncServerTime())) { $('misMsg').textContent = 'Precisa de internet para validar a data.'; renderMis(); return; }
+  const st = misState();
+  if (old && old !== st.d) { $('misMsg').textContent = 'As missões anteriores expiraram. Novas missões disponíveis!'; renderMis(); misDot(); return; }
+  const list = misPick(st.d); let gain = 0;
+  if (i === 'b') { if (!st.c.every(Boolean) || st.b) { renderMis(); return; } st.b = 1; gain = MIS_BONUS; }
+  else { i = +i; if (!list[i] || st.p[i] < list[i].n || st.c[i]) { renderMis(); return; } st.c[i] = 1; gain = list[i].r; }
+  save.coins += gain; initAudio(); sfx.pick(); persist(); try { pushCloud(); } catch (e) {}
+  try { banner('Missão diária', '+$ ' + fmt(gain)); } catch (e) {}
+  $('misMsg').textContent = ''; renderMis(); misDot();
+}
+$('btnMis').addEventListener('click', () => { $('misMsg').textContent = ''; renderMis(); misEl.hidden = false; misEl.scrollTop = 0; syncServerTime().then(() => { renderMis(); misDot(); }); });
+$('misBack').addEventListener('click', () => { misEl.hidden = true; misDot(); });
+$('misBody').addEventListener('click', e => { const b = e.target.closest('[data-i]'); if (b && !b.disabled) { b.disabled = true; misClaim(b.dataset.i); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !misEl.hidden) $('misBack').click(); });
 $('dailyBack').addEventListener('click', () => { dailyEl.hidden = true; dailyDot(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !dailyEl.hidden) $('dailyBack').click(); });
 
@@ -4347,7 +4493,7 @@ function frRender() {
     h += na ? '<div class="fr-list">' + frData.amigos.map(x => {
       const s = frSum[x.id] || {}, nl = +s.nao_lidas || 0;
       return frRow(nl ? 'new' : '', frAv(x.nome), '<b>' + esc(x.nome) + (nl ? '<i class="frn inl">' + nl + '</i>' : '') + '</b>' + (s.ultima ? '<span class="fr-prev">' + esc(s.ultima) + '</span>' : '<small>amigo</small>'),
-        frBtn('msg', 'Conversar', { pri: 1, id: x.id, n: x.nome }) + frBtn('rem', 'Remover', { dng: 1, id: x.id, n: x.nome }));
+        frBtn('msg', 'Conversar', { pri: 1, id: x.id, n: x.nome }) + frBtn('vs', 'Desafiar', { id: x.id, n: x.nome }) + frBtn('rem', 'Remover', { dng: 1, id: x.id, n: x.nome }));
     }).join('') + '</div>' : frEmpty('users', 'Sem amigos ainda', 'Toque em Adicionar e digite o nome de um jogador para enviar um pedido.');
   } else if (frTab === 'caixa') {
     if (frBox.some(m => m.lida && m.tipo !== 'pedido')) h += '<div class="fr-top"><div class="fr-act">' + frBtn('clear', 'Limpar lidas') + '</div></div>';
@@ -4420,6 +4566,16 @@ async function frOpenChat(id, nome) {
   await frChatLoad(true);
   $('frText').focus();
 }
+async function frChallenge(id, nome) {
+  frEl.hidden = true; frChatStop(); openMp(true);
+  $('mpCreate').click();
+  for (let i = 0; i < 50 && !(MP.role === 'host' && MP.code && $('mpBig').textContent === MP.code); i++) await new Promise(r => setTimeout(r, 200));
+  if (!(MP.role === 'host' && MP.code && $('mpBig').textContent === MP.code)) return;
+  try {
+    const r = await frCall('mf_convite_enviar', { p_para: id, p_sala: MP.code, p_vs: true });
+    mpSay(r === 'ok' ? 'Desafio enviado para ' + nome + '. Aguarde na sala.' : (FR_TXT[r] || 'Não foi possível enviar o desafio.'));
+  } catch (e) { mpSay(frErr(e)); }
+}
 function frJoin(code, vs, caixaId) {
   frEl.hidden = true; frChatStop(); openMp(vs);
   $('mpCode').value = code; $('mpJoin').click();
@@ -4437,6 +4593,7 @@ $('frBody').addEventListener('click', async e => {
   const a = b.dataset.a, id = b.dataset.id;
   if (a === 'login') { frEl.hidden = true; $('btnAcct').click(); return; }
   if (a === 'msg' || a === 'reply') { frOpenChat(id, b.dataset.n); return; }
+  if (a === 'vs') { frChallenge(id, b.dataset.n || 'seu amigo'); return; }
   if (a === 'join') { const p = (b.dataset.n || '').split('|'); if (/^[A-Z]{4}$/.test(p[0])) frJoin(p[0], p[1] === '1', id); return; }
   if (a === 'rem' && !confirm('Remover ' + (b.dataset.n || 'este jogador') + ' dos amigos?')) return;
   b.disabled = true;
@@ -4607,7 +4764,8 @@ function frame(now) {
   const tips = [
     'Mova-se com WASD e mire com o mouse. Espaço também atira.',
     'Caixas soltas pelos inimigos dão reparo, escudo ou tiro triplo.',
-    'Chegue perto de uma caixa e ela vem até você.',
+    'Passe bem perto de uma caixa e ela vem até você.',
+    'Sombras escuras na água são minas: desvie delas!',
     'O Nautilon fica invisível e invulnerável por 9 s.',
     'O Mirage 3 cria até 3 clones que atraem o fogo e só somem se forem destruídos.',
     'Navios com várias torretas atiram de todos os canos de uma vez.',

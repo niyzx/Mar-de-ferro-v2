@@ -130,6 +130,7 @@
         <button class="btn ghost" id="btnShop" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><span>Oficina</span></button>
         <button class="btn ghost" id="btnAch" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg><span>Conquistas</span></button>
         <button class="btn ghost evtbtn" id="btnDaily" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="13" rx="1"/><path d="M12 8v13M3 12h18M12 8c-2-4-6-4-6-1s4 1 6 1zm0 0c2-4 6-4 6-1s-4 1-6 1z"/></svg><span>Diário</span></button>
+        <button class="btn ghost" id="btnMis" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg><span>Missões</span></button>
         <button class="btn ghost evtbtn" id="btnEvt" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg><span>Evento</span></button>
       </div></div>
       <div class="mfoot">
@@ -239,11 +240,13 @@
   <div class="kicker">Conta</div><h1 class="title sm" id="pName"></h1>
   <dl class="stats" id="pStats"></dl>
   <p class="note" id="pSync"></p>
+  <input class="fld" id="pRename" maxlength="16" placeholder="Novo nome de usuário (3 a 16)" autocomplete="off" autocapitalize="none" spellcheck="false">
   <input class="fld" id="pNew" type="password" placeholder="Nova senha (mínimo 6)" autocomplete="new-password">
   <p class="note" id="pMsg"></p>
   <div class="actions">
     <button class="btn ghost" id="pAdm" type="button" hidden>Painel admin</button>
     <button class="btn ghost" id="pEditBtn" type="button">Editar perfil</button>
+    <button class="btn ghost" id="pRenBtn" type="button">Trocar nome</button>
     <button class="btn ghost" id="pPass" type="button">Alterar senha</button>
     <button class="btn ghost" id="pSyncBtn" type="button">Sincronizar agora</button>
     <button class="btn ghost" id="pOut" type="button">Sair da conta</button>
@@ -344,6 +347,13 @@
   <div id="dailyBody"></div>
   <p class="note" id="dailyBonus" style="margin:0"></p>
   <div class="actions"><button class="btn" id="dailyClaim" type="button">Resgatar</button><button class="btn ghost" id="dailyBack" type="button">Voltar</button></div>
+</div></div>
+<div class="overlay" id="misEl" hidden><div class="panel">
+  <div class="w-top"><h1>Missões diárias</h1><div class="w-bal" id="misCount">0/3</div></div>
+  <p class="note" style="margin:0">Três missões novas por dia (viram à meia-noite, horário de Brasília). Complete as três para ganhar um bônus.</p>
+  <div id="misBody"></div>
+  <p class="note" id="misMsg" style="margin:0"></p>
+  <div class="actions"><button class="btn ghost" id="misBack" type="button">Voltar</button></div>
 </div></div>
 <div class="overlay" id="frEl" hidden><div class="panel">
   <div class="w-top"><h1>Amigos</h1><div class="w-bal" id="frCount"></div></div>
