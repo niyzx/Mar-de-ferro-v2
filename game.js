@@ -4735,35 +4735,57 @@ async function claimDaily() {
 $('btnDaily').addEventListener('click', () => { renderDaily(); dailyEl.hidden = false; dailyEl.scrollTop = 0; syncServerTime().then(() => { renderDaily(); dailyDot(); }); });
 $('dailyClaim').addEventListener('click', claimDaily);
 
-/* ---------- painel do evento: Colheita Sombria ---------- */
+/* ---------- evento: banner no topo do menu + painel da Colheita Sombria ---------- */
 const evtEl = $('evtEl');
 function evtState() {
   const e = save.evt || { kills: 0, bosses: 0 }, own = save.owned.includes(EVENTO.ship);
   const reqOk = e.kills >= EVENTO.kills && e.bosses >= EVENTO.bosses;
-  return { e, own, reqOk, canPay: save.coins >= EVENTO.coins, can: !own && reqOk && save.coins >= EVENTO.coins };
+  const pct = own ? 1 : clamp((Math.min(e.kills, EVENTO.kills) / EVENTO.kills + Math.min(e.bosses, EVENTO.bosses) / EVENTO.bosses) / 2, 0, 1);
+  return { e, own, reqOk, pct, canPay: save.coins >= EVENTO.coins, can: !own && reqOk && save.coins >= EVENTO.coins };
 }
-function evtDot() { const s = evtState(); $('btnEvt').classList.toggle('dot', evtAtivo() && !s.own && s.reqOk); }
+function evtDot() {
+  const b = $('btnEvt'); if (!b) return;
+  const s = evtState();
+  b.classList.toggle('ready', !s.own && s.can); b.classList.toggle('own', s.own);
+  $('ebFill').style.transform = 'scaleX(' + s.pct.toFixed(3) + ')';
+  $('ebSt').textContent = s.own ? '✓ POSSUÍDO' : s.can ? 'RESGATAR' : s.reqOk ? 'FALTAM $' : Math.floor(s.pct * 100) + '%';
+}
+function evtPerks(sh) {
+  const parts = String(sh && sh.note || '').replace(/^Barco de Evento\.\s*/, '').split(' · ').filter(Boolean);
+  return parts.map(p => { const i = p.indexOf(':'); return i > 0 ? { n: p.slice(0, i).trim(), d: p.slice(i + 1).trim() } : { n: '', d: p.trim() }; });
+}
 function renderEvt() {
-  const s = evtState(), sh = SHIPS.find(x => x.id === EVENTO.ship);
+  const s = evtState(), sh = SHIPS.find(x => x.id === EVENTO.ship) || {};
   $('evtBal').textContent = '$ ' + fmt(save.coins);
-  $('evtShip').textContent = sh ? sh.name : 'Yamaton';
-  $('evtShipSub').textContent = s.own ? 'já conquistado' : 'barco de evento · custo $ ' + fmt(EVENTO.coins);
-  const row = (n, v, m) => '<div class="pbar"><span>' + n + '</span><div class="bar"><i style="transform:scaleX(' + clamp(v / m, 0, 1).toFixed(3) + ');background:' + (v >= m ? 'var(--good)' : '') + '"></i></div><b>' + fmt(Math.min(v, m)) + '/' + fmt(m) + '</b></div>';
-  $('evtBars').innerHTML = row('ABATES', s.own ? EVENTO.kills : s.e.kills, EVENTO.kills) + row('CHEFES', s.own ? EVENTO.bosses : s.e.bosses, EVENTO.bosses) + row('MOEDAS', Math.min(save.coins, EVENTO.coins), EVENTO.coins);
+  $('evtShip').textContent = sh.name || 'Yamaton';
+  $('evtShipSub').textContent = s.own ? 'Já está na sua frota' : 'Recompensa permanente na conta';
+  $('evtTag').textContent = s.own ? '✓ Possuído' : 'Barco de evento';
+  $('evtTag').classList.toggle('own', s.own);
+  $('evtStats').innerHTML = [['Casco', sh.hp], ['Dano', sh.dmg], ['Recarga', sh.rel != null ? String(sh.rel).replace('.', ',') + 's' : ''], ['Veloc.', sh.speed]]
+    .filter(x => x[1] !== undefined && x[1] !== '').map(x => '<span><small>' + x[0] + '</small><b>' + x[1] + '</b></span>').join('');
+  $('evtOverall').textContent = s.own ? 'Completo' : Math.floor(s.pct * 100) + '% das metas';
+  const k = s.own ? EVENTO.kills : s.e.kills, bo = s.own ? EVENTO.bosses : s.e.bosses, co = s.own ? EVENTO.coins : Math.min(save.coins, EVENTO.coins);
+  const goal = (t, v, m, pay) => {
+    const ok = v >= m;
+    return '<div class="ev-goal' + (ok ? ' ok' : '') + '"><i class="ev-ck">' + (ok ? '✓' : '') + '</i><div class="ev-gt"><span>' + t + '</span><b>' + fmt(Math.min(v, m)) + ' / ' + fmt(m) + '</b></div>' +
+      '<div class="bar"><i style="transform:scaleX(' + clamp(v / m, 0, 1).toFixed(3) + ')"></i></div></div>';
+  };
+  $('evtBars').innerHTML = goal('Afundar navios inimigos', k, EVENTO.kills) + goal('Derrotar chefes', bo, EVENTO.bosses) + goal('Custo em moedas', co, EVENTO.coins);
+  $('evtPerks').innerHTML = evtPerks(sh).map(p => '<div class="ev-perk">' + (p.n ? '<b>' + p.n + '</b>' : '') + '<span>' + p.d + '</span></div>').join('');
   const b = $('evtClaim');
   b.disabled = s.own || !s.can;
-  b.textContent = s.own ? 'Conquistado' : !s.reqOk ? 'Metas pendentes' : !s.canPay ? 'Faltam moedas' : 'Conquistar por $ ' + fmt(EVENTO.coins);
-  const c = $('evtPrize').querySelector('canvas'); if (c && sh) { try { shipThumb(c, sh); } catch (x) {} }
+  b.textContent = s.own ? 'Possuído' : !s.reqOk ? 'Cumpra as metas' : !s.canPay ? 'Faltam $ ' + fmt(EVENTO.coins - save.coins) : 'Conquistar por $ ' + fmt(EVENTO.coins);
+  const c = evtEl.querySelector('canvas'); if (c && sh.id) { try { shipThumb(c, sh); } catch (x) {} }
   evtDot();
 }
 function openEvt() { $('evtMsg').textContent = ''; renderEvt(); evtEl.hidden = false; evtEl.scrollTop = 0; }
 $('btnEvt').addEventListener('click', openEvt);
-$('evtBack').addEventListener('click', () => { evtEl.hidden = true; try { $('bal').textContent = '$ ' + fmt(save.coins); } catch (x) {} });
+$('evtBack').addEventListener('click', () => { evtEl.hidden = true; try { $('bal').textContent = '$ ' + fmt(save.coins); evtDot(); } catch (x) {} });
 $('evtClaim').addEventListener('click', () => {
   if (!claimEvento()) { renderEvt(); return; }
   initAudio(); persist(); try { pushCloud(); } catch (x) {}
   try { banner('Yamaton conquistado!', 'Barco de evento adicionado à sua frota'); } catch (x) {}
-  $('evtMsg').textContent = 'Yamaton é seu e já está equipado.'; renderEvt();
+  $('evtMsg').textContent = 'O Yamaton é seu e já está equipado.'; renderEvt();
   try { $('bal').textContent = '$ ' + fmt(save.coins); } catch (x) {}
 });
 
