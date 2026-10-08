@@ -3114,6 +3114,7 @@ function showOverlay(mode) {
   $('btnRank').hidden = !RANK_ON || mode === 'paused';
   $('btnShop').hidden = mode === 'paused'; $('btnBox').hidden = mode === 'paused';
   $('btnDaily').hidden = mode === 'paused'; try { dailyDot(); ensureSrv(); } catch (e) {}
+  $('btnEvt').hidden = mode === 'paused' || !evtAtivo(); try { evtDot(); } catch (e) {}
   $('btnMis').hidden = mode === 'paused'; try { misDot(); } catch (e) {}
   $('btnFr').hidden = !RANK_ON || mode === 'paused'; try { frPoll(); } catch (e) {}
   $('btnAcct').hidden = mode === 'paused';
@@ -4733,6 +4734,38 @@ async function claimDaily() {
 }
 $('btnDaily').addEventListener('click', () => { renderDaily(); dailyEl.hidden = false; dailyEl.scrollTop = 0; syncServerTime().then(() => { renderDaily(); dailyDot(); }); });
 $('dailyClaim').addEventListener('click', claimDaily);
+
+/* ---------- painel do evento: Colheita Sombria ---------- */
+const evtEl = $('evtEl');
+function evtState() {
+  const e = save.evt || { kills: 0, bosses: 0 }, own = save.owned.includes(EVENTO.ship);
+  const reqOk = e.kills >= EVENTO.kills && e.bosses >= EVENTO.bosses;
+  return { e, own, reqOk, canPay: save.coins >= EVENTO.coins, can: !own && reqOk && save.coins >= EVENTO.coins };
+}
+function evtDot() { const s = evtState(); $('btnEvt').classList.toggle('dot', evtAtivo() && !s.own && s.reqOk); }
+function renderEvt() {
+  const s = evtState(), sh = SHIPS.find(x => x.id === EVENTO.ship);
+  $('evtBal').textContent = '$ ' + fmt(save.coins);
+  $('evtShip').textContent = sh ? sh.name : 'Yamaton';
+  $('evtShipSub').textContent = s.own ? 'já conquistado' : 'barco de evento · custo $ ' + fmt(EVENTO.coins);
+  const row = (n, v, m) => '<div class="pbar"><span>' + n + '</span><div class="bar"><i style="transform:scaleX(' + clamp(v / m, 0, 1).toFixed(3) + ');background:' + (v >= m ? 'var(--good)' : '') + '"></i></div><b>' + fmt(Math.min(v, m)) + '/' + fmt(m) + '</b></div>';
+  $('evtBars').innerHTML = row('ABATES', s.own ? EVENTO.kills : s.e.kills, EVENTO.kills) + row('CHEFES', s.own ? EVENTO.bosses : s.e.bosses, EVENTO.bosses) + row('MOEDAS', Math.min(save.coins, EVENTO.coins), EVENTO.coins);
+  const b = $('evtClaim');
+  b.disabled = s.own || !s.can;
+  b.textContent = s.own ? 'Conquistado' : !s.reqOk ? 'Metas pendentes' : !s.canPay ? 'Faltam moedas' : 'Conquistar por $ ' + fmt(EVENTO.coins);
+  const c = $('evtPrize').querySelector('canvas'); if (c && sh) { try { shipThumb(c, sh); } catch (x) {} }
+  evtDot();
+}
+function openEvt() { $('evtMsg').textContent = ''; renderEvt(); evtEl.hidden = false; evtEl.scrollTop = 0; }
+$('btnEvt').addEventListener('click', openEvt);
+$('evtBack').addEventListener('click', () => { evtEl.hidden = true; try { $('bal').textContent = '$ ' + fmt(save.coins); } catch (x) {} });
+$('evtClaim').addEventListener('click', () => {
+  if (!claimEvento()) { renderEvt(); return; }
+  initAudio(); persist(); try { pushCloud(); } catch (x) {}
+  try { banner('Yamaton conquistado!', 'Barco de evento adicionado à sua frota'); } catch (x) {}
+  $('evtMsg').textContent = 'Yamaton é seu e já está equipado.'; renderEvt();
+  try { $('bal').textContent = '$ ' + fmt(save.coins); } catch (x) {}
+});
 
 /* ---------- missões diárias (3 por dia, iguais para todos, data do servidor) ---------- */
 const MIS = [

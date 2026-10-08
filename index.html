@@ -129,7 +129,8 @@
         <button class="btn ghost" id="btnAch" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg><span>Conquistas</span></button>
         <button class="btn ghost" id="btnBox" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8l9-5 9 5v9l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v9"/></svg><span>Caixas</span></button>
         <button class="btn ghost" id="btnShop" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l2-5h14l2 5M3 9h18M3 9v11h18V9M9 20v-6h6v6"/></svg><span>Loja</span></button>
-        <button class="btn ghost evtbtn" id="btnDaily" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="13" rx="1"/><path d="M12 8v13M3 12h18M12 8c-2-4-6-4-6-1s4 1 6 1zm0 0c2-4 6-4 6-1s-4 1-6 1z"/></svg><span>Diário</span></button>
+        <button class="btn ghost evtbtn" id="btnEvt" type="button" hidden><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c-4 0-7 3-7 7v3l-2 2v2h4v3h10v-3h4v-2l-2-2v-3c0-4-3-7-7-7z"/><circle cx="9" cy="11" r="1.2"/><circle cx="15" cy="11" r="1.2"/></svg><span>Evento</span></button>
+        <button class="btn ghost" id="btnDaily" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="13" rx="1"/><path d="M12 8v13M3 12h18M12 8c-2-4-6-4-6-1s4 1 6 1zm0 0c2-4 6-4 6-1s-4 1-6 1z"/></svg><span>Diário</span></button>
         <button class="btn ghost" id="btnMis" type="button"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg><span>Missões</span></button>
       </div></div>
       <div class="mfoot">
@@ -379,6 +380,14 @@
   <p class="note" id="frMsg" style="margin:0"></p>
   <div id="frBody"></div>
   <div class="actions"><button class="btn ghost" id="frBack" type="button">Voltar</button></div>
+</div></div>
+<div class="overlay" id="evtEl" hidden><div class="panel">
+  <div class="w-top"><h1>Colheita Sombria</h1><div class="w-bal" id="evtBal">$ 0</div></div>
+  <p class="note" style="margin:0">Evento limitado: cumpra as metas de abates e chefes e pague o custo para conquistar o Yamaton, o barco Ceifador. Seu progresso fica salvo na conta e o barco é permanente.</p>
+  <div class="dl-cell big" id="evtPrize" style="min-height:0"><canvas width="152" height="112"></canvas><b id="evtShip">Yamaton</b><em id="evtShipSub"></em></div>
+  <div class="pbars" id="evtBars"></div>
+  <p class="note" id="evtMsg" style="margin:0"></p>
+  <div class="actions"><button class="btn" id="evtClaim" type="button">Conquistar</button><button class="btn ghost" id="evtBack" type="button">Voltar</button></div>
 </div></div>
 <script src="game.js"></script>
 </body>
