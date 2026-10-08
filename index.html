@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=evt4">
 </head>
 <body>
 <div id="loading" role="status" aria-live="polite">
@@ -86,8 +86,7 @@
 <div id="resumeCd" hidden aria-hidden="true">3</div>
 <div class="overlay" id="ov">
   <div class="panel menu">
-    <div class="ovtop"><div class="kicker" id="ovKicker"></div><span class="chip" id="bal"></span></div>
-    <button class="evtban" id="btnEvt" type="button" hidden aria-label="Abrir evento Colheita Sombria"><span class="eb-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c-4 0-7 3-7 7v3l-2 2v2h4v3h10v-3h4v-2l-2-2v-3c0-4-3-7-7-7z"/><circle cx="9" cy="11" r="1.2"/><circle cx="15" cy="11" r="1.2"/></svg></span><span class="eb-txt"><small>Evento limitado</small><b>Colheita Sombria</b><span class="eb-bar"><i id="ebFill"></i></span></span><span class="eb-st" id="ebSt">0%</span></button>
+    <div class="ovtop"><div class="kicker" id="ovKicker"></div><span class="ovr"><span class="chip" id="bal"></span></span></div>
     <h1 class="title" id="ovTitle"></h1>
     <p class="lead" id="ovLead"></p>
     <div class="pinfo" id="pauseInfo" hidden>
@@ -111,6 +110,12 @@
       <div><dt>Moedas ganhas</dt><dd id="sCoins">0</dd></div>
     </dl>
     <p class="note" id="sendMsg"></p>
+    <button class="evcard" id="btnEvt" type="button" hidden aria-label="Abrir evento Colheita Sombria">
+      <span class="evc-art"><canvas width="152" height="112" aria-hidden="true"></canvas></span>
+      <span class="evc-txt"><small>Evento limitado</small><b>Colheita Sombria</b><em id="evcSub"></em></span>
+      <span class="evc-st" id="ebSt">0%</span>
+      <i class="evc-bar" aria-hidden="true"></i>
+    </button>
     <div class="actions mmenu">
       <div class="mprimary">
         <button class="btn" id="btnMain" type="button">Zarpar</button>
@@ -381,19 +386,21 @@
   <div id="frBody"></div>
   <div class="actions"><button class="btn ghost" id="frBack" type="button">Voltar</button></div>
 </div></div>
-<div class="overlay" id="evtEl" hidden><div class="panel evp" role="dialog" aria-label="Evento Colheita Sombria">
-  <div class="ev-head"><div><div class="kicker">Evento limitado</div><h1 class="title sm">Colheita Sombria</h1></div><span class="chip" id="evtBal"></span></div>
+<div class="overlay" id="evtEl" hidden><div class="panel evp" role="dialog" aria-modal="true" aria-labelledby="evtTitle">
+  <div class="ev-head"><div><div class="kicker">Evento limitado</div><h1 class="title sm" id="evtTitle">Colheita Sombria</h1></div><span class="chip" id="evtBal"></span></div>
   <div class="ev-hero">
     <div class="ev-art"><canvas width="152" height="112"></canvas></div>
     <div class="ev-hinfo"><span class="ev-tag" id="evtTag">Barco de evento</span><b id="evtShip">Yamaton</b><span class="ev-sub" id="evtShipSub"></span><div class="ev-stats" id="evtStats"></div></div>
   </div>
-  <div class="ev-sec"><span>Objetivos</span><b id="evtOverall"></b></div>
-  <div class="ev-goals" id="evtBars"></div>
+  <div class="ev-sec"><span>Para conquistar</span><b id="evtOverall"></b></div>
+  <ol class="ev-steps" id="evtBars"></ol>
   <div class="ev-sec"><span>Poderes do navio</span></div>
   <div class="ev-perks" id="evtPerks"></div>
-  <p class="note" id="evtMsg" aria-live="polite"></p>
-  <div class="actions"><button class="btn" id="evtClaim" type="button">Conquistar</button><button class="btn ghost" id="evtBack" type="button">Voltar</button></div>
+  <div class="ev-foot">
+    <p class="note" id="evtMsg" aria-live="polite"></p>
+    <div class="actions"><button class="btn" id="evtClaim" type="button">Conquistar</button><button class="btn ghost" id="evtBack" type="button">Voltar</button></div>
+  </div>
 </div></div>
-<script src="game.js"></script>
+<script src="game.js?v=evt4"></script>
 </body>
 </html>

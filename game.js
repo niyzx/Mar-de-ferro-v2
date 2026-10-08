@@ -131,7 +131,7 @@ const SHIPS = [
   { id: 'n77', rar: 'Admin', name: 'N-77', cost: 0, adminOnly: true, adm: true, multi: 3, note: 'Exclusivo de administradores. Menu de poderes: usa o poder de qualquer navio, sem recarga e sem limite. Poderes exclusivos: Buraco negro (puxa todos os inimigos para um ponto até você desligar) e Meteoro (afunda todos os inimigos). Dispara 3 tiros por salva', hp: 1500, dmg: 45, rel: .35, speed: 210,
     spec: Object.assign({}, SPEC.player, { len: 132, wid: 30, turn: 1.7, hull: '#1b1b2a', deck: '#34344d', dark: '#0c0c16', stroke: '#b44cff', accent: '#b44cff',
       turrets: [{ x: .34, r: 7.5, bl: 28 }, { x: .08, r: 8, bl: 30 }, { x: -.2, r: 7.5, bl: 28 }], cabin: { x: -.38, l: 16, w: 12 }, funnel: null }) },
-  { id: 'reaper', rar: 'Limitado', name: 'Yamaton', cost: 0, eventOnly: true, reaper: true, note: 'Barco de Evento. Ceifador: +8% de casco ao afundar um navio · Execução: +25% de dano em inimigos abaixo de 30% · Colheita Sombria: +20% de casco ao derrotar um chefe', hp: 670, dmg: 34, rel: .5, speed: 155,
+  { id: 'reaper', rar: 'Limitado', name: 'Yamaton', cost: 0, eventOnly: true, reaper: true, note: 'Barco de Evento. Ceifador: +14% de casco ao afundar um navio · Execução: +35% de dano em inimigos abaixo de 30% · Colheita Sombria: +27% de casco ao derrotar um chefe', hp: 670, dmg: 44, rel: .5, speed: 167,
     spec: Object.assign({}, SPEC.player, { len: 128, wid: 34, turn: 1.3, hull: '#1c1c26', deck: '#33333f', dark: '#0a0a10', stroke: '#c1121f', accent: '#ff2b3a',
       turrets: [{ x: .34, r: 7, bl: 26 }, { x: .08, r: 8, bl: 30 }, { x: -.2, r: 7, bl: 26 }], cabin: { x: -.38, l: 16, w: 12 }, funnel: { x: -.3, r: 4.4 } }) }
 ];
@@ -2064,7 +2064,7 @@ function sinkEnemy(e) {
   G.wrecks.push({ x: e.x, y: e.y, heading: e.heading, spec: e.spec, aim: e.aim, t: 0, vx: e.vx * .3, vy: e.vy * .3 });
   G.score += e.spec.score; G.kills++; save.kills++; evtAdd(1, e.type === 'boss' ? 1 : 0); misAdd('kills', 1); misAdd('score', G.score, 1); if (e.type === 'boss') misAdd('boss', 1); if (e.type === 'boss') { save.bosses++; banner('Chefe derrotado', '+' + e.spec.score + ' pontos'); }
   const rp = G.player;
-  if (rp && rp.reaperAb && !rp.dead && MP.role !== 'guest') { const hl = Math.round(rp.max * (e.type === 'boss' ? .2 : .08)); rp.hp = Math.min(rp.max, rp.hp + hl); floatText(rp.x, rp.y - 34, '+' + hl + ' casco', '#ff5a5a'); }
+  if (rp && rp.reaperAb && !rp.dead && MP.role !== 'guest') { const hl = Math.round(rp.max * (e.type === 'boss' ? .27 : .14)); rp.hp = Math.min(rp.max, rp.hp + hl); floatText(rp.x, rp.y - 34, '+' + hl + ' casco', '#ff5a5a'); }
   const gain = addCoins(Math.round(e.spec.score / 10 * (G.hc ? 1.5 : 1)));
   floatText(e.x, e.y - 22, '+' + e.spec.score + ' · $' + gain, '#e0a93c'); setTimeout(sfx.coin, 160);
   if (Math.random() < (e.type === 'boss' || e.type === 'battle' ? 1 : e.type === 'blindado' ? .4 : e.type === 'frigate' ? .28 : e.type === 'lancha' || e.type === 'brulote' ? .08 : e.type === 'transporte' || e.type === 'reparador' ? .5 : e.type === 'artilheiro' ? .3 : e.type === 'submersivel' ? .25 : .14)) dropCrate(e.x, e.y);
@@ -2278,7 +2278,7 @@ function updateBalls(dt) {
         for (let j = G.enemies.length - 1; j >= 0; j--) {
           const e = G.enemies[j];
           if (!(e.cloak > 0) && !(b.pr && b.pr.has(e)) && (hitShip(b.x, b.y, e) || (b.r && Math.hypot(b.x - e.x, b.y - e.y) < b.r + e.spec.wid * .5))) {
-            const exe = b.rp && e.hp < e.max * .3; if (!(e.shield > 0)) e.hp -= exe ? Math.round(b.dmg * 1.25) : b.dmg; e.flash = .12; hit = !b.pr; if (b.pr) b.pr.add(e); if (exe) sparks(b.x, b.y, 6, 200);
+            const exe = b.rp && e.hp < e.max * .3; if (!(e.shield > 0)) e.hp -= exe ? Math.round(b.dmg * 1.35) : b.dmg; e.flash = .12; hit = !b.pr; if (b.pr) b.pr.add(e); if (exe) sparks(b.x, b.y, 6, 200);
             sparks(b.x, b.y, 10, 240); G.shake = Math.max(G.shake, Math.min(G.shake + .6, 3)); addP({ t: 'flash', x: b.x, y: b.y, life: .16, size: 20 }); addP({ t: 'cring', c: '255,214,130', x: b.x, y: b.y, life: .22, size: 3, grow: 70, w: 1.5 });
             sfx.hit(); if (MP.role === 'host') evp(['k', 'h']);
             if (e.hp <= 0) { G.enemies.splice(j, 1); sinkEnemy(e); }
@@ -4747,8 +4747,11 @@ function evtDot() {
   const b = $('btnEvt'); if (!b) return;
   const s = evtState();
   b.classList.toggle('ready', !s.own && s.can); b.classList.toggle('own', s.own);
-  $('ebFill').style.transform = 'scaleX(' + s.pct.toFixed(3) + ')';
-  $('ebSt').textContent = s.own ? '✓ POSSUÍDO' : s.can ? 'RESGATAR' : s.reqOk ? 'FALTAM $' : Math.floor(s.pct * 100) + '%';
+  b.style.setProperty('--p', s.pct.toFixed(3));
+  { const sh = SHIPS.find(x => x.id === EVENTO.ship) || {}, nm = sh.name || 'Yamaton';
+    $('evcSub').textContent = s.own ? nm + ' · na sua frota' : s.can ? nm + ' · pronto para conquistar' : nm + ' · ' + Math.floor(s.pct * 100) + '% das metas';
+    const cv = b.querySelector('canvas'); if (cv && sh.id && cv.dataset.s !== sh.id) { cv.dataset.s = sh.id; try { shipThumb(cv, sh); } catch (e) {} } }
+  $('ebSt').textContent = s.own ? '✓ POSSUÍDO' : s.can ? 'RESGATAR' : s.reqOk ? 'FALTA $' : Math.floor(s.pct * 100) + '%';
 }
 function evtPerks(sh) {
   const parts = String(sh && sh.note || '').replace(/^Barco de Evento\.\s*/, '').split(' · ').filter(Boolean);
@@ -4765,12 +4768,12 @@ function renderEvt() {
     .filter(x => x[1] !== undefined && x[1] !== '').map(x => '<span><small>' + x[0] + '</small><b>' + x[1] + '</b></span>').join('');
   $('evtOverall').textContent = s.own ? 'Completo' : Math.floor(s.pct * 100) + '% das metas';
   const k = s.own ? EVENTO.kills : s.e.kills, bo = s.own ? EVENTO.bosses : s.e.bosses, co = s.own ? EVENTO.coins : Math.min(save.coins, EVENTO.coins);
-  const goal = (t, v, m, pay) => {
-    const ok = v >= m;
-    return '<div class="ev-goal' + (ok ? ' ok' : '') + '"><i class="ev-ck">' + (ok ? '✓' : '') + '</i><div class="ev-gt"><span>' + t + '</span><b>' + fmt(Math.min(v, m)) + ' / ' + fmt(m) + '</b></div>' +
-      '<div class="bar"><i style="transform:scaleX(' + clamp(v / m, 0, 1).toFixed(3) + ')"></i></div></div>';
+  const step = (n, t, v, m, money) => {
+    const ok = v >= m, f = x => (money ? '$ ' : '') + fmt(x);
+    return '<li class="ev-step' + (ok ? ' ok' : '') + '"><i class="ev-nd" aria-hidden="true">' + (ok ? '✓' : n) + '</i><div class="ev-sb"><div class="ev-gt"><span>' + t + '</span><b>' + f(Math.min(v, m)) + ' / ' + f(m) + '</b></div>' +
+      '<div class="bar"><i style="--v:' + clamp(v / m, 0, 1).toFixed(3) + '"></i></div>' + (ok ? '' : '<small>Faltam ' + f(m - v) + '</small>') + '</div></li>';
   };
-  $('evtBars').innerHTML = goal('Afundar navios inimigos', k, EVENTO.kills) + goal('Derrotar chefes', bo, EVENTO.bosses) + goal('Custo em moedas', co, EVENTO.coins);
+  $('evtBars').innerHTML = step(1, 'Afundar navios inimigos', k, EVENTO.kills) + step(2, 'Derrotar chefes', bo, EVENTO.bosses) + step(3, 'Juntar moedas para pagar', co, EVENTO.coins, true);
   $('evtPerks').innerHTML = evtPerks(sh).map(p => '<div class="ev-perk">' + (p.n ? '<b>' + p.n + '</b>' : '') + '<span>' + p.d + '</span></div>').join('');
   const b = $('evtClaim');
   b.disabled = s.own || !s.can;
@@ -4784,8 +4787,9 @@ $('evtBack').addEventListener('click', () => { evtEl.hidden = true; try { $('bal
 $('evtClaim').addEventListener('click', () => {
   if (!claimEvento()) { renderEvt(); return; }
   initAudio(); persist(); try { pushCloud(); } catch (x) {}
-  try { banner('Yamaton conquistado!', 'Barco de evento adicionado à sua frota'); } catch (x) {}
-  $('evtMsg').textContent = 'O Yamaton é seu e já está equipado.'; renderEvt();
+  const nm = (SHIPS.find(x => x.id === EVENTO.ship) || {}).name || 'Yamaton';
+  try { banner(nm + ' conquistado!', 'Barco de evento adicionado à sua frota'); } catch (x) {}
+  $('evtMsg').textContent = 'O ' + nm + ' é seu e já está equipado.'; renderEvt();
   try { $('bal').textContent = '$ ' + fmt(save.coins); } catch (x) {}
 });
 
