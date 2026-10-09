@@ -3112,7 +3112,7 @@ function showOverlay(mode) {
   btnAlt.hidden = mode !== 'paused';
   $('btnMenu').hidden = mode === 'menu';
   $('btnRank').hidden = !RANK_ON || mode === 'paused';
-  $('btnShop').hidden = mode === 'paused'; $('btnBox').hidden = mode === 'paused';
+  $('btnShop').hidden = mode === 'paused'; $('btnBox').hidden = mode === 'paused'; $('btnYard').hidden = mode === 'paused';
   $('btnDaily').hidden = mode === 'paused'; try { dailyDot(); ensureSrv(); } catch (e) {}
   $('btnEvt').hidden = mode === 'paused' || !evtAtivo(); try { evtDot(); } catch (e) {}
   $('btnMis').hidden = mode === 'paused'; try { misDot(); } catch (e) {}
@@ -4540,24 +4540,20 @@ function shopStock(slot) {
   return set;
 }
 const shopInStock = (s, slot) => shopStock(slot === undefined ? shopSlot() : slot).has(s.id);
-let shopSlotShown = -1, shopTab = 'stock', shopArmed = '', shopArmT = 0, shopFlash = '';
+let shopSlotShown = -1, shopArmed = '', shopArmT = 0, shopFlash = '';
 function shopStat(l, v, mx) { return '<div class="sb"><span>' + l + '</span><i><u style="width:' + clamp(v / mx * 100, 6, 100).toFixed(0) + '%"></u></i></div>'; }
 function renderShop() {
   const slot = shopSlot(); shopSlotShown = slot;
   $('shopCoins').textContent = fmt(save.coins);
   const stock = shopStock(slot), all = shopList();
   const mH = Math.max(...all.map(x => x.hp)), mD = Math.max(...all.map(x => x.dmg * (x.multi || 1) / x.rel)), mS = Math.max(...all.map(x => x.speed));
-  const cnt = { stock: all.length, own: all.filter(x => save.owned.includes(x.id)).length };
-  for (const t of $('shopTabs').children) { t.classList.toggle('on', t.dataset.t === shopTab); t.querySelector('i').textContent = cnt[t.dataset.t]; }
-  let list = all.filter(x => shopTab === 'own' ? save.owned.includes(x.id) : true);
+  const list = all.slice();
   const rk0 = x => save.owned.includes(x.id) ? 1 : stock.has(x.id) ? 0 : 2;
-  list.sort((a, b) => (shopTab === 'stock' ? rk0(a) - rk0(b) : 0) || (SHOP_ORD[b.rar] || 0) - (SHOP_ORD[a.rar] || 0) || a.cost - b.cost);
-  if (!list.length) { shopBody.innerHTML = '<p class="shop-empty">' + 'Você ainda não comprou nenhum barco.' + '</p>'; shopTick(); return; }
+  list.sort((a, b) => rk0(a) - rk0(b) || (SHOP_ORD[b.rar] || 0) - (SHOP_ORD[a.rar] || 0) || a.cost - b.cost);
   shopBody.innerHTML = list.map(s => {
     const own = save.owned.includes(s.id), st = stock.has(s.id), can = save.coins >= s.cost, armed = shopArmed === s.id;
     const pct = Math.round((SHOP_CHANCE[s.rar] || .1) * 100), rk = (s.rar || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    const act = own && shopTab === 'stock' ? '<div class="shop-owned">✓ Possuído</div>'
-      : own ? '<button class="btn ghost shop-btn" type="button" data-a="eq" data-id="' + s.id + '"' + (save.ship === s.id ? ' disabled>✓ Equipado' : '>Equipar') + '</button>'
+    const act = own ? '<div class="shop-owned">✓ Possuído</div>'
       : !st ? '<div class="shop-out">Fora de estoque</div>'
       : can ? '<button class="btn shop-btn' + (armed ? ' armed' : '') + '" type="button" data-a="buy" data-id="' + s.id + '">' + (armed ? 'Confirmar · ' : 'Comprar · ') + '$ ' + fmt(s.cost) + '</button>'
       : '<button class="btn shop-btn" type="button" disabled>Faltam $ ' + fmt(s.cost - save.coins) + '</button>';
@@ -4586,8 +4582,7 @@ shopBody.addEventListener('click', e => {
   const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
   const id = b.dataset.id, s = shipById(id); if (!s || !isPub(id)) return;
   initAudio();
-  if (b.dataset.a === 'eq' && save.owned.includes(id)) { save.ship = id; sfx.click && sfx.click(); }
-  else if (b.dataset.a === 'buy') {
+  if (b.dataset.a === 'buy') {
     if (save.owned.includes(id) || !shopInStock(s) || save.coins < s.cost) return;
     if (s.cost >= CONFIRM_MIN && shopArmed !== id) { shopArmed = id; clearTimeout(shopArmT); shopArmT = setTimeout(() => { shopArmed = ''; if (!shopEl.hidden) renderShop(); }, 4000); sfx.click && sfx.click(); renderShop(); return; }
     shopArmed = ''; clearTimeout(shopArmT);
@@ -4596,11 +4591,83 @@ shopBody.addEventListener('click', e => {
   } else return;
   persist(); pushCloud(); renderShop();
 });
-$('shopTabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) { shopTab = b.dataset.t; shopArmed = ''; renderShop(); shopEl.scrollTop = 0; } });
 $('btnShop').addEventListener('click', shopOpen);
 $('modeShop').addEventListener('click', shopOpen);
 $('shopBack').addEventListener('click', () => { shopEl.hidden = true; if (!modeEl.hidden) openLaunch(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !shopEl.hidden) $('shopBack').click(); });
+
+/* ---------- oficina: todos os navios da frota + melhorias por navio ---------- */
+const yardEl = $('yard'), yardBody = $('yardBody'), yardFleet = $('yardFleet');
+let yardSel = '', yardFlash = '';
+const yardShips = () => shopShips().filter(x => save.owned.includes(x.id));
+const yardVal = {
+  hull: (sh, l) => Math.round(sh.hp * (1 + .15 * l)),
+  gun: (sh, l) => Math.round(sh.dmg * (1 + .12 * l)),
+  rel: (sh, l) => (sh.rel * (1 - .07 * l)).toFixed(2).replace('.', ',') + ' s',
+  eng: (sh, l) => Math.round(sh.speed * (1 + .06 * l))
+};
+const yardLabel = { hull: 'Casco', gun: 'Dano por tiro', rel: 'Intervalo entre tiros', eng: 'Velocidade' };
+const yardRar = s => (s.rar || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+function renderYard() {
+  const list = yardShips();
+  if (!list.some(x => x.id === yardSel)) yardSel = list.some(x => x.id === save.ship) ? save.ship : (list[0] ? list[0].id : 'corveta');
+  $('yardCoins').textContent = fmt(save.coins);
+  const keep = yardFleet.scrollLeft;
+  yardFleet.innerHTML = list.map(x => {
+    const u = upOf(x.id), sum = UPS.reduce((t, p) => t + (u[p.k] || 0), 0);
+    return '<button type="button" class="lcard' + (x.id === yardSel ? ' on' : '') + (x.id === save.ship ? ' eq' : '') + '" role="option" aria-selected="' + (x.id === yardSel) + '" data-id="' + x.id + '"><canvas width="192" height="96"></canvas><b>' + x.name + '</b>' + rarTag(x) + '<small>Nv ' + sum + '/' + UPS.length * MAXLV + '</small></button>';
+  }).join('');
+  yardFleet.scrollLeft = keep;
+  [...yardFleet.children].forEach((c, i) => { try { shipThumb(c.querySelector('canvas'), list[i]); } catch (e) {} });
+  const sh = shipById(yardSel) || SHIPS[0], U = upOf(sh.id), eq = save.ship === sh.id;
+  const sum = UPS.reduce((t, p) => t + (U[p.k] || 0), 0);
+  const ups = UPS.map(p => {
+    const l = U[p.k] || 0, max = l >= MAXLV, cost = upCost(l), can = save.coins >= cost;
+    const pips = Array.from({ length: MAXLV }, (_, i) => '<s' + (i < l ? ' class="on"' : '') + '></s>').join('');
+    const val = yardLabel[p.k] + ': <b>' + yardVal[p.k](sh, l) + '</b>' + (max ? '' : ' → <em>' + yardVal[p.k](sh, l + 1) + '</em>');
+    const act = max ? '<div class="yd-max">Máximo</div>'
+      : can ? '<button class="btn yd-btn" type="button" data-up="' + p.k + '">Melhorar · $ ' + fmt(cost) + '</button>'
+      : '<button class="btn yd-btn" type="button" disabled>Faltam $ ' + fmt(cost - save.coins) + '</button>';
+    return '<div class="yd-up' + (yardFlash === p.k ? ' flash' : '') + '"><div class="t"><b>' + p.n + '</b><small>Nv ' + l + '/' + MAXLV + ' · ' + p.d + ' por nível</small><div class="yd-pips">' + pips + '</div><div class="v">' + val + '</div></div>' + act + '</div>';
+  }).join('');
+  yardBody.innerHTML = '<div class="yd-hero r-' + yardRar(sh) + '"><canvas width="224" height="96"></canvas><div class="yd-hi"><div class="ln"><b>' + sh.name + '</b>' + rarTag(sh) + '</div>'
+    + '<span class="yd-sum">Melhorias ' + sum + '/' + UPS.length * MAXLV + '</span>'
+    + '<button class="btn' + (eq ? ' ghost' : '') + '" type="button" data-eq="' + sh.id + '"' + (eq ? ' disabled>✓ Equipado' : '>Equipar') + '</button></div></div>'
+    + '<div class="yd-ups">' + ups + '</div>'
+    + (sh.note ? '<p class="lpow"><b>Poder</b>' + sh.note + '</p>' : '');
+  yardFlash = '';
+  try { shipThumb(yardBody.querySelector('.yd-hero canvas'), sh); } catch (e) {}
+}
+function yardOpen() {
+  yardSel = save.owned.includes(save.ship) ? save.ship : 'corveta';
+  yardEl.hidden = false; renderYard(); yardEl.scrollTop = 0;
+  const cur = yardFleet.querySelector('.lcard.on');
+  if (cur) yardFleet.scrollLeft = Math.max(0, cur.offsetLeft - (yardFleet.clientWidth - cur.offsetWidth) / 2 - yardFleet.offsetLeft);
+}
+yardFleet.addEventListener('click', e => { const c = e.target.closest('.lcard'); if (!c) return; yardSel = c.dataset.id; sfx.click && sfx.click(); renderYard(); });
+yardFleet.addEventListener('keydown', e => {
+  if (e.code !== 'ArrowLeft' && e.code !== 'ArrowRight') return;
+  const cs = [...yardFleet.children], i = cs.findIndex(c => c.classList.contains('on')), n = cs[clamp(i + (e.code === 'ArrowRight' ? 1 : -1), 0, cs.length - 1)];
+  if (n) { yardSel = n.dataset.id; renderYard(); const m = yardFleet.querySelector('.lcard.on'); if (m) { m.focus(); m.scrollIntoView({ inline: 'nearest', block: 'nearest' }); } e.stopPropagation(); }
+});
+yardBody.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  initAudio();
+  if (b.dataset.eq) {
+    if (!save.owned.includes(b.dataset.eq)) return;
+    save.ship = b.dataset.eq; sfx.click && sfx.click();
+  } else if (b.dataset.up) {
+    const sh = shipById(yardSel), p = UPS.find(x => x.k === b.dataset.up); if (!sh || !p || !save.owned.includes(sh.id)) return;
+    const U = upOf(sh.id), l = U[p.k] || 0, cost = upCost(l);
+    if (l >= MAXLV || save.coins < cost) return;
+    save.coins -= cost; U[p.k] = l + 1; yardFlash = p.k; sfx.pick && sfx.pick();
+  } else return;
+  persist(); pushCloud(); renderYard();
+});
+$('btnYard').addEventListener('click', yardOpen);
+$('modeYard').addEventListener('click', yardOpen);
+$('yardBack').addEventListener('click', () => { yardEl.hidden = true; if (!modeEl.hidden) openLaunch(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !yardEl.hidden) $('yardBack').click(); });
 
 /* ---------- caixas: o prêmio é sorteado e salvo ANTES da animação ---------- */
 const BOX_RAR = ['Comum', 'Incomum', 'Raro', 'Épico', 'Lendário'];

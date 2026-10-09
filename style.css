@@ -511,7 +511,7 @@ body:not(.touch) .help .only-touch { display: none; }
 @media (orientation: landscape) and (max-height: 520px) { .pf-av.big { width: 76px; height: 76px; font-size: 34px; } .pep { width: min(640px, 100%); } }
 
 /* telas cheias: fundo quase opaco (o menu não vaza por trás) e espaço para a faixa de avisos */
-:is(#cfg, #rank, #achEl, #shop, #boxEl, #mpEl, #prof, #helpEl, #modeEl, #acctEl, #auth, #adm) { background: rgba(6, 18, 26, .96); }
+:is(#cfg, #rank, #achEl, #shop, #yard, #boxEl, #mpEl, #prof, #helpEl, #modeEl, #acctEl, #auth, #adm) { background: rgba(6, 18, 26, .96); }
 body:has(#admBanner:not([hidden])) .overlay { padding-top: calc(env(safe-area-inset-top, 0px) + 52px); }
 /* minimapa (canto superior direito) e ajustes da coluna de HUD ao redor dele */
 body:has(#admBanner:not([hidden])) .hud { padding-top: calc(env(safe-area-inset-top, 0px) + 40px); }
@@ -672,7 +672,7 @@ body:has(#admBanner:not([hidden])) .hud { padding-top: calc(env(safe-area-inset-
 @media(max-width:380px){.ac-card{grid-template-columns:40px minmax(0,1fr);}.ac-ico{width:40px;height:40px;font-size:18px}.ac-rw{grid-column:2;text-align:left;display:flex;gap:6px;align-items:baseline}.ac-rw b{font-size:16px}.ring{width:76px;height:76px}.ring b{font-size:21px}.acount b{font-size:38px}}
 @media(orientation:landscape) and (max-height:520px){.ring{width:68px;height:68px}.ring::before{inset:6px}.ring b{font-size:19px}.acount b{font-size:34px}}
 
-body[data-state="playing"] #btnCfg, body:has(#mpEl:not([hidden]), #auth:not([hidden]), #acctEl:not([hidden]), #achEl:not([hidden]), #helpEl:not([hidden]), #peEl:not([hidden]), #rank:not([hidden]), #prof:not([hidden]), #shop:not([hidden]), #boxEl:not([hidden]), #adm:not([hidden]), #frEl:not([hidden])) #btnCfg { display: none; }
+body[data-state="playing"] #btnCfg, body:has(#mpEl:not([hidden]), #auth:not([hidden]), #acctEl:not([hidden]), #achEl:not([hidden]), #helpEl:not([hidden]), #peEl:not([hidden]), #rank:not([hidden]), #prof:not([hidden]), #shop:not([hidden]), #yard:not([hidden]), #boxEl:not([hidden]), #adm:not([hidden]), #frEl:not([hidden])) #btnCfg { display: none; }
 #shop .panel { width: min(560px, 100%); }
 .w-top { padding-bottom: 8px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, rgba(224,169,60,.10), transparent 70%); }
 .w-top h1 { text-shadow: 0 2px 12px rgba(224,169,60,.35); }
@@ -1150,3 +1150,39 @@ body[data-state="playing"] #btnCfg, body:has(#mpEl:not([hidden]), #auth:not([hid
 .btn.ghost.ac-out { margin-left: auto; color: var(--rust); border-color: rgba(226, 85, 47, .45); }
 .btn.ghost.ac-out:hover { border-color: var(--rust); }
 @media (max-width: 380px) { .ac-sync { flex-wrap: wrap; } .ac-sync .btn { width: 100%; } }
+
+
+/* oficina */
+#yard .panel { width: min(560px, 100%); gap: 10px; }
+#yard .w-top { background: linear-gradient(90deg, rgba(224,169,60,.10), transparent 70%); }
+#yardFleet .lcard { position: relative; }
+#yardFleet .lcard small { font-size: 10px; letter-spacing: .1em; color: var(--steel); font-variant-numeric: tabular-nums; }
+#yardFleet .lcard.eq::before { content: ''; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 6px var(--good); }
+#yardBody { display: flex; flex-direction: column; gap: 10px; animation: shopIn .25s ease-out; }
+.yd-hero { --rc: var(--line); display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(10,31,44,.62); border: 1px solid var(--line); border-top: 3px solid var(--rc); }
+.yd-hero.r-comum { --rc: #9fb3b8; } .yd-hero.r-incomum { --rc: #6fcf8a; } .yd-hero.r-raro { --rc: #5aa9ff; } .yd-hero.r-epico { --rc: #b074ff; } .yd-hero.r-lendario { --rc: #ffa93c; }
+.yd-hero canvas { flex: none; width: 46%; max-width: 224px; height: auto; aspect-ratio: 224 / 96; }
+.yd-hi { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.yd-hi .ln { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.yd-hi .ln b { font: 900 24px/1 var(--font-display); letter-spacing: .05em; text-transform: uppercase; }
+.yd-hi .yd-sum { font-size: 11px; color: var(--steel); font-variant-numeric: tabular-nums; }
+.yd-hi .btn { min-height: 38px; font-size: 15px; padding: 4px 10px; }
+.yd-ups { display: flex; flex-direction: column; gap: 8px; }
+.yd-up { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 10px; padding: 10px; background: rgba(10,31,44,.62); border: 1px solid var(--line); }
+.yd-up .t > b { display: block; font: 900 18px/1.1 var(--font-display); letter-spacing: .05em; text-transform: uppercase; }
+.yd-up .t small { display: block; margin-top: 2px; font-size: 11px; color: var(--steel); }
+.yd-up .v { margin-top: 6px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.yd-up .v b { font-weight: 600; }
+.yd-up .v em { font-style: normal; color: var(--good); }
+.yd-pips { display: flex; gap: 4px; margin-top: 6px; }
+.yd-pips s { flex: 1; height: 6px; background: rgba(212,232,234,.12); text-decoration: none; }
+.yd-pips s.on { background: var(--brass); }
+.yd-btn { min-width: 124px; min-height: 42px; padding: 4px 10px; font-size: 15px; }
+.yd-max { min-width: 124px; padding: 10px 8px; text-align: center; font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--brass); border: 1px solid var(--brass); background: rgba(224,169,60,.08); }
+.yd-up.flash { animation: yardflash .9s ease-out; }
+@keyframes yardflash { 0% { box-shadow: 0 0 0 0 var(--brass), 0 0 26px var(--brass); } 100% { box-shadow: 0 0 0 0 transparent; } }
+@media (max-width: 480px) { .yd-hero { flex-direction: column; align-items: stretch; text-align: center; } .yd-hero canvas { width: 70%; align-self: center; } .yd-hi .ln { justify-content: center; } .yd-btn, .yd-max { min-width: 108px; } }
+@media (prefers-reduced-motion: reduce) { #yardBody, .yd-up.flash { animation: none; } }
+/* menu: grupo Frota com 6 botões em 2 linhas de 3 */
+.mgrp.fleet .mtiles { flex-wrap: wrap; }
+.mgrp.fleet .mtiles .btn.ghost { flex: 1 1 calc(33.3% - 6px); }
