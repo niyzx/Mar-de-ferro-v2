@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=evt4">
+<link rel="stylesheet" href="style.css?v=prof5">
 </head>
 <body>
 <div id="loading" role="status" aria-live="polite">
@@ -302,30 +302,34 @@
   <div class="cfbody" id="cfgBody"></div>
   <div class="actions cfoot"><button class="btn ghost" id="cfgReset" type="button">Restaurar padrões</button><button class="btn" id="cfgBack" type="button">Concluir</button></div>
 </div></div>
-<div class="overlay" id="prof" hidden><div class="panel">
-  <div class="kicker">Perfil</div>
-  <h1 class="title sm" id="profName"></h1>
-  <div id="profBody" style="font-size:13px;line-height:1.5;max-height:60vh;overflow-y:auto"></div>
+<div class="overlay" id="prof" hidden><div class="panel profp" role="dialog" aria-label="Perfil">
+  <div class="pf-top"><div class="kicker">Perfil do capitão</div><button class="ibtn" id="profX" type="button" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <h1 class="pf-sr" id="profName"></h1>
+  <div id="profBody"></div>
   <p class="note" id="profMsg" aria-live="polite" style="margin:0"></p>
-  <div class="actions"><button class="btn" id="profEdit" type="button" hidden>Editar perfil</button><button class="btn" id="profFriend" type="button" hidden>Adicionar amigo</button><button class="btn ghost" id="profBack" type="button">Voltar</button></div>
+  <div class="actions pf-act"><button class="btn" id="profEdit" type="button" hidden>Editar perfil</button><button class="btn" id="profFriend" type="button" hidden>Adicionar amigo</button><button class="btn ghost" id="profBack" type="button">Voltar</button></div>
 </div></div>
 
-<div class="overlay" id="peEl" hidden><div class="panel pep">
+<div class="overlay" id="peEl" hidden><div class="panel pep" role="dialog" aria-label="Personalizar perfil">
   <div class="kicker">Perfil</div>
   <h1 class="title sm">Personalizar</h1>
-  <div class="pe-photo">
-    <div class="pf-av big" id="peAv"></div>
-    <div class="pe-btns">
-      <button class="btn ghost" id="pePick" type="button">Escolher foto</button>
-      <button class="btn ghost" id="peDel" type="button">Remover foto</button>
+  <div class="pe-prev" id="peHero">
+    <div class="pf-banner"></div>
+    <div class="pe-row">
+      <div class="pf-av xl" id="peAv"></div>
+      <div class="pe-id"><b class="pe-name" id="peNm"></b><div class="pf-bio empty" id="pePv"></div></div>
     </div>
   </div>
-  <div class="pe-stage" id="peStage" hidden><canvas id="peCv" width="240" height="240" aria-label="Enquadramento da foto"></canvas><label class="pe-zoom"><span>Zoom</span><input type="range" id="peZoom" min="100" max="300" value="100"></label></div>
+  <div class="pe-btns">
+    <button class="btn ghost" id="pePick" type="button">Escolher foto</button>
+    <button class="btn ghost" id="peDel" type="button">Remover foto</button>
+  </div>
+  <div class="pe-stage" id="peStage" hidden><canvas id="peCv" width="240" height="240" aria-label="Enquadramento da foto"></canvas><label class="pe-zoom"><span>Zoom</span><input type="range" id="peZoom" min="100" max="300" value="100"></label><p class="pe-hint">Arraste a foto para enquadrar</p></div>
   <input id="peFile" type="file" accept="image/*" hidden>
   <div class="pe-bio">
-    <label class="mlbl" for="peBio">Bio</label>
+    <div class="pe-bh"><label class="mlbl" for="peBio">Bio</label><div class="pe-count" id="peCount">0/140</div></div>
     <textarea class="fld" id="peBio" maxlength="140" rows="3" placeholder="Conte algo sobre você, seu navio favorito, seu recorde…" spellcheck="false"></textarea>
-    <div class="pe-count" id="peCount">0/140</div>
+    <div class="pe-meter"><i id="peMeter"></i></div>
   </div>
   <p class="note" id="peMsg">Foto e bio aparecem no seu perfil. A foto é recortada em quadrado e reduzida automaticamente.</p>
   <div class="actions"><button class="btn" id="peSave" type="button">Salvar</button><button class="btn ghost" id="peCancel" type="button">Cancelar</button></div>
@@ -401,6 +405,6 @@
     <div class="actions"><button class="btn" id="evtClaim" type="button">Conquistar</button><button class="btn ghost" id="evtBack" type="button">Voltar</button></div>
   </div>
 </div></div>
-<script src="game.js?v=evt4"></script>
+<script src="game.js?v=prof5"></script>
 </body>
 </html>

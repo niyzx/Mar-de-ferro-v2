@@ -3598,11 +3598,11 @@ const dia = v => { const t = Date.parse(v); return t ? new Date(t).toLocaleDateS
 async function openProfile(nome) {
   rankEl.hidden = true; profEl.hidden = false;
   $('profName').textContent = nome;
-  const b = $('profBody'); b.textContent = 'Carregando…'; $('profEdit').hidden = true; $('profFriend').hidden = true; $('profMsg').textContent = '';
+  const b = $('profBody'); b.innerHTML = '<div class="pf-skel" aria-busy="true"><i class="a"></i><i class="l1"></i><i class="l2"></i><i class="g"></i></div>'; b.scrollTop = 0; $('profEdit').hidden = true; $('profFriend').hidden = true; $('profMsg').textContent = '';
   try {
     const r = await api('rpc/perfil_publico', { method: 'POST', body: JSON.stringify({ p_nome: nome }) });
     const d = await r.json();
-    if (!d || !d.nome) { b.textContent = 'Jogador não encontrado.'; return; }
+    if (!d || !d.nome) { b.innerHTML = '<p class="pf-empty">Jogador não encontrado.</p>'; return; }
     const adm = ADMINS.has(d.nome);
     $('profName').textContent = d.nome; curProf = d.nome;
     const sv = d.save || {}, rk = d.ranking;
@@ -3613,19 +3613,33 @@ async function openProfile(nome) {
     const own = !!(sess && d.nome === sess.nome), pr = own ? save.prof : cleanProf(d.prof || sv.prof);
     $('profEdit').hidden = !own; $('profFriend').hidden = own || !sess;
     const pos = rk ? Math.floor(Number(rk.pos) || 0) : 0, medal = pos >= 1 && pos <= 3 ? MEDAL[pos - 1] : '';
-    const card = (k, v) => '<div class="pf-card"><span>' + k + '</span><b>' + v + '</b></div>';
+    const card = (k, v, c) => '<div class="pf-card' + (c ? ' ' + c : '') + '"><span>' + k + '</span><b>' + v + '</b></div>';
     const pips = lv => Array.from({ length: MAXLV }, (_, i) => '<s' + (i < lv ? ' class="on"' : '') + '></s>').join('');
     const pct = ACH.length ? Math.round(ach.length / ACH.length * 100) : 0;
-    b.innerHTML = '<div class="pf-hero"><div class="pf-avw"><div class="pf-av" style="--h:' + avH(d.nome) + '">' + (pr.photo ? '<img alt="Foto de ' + esc(d.nome) + '" src="' + esc(pr.photo) + '">' : esc(d.nome.charAt(0).toUpperCase())) + '</div>' + (medal ? '<i class="pf-medal" style="--c:' + medal + '">' + pos + '</i>' : '') + '</div>' +
-      '<div class="pf-id"><div class="pf-tags">' + (adm ? '<em class="pf-tag adm">admin</em>' : '') + (pos ? '<em class="pf-tag">#' + num(pos) + ' no ranking</em>' : '<em class="pf-tag mute">sem ranking</em>') + '</div>' +
-      '<div class="pf-bio' + (pr.bio ? '' : ' empty') + '">' + (pr.bio ? esc(pr.bio) : (own ? 'Você ainda não escreveu uma bio.' : 'Sem bio ainda.')) + '</div></div></div>' +
-      '<div class="pf-grid">' + card('Recorde', num(d.best)) + card('Melhor onda', num((rk && rk.onda) || sv.maxWave)) + card('Navios afundados', num(sv.kills)) + card('Chefes', num(sv.bosses)) + card('Tempo de jogo', hh(sv.play)) + (own ? card('Moedas', num(save.coins)) : card('Conquistas', ach.length + '/' + ACH.length)) + '</div>' +
-      '<div class="pf-sec">Navio atual</div><div class="pf-ship"><b>' + esc(ship.name) + '</b>' + UPS.map(u => '<div class="pf-up"><span>' + esc(u.n) + '</span><i>' + pips(clamp(Math.floor(Number(upS[u.k]) || 0), 0, MAXLV)) + '</i></div>').join('') + '</div>' +
-      '<div class="pf-sec">Frota <small>' + owned.length + ' de ' + (adm ? SHIPS.length : PUB_N) + '</small></div><div class="pf-chips">' + owned.map(s => '<span class="pf-chip' + (s.id === ship.id ? ' on' : '') + '">' + esc(s.name) + '</span>').join('') + '</div>' +
-      '<div class="pf-sec">Conquistas <small>' + ach.length + ' de ' + ACH.length + ' · ' + pct + '%</small></div><div class="pf-bar"><i style="width:' + pct + '%"></i></div>' +
-      (ach.length ? '<div class="pf-chips">' + ach.map(a => '<span class="pf-chip star">★ ' + esc(a.n) + '</span>').join('') + '</div>' : '') +
+    const lvs = UPS.map(u => clamp(Math.floor(Number(upS[u.k]) || 0), 0, MAXLV));
+    const lvSum = lvs.reduce((s, x) => s + x, 0), lvMax = UPS.length * MAXLV;
+    const chip = a => '<span class="pf-chip star">★ ' + esc(a.n) + '</span>';
+    const SHOW = 8, hue = avH(d.nome);
+    const achHtml = ach.length
+      ? '<div class="pf-chips">' + ach.slice(0, SHOW).map(chip).join('') + '</div>' + (ach.length > SHOW ? '<details class="pf-more"><summary>Ver mais ' + (ach.length - SHOW) + '</summary><div class="pf-chips">' + ach.slice(SHOW).map(chip).join('') + '</div></details>' : '')
+      : '<p class="pf-none">Nenhuma conquista ainda.</p>';
+    const nudge = own && (!pr.photo || !pr.bio)
+      ? '<button class="pf-nudge pf-s" data-pe type="button" style="--i:1"><b>Complete seu perfil</b><span>' + (!pr.photo && !pr.bio ? 'Adicione uma foto e uma bio' : !pr.photo ? 'Adicione uma foto' : 'Escreva uma bio') + ' para se destacar no ranking.</span></button>' : '';
+    const tags = (own ? '<em class="pf-tag you">você</em>' : '') + (adm ? '<em class="pf-tag adm">admin</em>' : '') + (pos ? '<em class="pf-tag">#' + num(pos) + ' no ranking</em>' : '<em class="pf-tag mute">sem ranking</em>');
+    const avatar = pr.photo ? '<img alt="Foto de ' + esc(d.nome) + '" src="' + esc(pr.photo) + '">' : esc(d.nome.charAt(0).toUpperCase());
+    b.innerHTML =
+      '<div class="pf-hd pf-s" style="--h:' + hue + ';--i:0"><div class="pf-banner"></div>' +
+      '<div class="pf-hero"><div class="pf-avw"><div class="pf-av xl" style="--h:' + hue + '">' + avatar + '</div>' + (medal ? '<i class="pf-medal" style="--c:' + medal + '">' + pos + '</i>' : '') + '</div>' +
+      '<div class="pf-id"><h2 class="pf-name">' + esc(d.nome) + '</h2><div class="pf-tags">' + tags + '</div></div></div>' +
+      '<div class="pf-bio' + (pr.bio ? '' : ' empty') + '">' + (pr.bio ? esc(pr.bio) : (own ? 'Você ainda não escreveu uma bio.' : 'Sem bio ainda.')) + '</div></div>' + nudge +
+      '<div class="pf-grid pf-s" style="--i:2">' + card('Recorde', num(d.best), 'hi') + card('Melhor onda', num((rk && rk.onda) || sv.maxWave)) + card('Navios afundados', num(sv.kills)) + card('Chefes', num(sv.bosses)) + card('Tempo de jogo', hh(sv.play)) + (own ? card('Moedas', num(save.coins)) : card('Conquistas', ach.length + '/' + ACH.length)) + '</div>' +
+      '<section class="pf-s" style="--i:3"><div class="pf-sec">Navio atual</div><div class="pf-ship"><div class="pf-shiphd"><canvas class="pf-shipcv" width="192" height="96" aria-hidden="true"></canvas><div class="pf-shipmeta"><b>' + esc(ship.name) + '</b><span>Melhorias ' + lvSum + '/' + lvMax + '</span><div class="pf-bar thin"><i style="width:' + Math.round(lvSum / lvMax * 100) + '%"></i></div></div></div>' +
+      UPS.map((u, i) => '<div class="pf-up"><span>' + esc(u.n) + '</span><i>' + pips(lvs[i]) + '</i><em>' + lvs[i] + '/' + MAXLV + '</em></div>').join('') + '</div></section>' +
+      '<section class="pf-s" style="--i:4"><div class="pf-sec">Frota <small>' + owned.length + ' de ' + (adm ? SHIPS.length : PUB_N) + '</small></div><div class="pf-chips">' + owned.map(s => '<span class="pf-chip' + (s.id === ship.id ? ' on' : '') + '">' + esc(s.name) + '</span>').join('') + '</div></section>' +
+      '<section class="pf-s" style="--i:5"><div class="pf-sec">Conquistas <small>' + ach.length + ' de ' + ACH.length + ' · ' + pct + '%</small></div><div class="pf-bar"><i style="width:' + pct + '%"></i></div>' + achHtml + '</section>' +
       '<div class="pf-foot">Membro desde ' + dia(d.desde) + ' · último salvamento ' + dia(d.atualizado) + '</div>';
-  } catch (e) { b.textContent = 'Não foi possível carregar o perfil.'; }
+    try { const cvs = b.querySelector('.pf-shipcv'); if (cvs) shipThumb(cvs, ship); } catch (e) {}
+  } catch (e) { b.innerHTML = '<p class="pf-empty">Não foi possível carregar o perfil.</p>'; }
 }
 $('profFriend').addEventListener('click', async () => {
   if (!sess || !curProf) return;
@@ -3652,12 +3666,17 @@ $('pSearch').addEventListener('keydown', e => { e.stopPropagation(); if (e.key =
 $('pSearch').addEventListener('keyup', e => e.stopPropagation());
 $('pMine').addEventListener('click', () => { if (sess) openProfile(sess.nome); });
 $('profBack').addEventListener('click', () => { profEl.hidden = true; rankEl.hidden = false; });
+$('profX').addEventListener('click', () => $('profBack').click());
+$('profBody').addEventListener('click', e => { if (e.target.closest('[data-pe]')) peOpen(); });
 /* ---------- personalizar perfil: foto e bio ---------- */
 const peEl = $('peEl'); let peDraft = { bio: '', photo: '' };
 function peUi() {
   const nm = sess ? sess.nome : '?', av = $('peAv');
   av.style.setProperty('--h', avH(nm));
   av.innerHTML = peDraft.photo ? '<img alt="Prévia da foto" src="' + peDraft.photo + '">' : esc(nm.charAt(0).toUpperCase());
+  $('peHero').style.setProperty('--h', avH(nm)); $('peNm').textContent = nm;
+  const pv = $('pePv'); pv.textContent = peDraft.bio || 'Sua bio aparece aqui.'; pv.classList.toggle('empty', !peDraft.bio);
+  $('peMeter').style.width = Math.min(100, peDraft.bio.length / 140 * 100) + '%';
   $('peDel').disabled = !peDraft.photo;
   const n = peDraft.bio.length; $('peCount').textContent = n + '/140'; $('peCount').classList.toggle('warn', n >= 120);
 }
