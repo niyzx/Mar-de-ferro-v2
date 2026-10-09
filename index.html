@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=prof5">
+<link rel="stylesheet" href="style.css?v=conta6">
 </head>
 <body>
 <div id="loading" role="status" aria-live="polite">
@@ -241,21 +241,26 @@
     <button class="btn ghost" id="aBack" type="button">Voltar</button>
   </div>
 </div></div>
-<div class="overlay" id="acctEl" hidden><div class="panel">
-  <div class="kicker">Conta</div><h1 class="title sm" id="pName"></h1>
-  <dl class="stats" id="pStats"></dl>
-  <p class="note" id="pSync"></p>
-  <input class="fld" id="pRename" maxlength="16" placeholder="Novo nome de usuário (3 a 16)" autocomplete="off" autocapitalize="none" spellcheck="false">
-  <input class="fld" id="pNew" type="password" placeholder="Nova senha (mínimo 6)" autocomplete="new-password">
-  <p class="note" id="pMsg"></p>
-  <div class="actions">
+<div class="overlay" id="acctEl" hidden><div class="panel acctp" role="dialog" aria-label="Conta">
+  <div class="pf-top"><div class="kicker">Conta</div></div>
+  <div class="ac-body">
+    <div class="pf-hd" id="pHd"><div class="pf-banner"></div>
+      <div class="pf-hero"><div class="pf-avw"><div class="pf-av xl" id="pAv"></div></div>
+        <div class="pf-id"><h1 class="pf-name" id="pName"></h1><div class="pf-tags" id="pTags"></div></div></div>
+      <div class="ac-quick"><button class="btn ghost" id="pProf" type="button">Ver perfil</button><button class="btn ghost" id="pEditBtn" type="button">Editar perfil</button></div>
+    </div>
+    <div class="pf-grid" id="pStats"></div>
+    <div class="ac-sync"><i class="ac-dot" aria-hidden="true"></i><span id="pSync"></span><button class="btn ghost" id="pSyncBtn" type="button">Sincronizar</button></div>
+    <section class="ac-sec"><div class="pf-sec">Nome de usuário <small>1 troca a cada 7 dias</small></div>
+      <div class="ac-row"><input class="fld" id="pRename" maxlength="16" placeholder="Novo nome (3 a 16)" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Novo nome de usuário"><button class="btn ghost" id="pRenBtn" type="button">Trocar</button></div></section>
+    <section class="ac-sec"><div class="pf-sec">Senha <small>mínimo 6 caracteres</small></div>
+      <div class="ac-row"><input class="fld" id="pNew" type="password" placeholder="Nova senha" autocomplete="new-password" aria-label="Nova senha"><button class="btn ghost" id="pPass" type="button">Alterar</button></div></section>
+  </div>
+  <p class="note" id="pMsg" aria-live="polite"></p>
+  <div class="actions ac-act">
+    <button class="btn" id="pBack" type="button">Voltar</button>
     <button class="btn ghost" id="pAdm" type="button" hidden>Painel admin</button>
-    <button class="btn ghost" id="pEditBtn" type="button">Editar perfil</button>
-    <button class="btn ghost" id="pRenBtn" type="button">Trocar nome</button>
-    <button class="btn ghost" id="pPass" type="button">Alterar senha</button>
-    <button class="btn ghost" id="pSyncBtn" type="button">Sincronizar agora</button>
-    <button class="btn ghost" id="pOut" type="button">Sair da conta</button>
-    <button class="btn ghost" id="pBack" type="button">Voltar</button>
+    <button class="btn ghost ac-out" id="pOut" type="button">Sair da conta</button>
   </div>
 </div></div>
 <div class="overlay" id="adm" hidden><div class="panel">
@@ -405,6 +410,6 @@
     <div class="actions"><button class="btn" id="evtClaim" type="button">Conquistar</button><button class="btn ghost" id="evtBack" type="button">Voltar</button></div>
   </div>
 </div></div>
-<script src="game.js?v=prof5"></script>
+<script src="game.js?v=conta6"></script>
 </body>
 </html>

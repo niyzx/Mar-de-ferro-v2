@@ -3404,11 +3404,17 @@ function setAMode(m) {
   $('aNote').textContent = m === 'signup' ? 'Nome: 3 a 16 letras minúsculas, números ou _. Senha: mínimo 6. Não há e-mail: se esquecer a senha, não dá para recuperar a conta.' : 'Entre para carregar seu progresso salvo (moedas, navios, melhorias e recorde).';
   $('aMsg').textContent = '';
 }
+function acctAv() {
+  const nm = sess.nome, p = save.prof || {}, av = $('pAv');
+  av.style.setProperty('--h', avH(nm)); $('pHd').style.setProperty('--h', avH(nm));
+  av.innerHTML = p.photo ? '<img alt="" src="' + esc(p.photo) + '">' : esc(nm.charAt(0).toUpperCase());
+}
 function fillAcct() {
-  $('pName').textContent = sess.nome + (ADMIN ? ' ★ ADMIN' : ''); $('pAdm').hidden = !ADMIN;
-  const kv = (k, v) => '<div><dt>' + k + '</dt><dd>' + v + '</dd></div>';
-  $('pStats').innerHTML = kv('Recorde', fmt(best)) + kv('Navios afundados', fmt(save.kills)) + kv('Chefes', fmt(save.bosses)) + kv('Frota', save.owned.filter(id => ADMIN || isPub(id)).length + '/' + (ADMIN ? SHIPS.length : PUB_N)) + kv('Conquistas', ACH.filter(x => save.ach[x.id]).length + '/' + ACH.length) + kv('Moedas', fmt(save.coins));
-  $('pSync').textContent = lastSync ? 'Última sincronização: ' + new Date(lastSync).toLocaleTimeString() : 'Progresso salvo na nuvem automaticamente.';
+  $('pName').textContent = sess.nome; $('pAdm').hidden = !ADMIN; acctAv();
+  $('pTags').innerHTML = '<em class="pf-tag you">● conectado</em>' + (ADMIN ? '<em class="pf-tag adm">admin</em>' : '');
+  const card = (k, v, c) => '<div class="pf-card' + (c ? ' ' + c : '') + '"><span>' + k + '</span><b>' + v + '</b></div>';
+  $('pStats').innerHTML = card('Recorde', fmt(best), 'hi') + card('Navios afundados', fmt(save.kills)) + card('Chefes', fmt(save.bosses)) + card('Frota', save.owned.filter(id => ADMIN || isPub(id)).length + '/' + (ADMIN ? SHIPS.length : PUB_N)) + card('Conquistas', ACH.filter(x => save.ach[x.id]).length + '/' + ACH.length) + card('Moedas', fmt(save.coins));
+  $('pSync').textContent = lastSync ? 'Sincronizado às ' + new Date(lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Progresso salvo na nuvem automaticamente.';
   $('pMsg').textContent = ''; $('pNew').value = '';
 }
 $('btnAcct').addEventListener('click', () => {
@@ -3424,6 +3430,8 @@ for (const id of ['aUser', 'aPass', 'aPass2', 'pNew']) {
 }
 $('aUser').addEventListener('input', e => { e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''); });
 $('pBack').addEventListener('click', () => { $('acctEl').hidden = true; });
+let profFromAcct = false;
+$('pProf').addEventListener('click', () => { if (!sess) return; profFromAcct = true; $('acctEl').hidden = true; openProfile(sess.nome); });
 $('pOut').addEventListener('click', () => { if (confirm('Sair da conta ' + sess.nome + '?')) { logout(); $('acctEl').hidden = true; } });
 $('pSyncBtn').addEventListener('click', async () => { $('pMsg').textContent = 'Sincronizando…'; const ok = await pushCloud(); fillAcct(); $('pMsg').textContent = ok ? 'Progresso sincronizado.' : 'Falha ao sincronizar. Verifique a internet.'; });
 $('pPass').addEventListener('click', async () => {
@@ -3458,7 +3466,7 @@ $('pRenBtn').addEventListener('click', async () => {
       const old = sess.nome; sess.nome = n;
       try { localStorage.setItem(SESS_KEY, JSON.stringify(sess)); } catch (e) {}
       if (ADMINS.has(old)) { ADMINS.delete(old); ADMINS.add(n); }
-      $('pRename').value = ''; refreshAcct(); $('pName').textContent = n + (ADMIN ? ' ★ ADMIN' : '');
+      $('pRename').value = ''; refreshAcct(); $('pName').textContent = n; acctAv();
       m.textContent = 'Nome alterado! Use "' + n + '" para entrar da próxima vez.';
       try { pushCloud(); } catch (e) {}
     } else if (r && typeof r === 'object' && r.code === 'PGRST202') m.textContent = 'Falta instalar o trocar_nome.sql no servidor.';
@@ -3664,8 +3672,8 @@ rankEl.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' 
 $('pGo').addEventListener('click', searchProf);
 $('pSearch').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') searchProf(); });
 $('pSearch').addEventListener('keyup', e => e.stopPropagation());
-$('pMine').addEventListener('click', () => { if (sess) openProfile(sess.nome); });
-$('profBack').addEventListener('click', () => { profEl.hidden = true; rankEl.hidden = false; });
+$('pMine').addEventListener('click', () => { profFromAcct = false; if (sess) openProfile(sess.nome); });
+$('profBack').addEventListener('click', () => { profEl.hidden = true; if (profFromAcct && sess) { profFromAcct = false; fillAcct(); $('acctEl').hidden = false; } else rankEl.hidden = false; });
 $('profX').addEventListener('click', () => $('profBack').click());
 $('profBody').addEventListener('click', e => { if (e.target.closest('[data-pe]')) peOpen(); });
 /* ---------- personalizar perfil: foto e bio ---------- */

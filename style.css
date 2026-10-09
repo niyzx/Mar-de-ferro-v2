@@ -1128,3 +1128,25 @@ body[data-state="playing"] #btnCfg, body:has(#mpEl:not([hidden]), #auth:not([hid
 @media (max-width: 380px) { .pf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pf-card.hi b { font-size: 30px; } }
 @media (orientation: landscape) and (max-height: 520px) { .pf-banner { height: 48px; } .pf-hd .pf-avw { margin-top: -34px; } .pf-av.xl { width: 72px; height: 72px; font-size: 32px; } .pf-hd .pf-bio { margin: 8px 16px 12px; } .pe-prev .pf-banner { height: 40px; } }
 @media (prefers-reduced-motion: reduce) { .pf-s, .pf-skel i { animation: none; } }
+
+/* Conta v2 */
+.acctp { width: min(560px, 100%); gap: 10px; max-height: min(880px, calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))); }
+.ac-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 12px; padding-right: 2px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.ac-body > * { flex: none; }
+.ac-quick { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 16px; }
+.ac-quick .btn { flex: 1 1 130px; }
+.acctp .pf-grid { margin: 0; }
+.ac-sync { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 12px; border: 1px solid var(--line); background: rgba(212, 232, 234, .04); font-size: 12px; color: var(--steel); }
+.ac-sync span { flex: 1; min-width: 0; }
+.ac-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 8px var(--good); }
+.ac-sync .btn { flex: none; }
+.ac-sec .pf-sec { margin-top: 2px; }
+.ac-row { display: flex; gap: 8px; align-items: stretch; }
+.ac-row .fld { flex: 1; min-width: 0; margin: 0; font-size: 14px; }
+.ac-row .fld:focus { outline: 2px solid var(--brass); outline-offset: 1px; }
+.ac-row .btn { flex: none; min-height: 44px; }
+.ac-act { flex: none; }
+.ac-act .btn:not(.ghost) { padding-right: 36px; }
+.btn.ghost.ac-out { margin-left: auto; color: var(--rust); border-color: rgba(226, 85, 47, .45); }
+.btn.ghost.ac-out:hover { border-color: var(--rust); }
+@media (max-width: 380px) { .ac-sync { flex-wrap: wrap; } .ac-sync .btn { width: 100%; } }
